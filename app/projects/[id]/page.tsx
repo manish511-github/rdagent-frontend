@@ -1,5 +1,10 @@
 import ProjectDashboard from "@/components/kokonutui/project-dashboard"
+import Layout from "@/components/kokonutui/layout"
 
 export default function ProjectPage({ params }: { params: { id: string } }) {
-  return <ProjectDashboard projectId={params.id} />
+  return (
+    <Layout>
+      <ProjectDashboard projectId={params.id} />
+    </Layout>
+  )
 }

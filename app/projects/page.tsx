@@ -1,5 +1,10 @@
 import ProjectsPage from "@/components/kokonutui/projects-page"
+import Layout from "@/components/kokonutui/layout"
 
 export default function Projects() {
-  return <ProjectsPage />
+  return (
+    <Layout>
+      <ProjectsPage />
+    </Layout>
+  )
 }

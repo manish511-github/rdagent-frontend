@@ -11,17 +11,17 @@ import {
   Star,
   Edit,
   X,
-  Check,
   ExternalLink,
   Globe,
   Tag,
   Users,
   Target,
-  AlertCircle,
-  Info,
+  BarChart3,
+  ChevronRight,
+  FileText,
+  Calendar,
 } from "lucide-react"
-import SocialMediaCards from "@/components/kokonutui/social-media-cards" // Import the new component
-// Import the new MarketingAnalyticsCards component at the top of the file
+import SocialMediaCards from "@/components/kokonutui/social-media-cards"
 import MarketingAnalyticsCards from "@/components/kokonutui/marketing-analytics-cards"
 import ContentAnalyticsCards from "@/components/kokonutui/content-analytics-cards"
 import PotentialCustomerAnalytics from "@/components/kokonutui/potential-customer-analytics"
@@ -35,14 +35,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import Layout from "@/components/kokonutui/layout"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-// Update the MOCK_PROJECTS and DEFAULT_PROJECT data structures to include competitor information
 const MOCK_PROJECTS = {
   "1": {
     id: "1",
@@ -144,7 +140,6 @@ const MOCK_PROJECTS = {
   },
 }
 
-// Default project for new projects
 const DEFAULT_PROJECT = {
   id: "new",
   name: "New Project",
@@ -164,6 +159,7 @@ const DEFAULT_PROJECT = {
     total: 0,
     completed: 0,
     inProgress: 0,
+    notStarted: 0,
   },
   recentActivities: [{ user: "You", action: "created this project", time: "Just now" }],
   upcomingDeadlines: [],
@@ -173,7 +169,6 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
   const [project, setProject] = useState(MOCK_PROJECTS[projectId as keyof typeof MOCK_PROJECTS] || DEFAULT_PROJECT)
   const [isFavorite, setIsFavorite] = useState(project.favorite)
 
-  // Edit states
   const [isEditing, setIsEditing] = useState(false)
   const [editedName, setEditedName] = useState(project.name)
   const [editedDescription, setEditedDescription] = useState(project.description)
@@ -184,17 +179,14 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
   const [keywordInput, setKeywordInput] = useState("")
   const [excludedKeywordInput, setExcludedKeywordInput] = useState("")
 
-  // Add competitor state variables
   const [editedCompetitors, setEditedCompetitors] = useState(project.competitors?.join(", ") || "")
   const [competitorInput, setCompetitorInput] = useState("")
 
   useEffect(() => {
-    // Update project data when projectId changes
     const projectData = MOCK_PROJECTS[projectId as keyof typeof MOCK_PROJECTS] || DEFAULT_PROJECT
     setProject(projectData)
     setIsFavorite(projectData.favorite)
 
-    // Reset edit states
     setEditedName(projectData.name)
     setEditedDescription(projectData.description)
     setEditedTargetAudience(projectData.targetAudience)
@@ -206,7 +198,6 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
 
   const toggleFavorite = () => {
     setIsFavorite(!isFavorite)
-    // In a real app, this would update the database
   }
 
   const formatDate = (dateString: string) => {
@@ -218,7 +209,6 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
     }).format(date)
   }
 
-  // Add competitor functions
   const addCompetitor = () => {
     if (competitorInput.trim()) {
       const competitors = editedCompetitors ? editedCompetitors.split(",").map((k) => k.trim()) : []
@@ -238,9 +228,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
     setEditedCompetitors(competitors.join(", "))
   }
 
-  // Update handleSaveChanges to include competitors
   const handleSaveChanges = () => {
-    // In a real app, this would save to the database
     const updatedProject = {
       ...project,
       name: editedName,
@@ -266,7 +254,6 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
   }
 
   const handleCancelEdit = () => {
-    // Reset to original values
     setEditedName(project.name)
     setEditedDescription(project.description)
     setEditedTargetAudience(project.targetAudience)
@@ -316,510 +303,494 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
   }
 
   return (
-    <Layout>
-      <div className="flex flex-col min-h-screen">
-        {/* Project header */}
-        <div className="bg-background">
-          <div className="max-w-7xl mx-auto px-4 py-3">
-            <div className="flex flex-col gap-3">
-              {/* Project header - simplified without breadcrumbs */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex items-center gap-3">
-                  <Link href="/projects" className="p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors">
-                    <ArrowLeft size={16} />
-                  </Link>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-bold">{project.name}</h1>
-                    <button
-                      onClick={toggleFavorite}
-                      className={`p-1 rounded-full ${isFavorite ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"}`}
-                      aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                    >
-                      <Star size={18} fill={isFavorite ? "currentColor" : "none"} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 self-end sm:self-auto">
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    <Share2 size={16} />
-                    Share
-                  </Button>
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    <Settings size={16} />
-                    Settings
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="px-2">
-                        <MoreHorizontal size={16} />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Duplicate Project</DropdownMenuItem>
-                      <DropdownMenuItem>Export Project</DropdownMenuItem>
-                      <DropdownMenuItem>Archive Project</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">Delete Project</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+    <div className="flex flex-col min-h-full">
+      <div className="bg-background">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center gap-3">
+                <Link href="/projects" className="p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors">
+                  <ArrowLeft size={16} />
+                </Link>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold">{project.name}</h1>
+                  <button
+                    onClick={toggleFavorite}
+                    className={`p-1 rounded-full ${isFavorite ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"}`}
+                    aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                  >
+                    <Star size={18} fill={isFavorite ? "currentColor" : "none"} />
+                  </button>
                 </div>
               </div>
 
-              {/* Project Information Card - refined with improved typography and visual appeal */}
-              {/* Project Information Card - redesigned with competitor field and optimized layout */}
-              <Card className="overflow-hidden border-muted/60 bg-gradient-to-br from-blue-50/50 via-card to-purple-50/30 dark:from-blue-950/20 dark:via-card dark:to-purple-950/10 shadow-sm">
-                <div className="p-5">
-                  {/* Card Header with Status Badge */}
-                  <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Share2 size={16} />
+                  Share
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Settings size={16} />
+                  Settings
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="px-2">
+                      <MoreHorizontal size={16} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>Duplicate Project</DropdownMenuItem>
+                    <DropdownMenuItem>Export Project</DropdownMenuItem>
+                    <DropdownMenuItem>Archive Project</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive">Delete Project</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            {/* Enhanced Theme-Adaptive Marketing Campaign Card */}
+            <Card className="overflow-hidden border border-border/60 shadow-md bg-gradient-to-br from-background/95 via-background to-background/95 backdrop-blur-sm">
+              {!isEditing ? (
+                <div className="relative">
+                  {/* Header section with refined design */}
+                  <div className="relative p-4 border-b border-border/30 flex justify-between items-start">
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h2 className="text-lg font-semibold tracking-tight">{project.name}</h2>
-                        <Badge
-                          variant="outline"
-                          className={`text-xs px-2.5 py-0.5 font-medium ${
-                            project.status === "active"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/50"
-                              : "bg-primary/10 border-primary/20"
-                          }`}
-                        >
-                          {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <h2 className="text-base font-medium text-foreground">{project.name}</h2>
+                        <Badge className="px-1.5 py-0 text-[10px] bg-emerald-100/80 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30">
+                          Active
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5" />
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3 mr-1" />
                         <span>Updated {formatDate(project.lastUpdated)}</span>
                       </div>
                     </div>
-                    {!isEditing ? (
-                      <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="h-8">
-                        <Edit className="h-3.5 w-3.5 mr-1.5" />
-                        Edit
-                      </Button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={handleCancelEdit} className="h-8">
-                          <X className="h-3.5 w-3.5 mr-1.5" />
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={handleSaveChanges} className="h-8">
-                          <Check className="h-3.5 w-3.5 mr-1.5" />
-                          Save
-                        </Button>
-                      </div>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsEditing(true)}
+                      className="h-7 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors duration-200"
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
 
-                  {!isEditing ? (
-                    <div className="bg-background/70 backdrop-blur-sm rounded-lg p-4 border border-border/40 shadow-inner">
-                      {/* Project Description */}
-                      <div className="mb-4">
-                        <p className="text-sm text-muted-foreground leading-relaxed">{project.description}</p>
-                      </div>
-
-                      <Separator className="my-4 bg-border/60" />
-
-                      {/* Project Details Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-                        {/* Left Column */}
-                        <div className="space-y-5">
-                          {/* Website */}
-                          <div>
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <Globe className="h-4 w-4 text-primary" />
-                              <h3 className="text-sm font-medium text-foreground">Website</h3>
-                            </div>
-                            {project.websiteLink ? (
-                              <a
-                                href={project.websiteLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-medium"
-                              >
-                                {project.websiteLink}
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                            ) : (
-                              <p className="text-sm text-muted-foreground italic">No website link provided</p>
-                            )}
-                          </div>
-
-                          {/* Target Audience */}
-                          <div>
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <Target className="h-4 w-4 text-primary" />
-                              <h3 className="text-sm font-medium text-foreground">Target Audience</h3>
-                            </div>
-                            <p className="text-sm leading-relaxed">{project.targetAudience}</p>
-                          </div>
-
-                          {/* Competitors - New Section */}
-                          <div>
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <Users className="h-4 w-4 text-primary" />
-                              <h3 className="text-sm font-medium text-foreground">Competitors</h3>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {project.competitors && project.competitors.length > 0 ? (
-                                project.competitors.map((competitor, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className="text-xs px-2 py-0.5 bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800/50"
-                                  >
-                                    {competitor}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <p className="text-sm text-muted-foreground italic">No competitors added</p>
-                              )}
-                            </div>
-                          </div>
+                  {/* Content cards with enhanced design */}
+                  <div className="p-4 bg-muted/10 backdrop-blur-sm">
+                    {/* Description Card - Full Width with Progress */}
+                    <div className="mb-3 p-4 bg-card rounded-md border border-border/60 shadow-md backdrop-blur-sm transition-all duration-200 hover:bg-muted/20 group">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 group-hover:bg-muted transition-colors duration-200">
+                          <FileText className="h-3.5 w-3.5" />
                         </div>
-
-                        {/* Right Column */}
-                        <div className="space-y-5">
-                          {/* Keywords */}
-                          <div>
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <Tag className="h-4 w-4 text-primary" />
-                              <h3 className="text-sm font-medium text-foreground">Keywords</h3>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="text-xs">Terms to target in marketing and SEO</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {project.keywords.length > 0 ? (
-                                project.keywords.map((keyword, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="secondary"
-                                    className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                                  >
-                                    {keyword}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <p className="text-sm text-muted-foreground italic">No keywords added</p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Excluded Keywords */}
-                          <div>
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <AlertCircle className="h-4 w-4 text-rose-500" />
-                              <h3 className="text-sm font-medium text-foreground">Excluded Keywords</h3>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="text-xs">Terms to avoid in marketing and SEO</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {project.excludedKeywords.length > 0 ? (
-                                project.excludedKeywords.map((keyword, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className="text-xs px-2 py-0.5 border-rose-200 text-rose-600 dark:border-rose-800/50 dark:text-rose-400"
-                                  >
-                                    {keyword}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <p className="text-sm text-muted-foreground italic">No excluded keywords</p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+                        <h3 className="text-sm font-medium text-foreground/90">Description</h3>
                       </div>
+                      <p className="text-sm text-foreground/80 leading-relaxed mb-3">{project.description}</p>
 
-                      {/* Action Buttons */}
-                      <div className="mt-4 flex flex-wrap gap-2 justify-end">
-                        <Button variant="outline" size="sm" className="gap-1.5">
-                          <Share2 size={14} />
-                          Share Product
-                        </Button>
-                        <Button size="sm" className="gap-1.5">
-                          <Edit size={14} />
-                          Edit Details
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    // Edit mode
-                    <div className="space-y-4 bg-background/70 backdrop-blur-sm rounded-lg p-4 border border-border/40 shadow-inner">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label
-                            htmlFor="project-name"
-                            className="text-xs font-medium text-primary block mb-1 flex items-center gap-1.5"
-                          >
-                            Brand Name
-                            <span className="text-[10px] text-muted-foreground font-normal">Used for promotion</span>
-                          </label>
-                          <Input
-                            id="project-name"
-                            value={editedName}
-                            onChange={(e) => setEditedName(e.target.value)}
-                            placeholder="Enter your brand name"
-                            className="h-8 text-sm"
-                          />
+                      {/* Progress bar */}
+                      <div className="mt-3 space-y-1.5">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-muted-foreground">Progress</span>
+                          <span className="font-medium text-foreground/90">{project.progress}%</span>
                         </div>
-
-                        <div>
-                          <label
-                            htmlFor="website-link"
-                            className="text-xs font-medium text-primary block mb-1 flex items-center gap-1.5"
-                          >
-                            Website Link
-                            <span className="text-[10px] text-muted-foreground font-normal">Ensure correct URL</span>
-                          </label>
-                          <Input
-                            id="website-link"
-                            value={editedWebsiteLink}
-                            onChange={(e) => setEditedWebsiteLink(e.target.value)}
-                            placeholder="https://example.com"
-                            type="url"
-                            className="h-8 text-sm"
+                        <div className="h-1.5 w-full bg-muted/40 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500/80 dark:bg-emerald-600/70 rounded-full transition-all duration-300 ease-out"
+                            style={{ width: `${project.progress}%` }}
                           />
                         </div>
                       </div>
 
-                      <div>
-                        <label
-                          htmlFor="project-description"
-                          className="text-xs font-medium text-primary block mb-1 flex items-center gap-1.5"
-                        >
-                          Description
-                          <span className="text-[10px] text-muted-foreground font-normal">
-                            What your project is about 🧠
-                          </span>
-                        </label>
-                        <Textarea
-                          id="project-description"
-                          value={editedDescription}
-                          onChange={(e) => setEditedDescription(e.target.value)}
-                          placeholder="Describe what your project is about"
-                          rows={2}
-                          className="text-sm min-h-[60px]"
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          htmlFor="target-audience"
-                          className="text-xs font-medium text-primary block mb-1 flex items-center gap-1.5"
-                        >
-                          Target Audience
-                          <span className="text-[10px] text-muted-foreground font-normal">Who you're targeting</span>
-                        </label>
-                        <Textarea
-                          id="target-audience"
-                          value={editedTargetAudience}
-                          onChange={(e) => setEditedTargetAudience(e.target.value)}
-                          placeholder="Describe your target audience"
-                          rows={2}
-                          className="text-sm min-h-[60px]"
-                        />
-                      </div>
-
-                      {/* Competitors field - new */}
-                      <div>
-                        <label
-                          htmlFor="competitors"
-                          className="text-xs font-medium text-primary block mb-1 flex items-center gap-1.5"
-                        >
-                          Competitors
-                          <span className="text-[10px] text-muted-foreground font-normal">Main market competitors</span>
-                        </label>
-                        <div className="flex flex-wrap gap-1.5 mb-2 min-h-[28px] p-1 border rounded-md bg-background/50">
-                          {editedCompetitors
-                            .split(",")
-                            .map((k) => k.trim())
-                            .filter((k) => k)
-                            .map((competitor, index) => (
-                              <Badge
-                                key={index}
-                                variant="outline"
-                                className="text-xs flex items-center gap-1 px-2 py-0.5 bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800/50"
-                              >
-                                {competitor}
-                                <button
-                                  onClick={() => removeCompetitor(competitor)}
-                                  className="ml-1 rounded-full hover:bg-muted"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </Badge>
+                      {/* Upcoming deadlines */}
+                      {project.upcomingDeadlines && project.upcomingDeadlines.length > 0 && (
+                        <div className="mt-4">
+                          <div className="flex items-center gap-1.5 mb-2 text-xs font-medium text-foreground/90">
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>Upcoming Deadlines</span>
+                          </div>
+                          <ul className="space-y-1.5">
+                            {project.upcomingDeadlines.slice(0, 2).map((deadline, index) => (
+                              <li key={index} className="flex justify-between text-xs">
+                                <span className="text-foreground/80">{deadline.task}</span>
+                                <span className="text-muted-foreground">{formatDate(deadline.dueDate)}</span>
+                              </li>
                             ))}
+                          </ul>
                         </div>
-                        <div className="flex gap-2">
-                          <Input
-                            id="competitors"
-                            value={competitorInput}
-                            onChange={(e) => setCompetitorInput(e.target.value)}
-                            placeholder="Add a competitor"
-                            className="h-8 text-sm"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault()
-                                addCompetitor()
-                              }
-                            }}
-                          />
-                          <Button type="button" onClick={addCompetitor} variant="outline" size="sm" className="h-8">
-                            Add
-                          </Button>
+                      )}
+                    </div>
+
+                    {/* Card Grid with enhanced styling */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {/* Website Card */}
+                      <div className="p-4 bg-card rounded-md border border-border/60 shadow-md backdrop-blur-sm transition-all duration-200 hover:bg-muted/20 group">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 group-hover:bg-muted transition-colors duration-200">
+                            <Globe className="h-3.5 w-3.5" />
+                          </div>
+                          <h3 className="text-sm font-medium text-foreground/90">Website</h3>
+                        </div>
+                        <a
+                          href={project.websiteLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-sm text-foreground/80 hover:text-foreground transition-colors duration-200 border-b border-dashed border-border/40 hover:border-border/80 pb-0.5"
+                        >
+                          {project.websiteLink}
+                          <ExternalLink className="h-3.5 w-3.5 ml-1.5 flex-shrink-0 opacity-70 group-hover:translate-x-0.5 transition-transform duration-200" />
+                        </a>
+                      </div>
+
+                      {/* Target Audience Card */}
+                      <div className="p-4 bg-card rounded-md border border-border/60 shadow-md backdrop-blur-sm transition-all duration-200 hover:bg-muted/20 group">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 group-hover:bg-muted transition-colors duration-200">
+                            <Target className="h-3.5 w-3.5" />
+                          </div>
+                          <h3 className="text-sm font-medium text-foreground/90">Target Audience</h3>
+                        </div>
+                        <p className="text-sm text-foreground/80 mb-3 leading-relaxed">{project.targetAudience}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 text-xs font-medium border border-border/30 shadow-sm group-hover:bg-muted transition-colors duration-200">
+                            M
+                          </span>
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 text-xs font-medium border border-border/30 shadow-sm group-hover:bg-muted transition-colors duration-200">
+                            G
+                          </span>
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 text-xs font-medium border border-border/30 shadow-sm group-hover:bg-muted transition-colors duration-200">
+                            SP
+                          </span>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label
-                            htmlFor="keywords"
-                            className="text-xs font-medium text-primary block mb-1 flex items-center gap-1.5"
-                          >
-                            Keywords
-                            <span className="text-[10px] text-muted-foreground font-normal">Terms to target</span>
-                          </label>
-                          <div className="flex flex-wrap gap-1.5 mb-2 min-h-[28px] p-1 border rounded-md bg-background/50">
-                            {editedKeywords
-                              .split(",")
-                              .map((k) => k.trim())
-                              .filter((k) => k)
-                              .map((keyword, index) => (
-                                <Badge
-                                  key={index}
-                                  variant="secondary"
-                                  className="text-xs flex items-center gap-1 px-2 py-0.5"
-                                >
-                                  {keyword}
-                                  <button
-                                    onClick={() => removeKeyword(keyword)}
-                                    className="ml-1 rounded-full hover:bg-muted"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </Badge>
-                              ))}
+                      {/* Competitors Card */}
+                      <div className="p-4 bg-card rounded-md border border-border/60 shadow-md backdrop-blur-sm transition-all duration-200 hover:bg-muted/20 group">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 group-hover:bg-muted transition-colors duration-200">
+                            <Users className="h-3.5 w-3.5" />
                           </div>
-                          <div className="flex gap-2">
-                            <Input
-                              id="keywords"
-                              value={keywordInput}
-                              onChange={(e) => setKeywordInput(e.target.value)}
-                              placeholder="Add a keyword"
-                              className="h-8 text-sm"
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault()
-                                  addKeyword()
-                                }
-                              }}
-                            />
-                            <Button type="button" onClick={addKeyword} variant="outline" size="sm" className="h-8">
-                              Add
-                            </Button>
-                          </div>
+                          <h3 className="text-sm font-medium text-foreground/90">Competitors</h3>
                         </div>
-
-                        <div>
-                          <label
-                            htmlFor="excluded-keywords"
-                            className="text-xs font-medium text-primary block mb-1 flex items-center gap-1.5"
-                          >
-                            Excluded Keywords
-                            <span className="text-[10px] text-muted-foreground font-normal">Terms to avoid</span>
-                          </label>
-                          <div className="flex flex-wrap gap-1.5 mb-2 min-h-[28px] p-1 border rounded-md bg-background/50">
-                            {editedExcludedKeywords
-                              .split(",")
-                              .map((k) => k.trim())
-                              .filter((k) => k)
-                              .map((keyword, index) => (
-                                <Badge
-                                  key={index}
-                                  variant="outline"
-                                  className="text-xs border-red-200 text-red-600 dark:border-red-800 dark:text-red-400 flex items-center gap-1 px-2 py-0.5"
-                                >
-                                  {keyword}
-                                  <button
-                                    onClick={() => removeExcludedKeyword(keyword)}
-                                    className="ml-1 rounded-full hover:bg-muted"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </Badge>
-                              ))}
-                          </div>
-                          <div className="flex gap-2">
-                            <Input
-                              id="excluded-keywords"
-                              value={excludedKeywordInput}
-                              onChange={(e) => setExcludedKeywordInput(e.target.value)}
-                              placeholder="Add an excluded keyword"
-                              className="h-8 text-sm"
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault()
-                                  addExcludedKeyword()
-                                }
-                              }}
-                            />
-                            <Button
-                              type="button"
-                              onClick={addExcludedKeyword}
-                              variant="outline"
-                              size="sm"
-                              className="h-8"
+                        <ul className="space-y-2">
+                          {project.competitors.map((competitor, index) => (
+                            <li
+                              key={index}
+                              className="flex items-center gap-2 text-sm text-foreground/80 group-hover:text-foreground/90 transition-colors duration-200"
                             >
-                              Add
-                            </Button>
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-muted/70 text-foreground/80 text-xs font-medium border border-border/30 group-hover:bg-muted transition-colors duration-200">
+                                {competitor.charAt(0)}
+                              </span>
+                              <span className="truncate">{competitor}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Keywords Card */}
+                      <div className="p-4 bg-card rounded-md border border-border/60 shadow-md backdrop-blur-sm transition-all duration-200 hover:bg-muted/20 group">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 group-hover:bg-muted transition-colors duration-200">
+                            <Tag className="h-3.5 w-3.5" />
                           </div>
+                          <h3 className="text-sm font-medium text-foreground/90">Keywords</h3>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {project.keywords.map((keyword, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="px-2 py-0.5 bg-muted/70 text-foreground/80 border-border/40 font-normal text-xs group-hover:bg-muted transition-colors duration-200"
+                            >
+                              {keyword}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
                     </div>
-                  )}
+                  </div>
+
+                  {/* Footer with action buttons */}
+                  <div className="p-4 border-t border-border/30 bg-muted/30 backdrop-blur-sm flex justify-between items-center">
+                    <Link
+                      href="#marketing-analytics"
+                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 group"
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                      <span>Marketing Analytics</span>
+                      <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform duration-200" />
+                    </Link>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-sm border-border/60 text-foreground/90 hover:bg-muted hover:text-foreground transition-all duration-200"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Edit size={14} className="mr-1.5" />
+                      Edit Details
+                    </Button>
+                  </div>
                 </div>
-              </Card>
+              ) : (
+                <div className="space-y-4 bg-card p-5 border-border">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="project-name"
+                        className="text-sm font-medium text-foreground/90 block mb-1.5 flex items-center gap-1.5"
+                      >
+                        Brand Name
+                        <span className="text-xs text-muted-foreground font-normal">Used for promotion</span>
+                      </label>
+                      <Input
+                        id="project-name"
+                        value={editedName}
+                        onChange={(e) => setEditedName(e.target.value)}
+                        placeholder="Enter your brand name"
+                        className="h-9 text-sm"
+                      />
+                    </div>
 
-              {/* Marketing Analytics Cards - Added below product information */}
-              <div className="mt-4">
-                <MarketingAnalyticsCards />
-              </div>
+                    <div>
+                      <label
+                        htmlFor="website-link"
+                        className="text-sm font-medium text-foreground/90 block mb-1.5 flex items-center gap-1.5"
+                      >
+                        Website Link
+                        <span className="text-xs text-muted-foreground font-normal">Ensure correct URL</span>
+                      </label>
+                      <Input
+                        id="website-link"
+                        value={editedWebsiteLink}
+                        onChange={(e) => setEditedWebsiteLink(e.target.value)}
+                        placeholder="https://example.com"
+                        type="url"
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                  </div>
 
-              {/* Social Media Cards */}
-              <div className="mt-6">
-                <SocialMediaCards />
-              </div>
+                  <div>
+                    <label
+                      htmlFor="project-description"
+                      className="text-sm font-medium text-foreground/90 block mb-1.5 flex items-center gap-1.5"
+                    >
+                      Description
+                      <span className="text-xs text-muted-foreground font-normal">What your project is about</span>
+                    </label>
+                    <Textarea
+                      id="project-description"
+                      value={editedDescription}
+                      onChange={(e) => setEditedDescription(e.target.value)}
+                      placeholder="Describe what your project is about"
+                      rows={3}
+                      className="text-sm min-h-[80px]"
+                    />
+                  </div>
 
-              {/* Content Analytics */}
-              <div className="mt-6">
-                <ContentAnalyticsCards />
-              </div>
+                  <div>
+                    <label
+                      htmlFor="target-audience"
+                      className="text-sm font-medium text-foreground/90 block mb-1.5 flex items-center gap-1.5"
+                    >
+                      Target Audience
+                      <span className="text-xs text-muted-foreground font-normal">Who you're targeting</span>
+                    </label>
+                    <Textarea
+                      id="target-audience"
+                      value={editedTargetAudience}
+                      onChange={(e) => setEditedTargetAudience(e.target.value)}
+                      placeholder="Describe your target audience"
+                      rows={2}
+                      className="text-sm min-h-[60px]"
+                    />
+                  </div>
 
-              {/* Potential Customer Analytics */}
-              <div className="mt-6">
-                <PotentialCustomerAnalytics />
-              </div>
+                  <div>
+                    <label
+                      htmlFor="competitors"
+                      className="text-sm font-medium text-foreground/90 block mb-1.5 flex items-center gap-1.5"
+                    >
+                      Competitors
+                      <span className="text-xs text-muted-foreground font-normal">Main market competitors</span>
+                    </label>
+                    <div className="flex flex-wrap gap-1.5 mb-2 min-h-[28px] p-2.5 border border-border rounded-md bg-muted/20">
+                      {editedCompetitors
+                        .split(",")
+                        .map((k) => k.trim())
+                        .filter((k) => k)
+                        .map((competitor, index) => (
+                          <Badge
+                            key={index}
+                            variant="outline"
+                            className="text-sm flex items-center gap-1 px-2 py-0.5 bg-muted/40 text-foreground/80 border-border/60"
+                          >
+                            {competitor}
+                            <button
+                              onClick={() => removeCompetitor(competitor)}
+                              className="ml-1 rounded-full hover:bg-muted transition-colors duration-150"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </Badge>
+                        ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        id="competitors"
+                        value={competitorInput}
+                        onChange={(e) => setCompetitorInput(e.target.value)}
+                        placeholder="Add a competitor"
+                        className="h-9 text-sm"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault()
+                            addCompetitor()
+                          }
+                        }}
+                      />
+                      <Button type="button" onClick={addCompetitor} variant="outline" size="sm" className="h-9">
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="keywords"
+                        className="text-sm font-medium text-foreground/90 block mb-1.5 flex items-center gap-1.5"
+                      >
+                        Keywords
+                        <span className="text-xs text-muted-foreground font-normal">Terms to target</span>
+                      </label>
+                      <div className="flex flex-wrap gap-1.5 mb-2 min-h-[28px] p-2.5 border border-border rounded-md bg-muted/20">
+                        {editedKeywords
+                          .split(",")
+                          .map((k) => k.trim())
+                          .filter((k) => k)
+                          .map((keyword, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="text-sm flex items-center gap-1 px-2 py-0.5 bg-muted/40 text-foreground/80 border-border/60"
+                            >
+                              {keyword}
+                              <button
+                                onClick={() => removeKeyword(keyword)}
+                                className="ml-1 rounded-full hover:bg-muted transition-colors duration-150"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </Badge>
+                          ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          id="keywords"
+                          value={keywordInput}
+                          onChange={(e) => setKeywordInput(e.target.value)}
+                          placeholder="Add a keyword"
+                          className="h-9 text-sm"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              addKeyword()
+                            }
+                          }}
+                        />
+                        <Button type="button" onClick={addKeyword} variant="outline" size="sm" className="h-9">
+                          Add
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="excluded-keywords"
+                        className="text-sm font-medium text-foreground/90 block mb-1.5 flex items-center gap-1.5"
+                      >
+                        Excluded Keywords
+                        <span className="text-xs text-muted-foreground font-normal">Terms to avoid</span>
+                      </label>
+                      <div className="flex flex-wrap gap-1.5 mb-2 min-h-[28px] p-2.5 border border-border rounded-md bg-muted/20">
+                        {editedExcludedKeywords
+                          .split(",")
+                          .map((k) => k.trim())
+                          .filter((k) => k)
+                          .map((keyword, index) => (
+                            <Badge
+                              key={index}
+                              variant="outline"
+                              className="text-sm border-border/60 text-muted-foreground flex items-center gap-1 px-2 py-0.5 bg-muted/30"
+                            >
+                              {keyword}
+                              <button
+                                onClick={() => removeExcludedKeyword(keyword)}
+                                className="ml-1 rounded-full hover:bg-muted transition-colors duration-150"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </Badge>
+                          ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          id="excluded-keywords"
+                          value={excludedKeywordInput}
+                          onChange={(e) => setExcludedKeywordInput(e.target.value)}
+                          placeholder="Add an excluded keyword"
+                          className="h-9 text-sm"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              addExcludedKeyword()
+                            }
+                          }}
+                        />
+                        <Button type="button" onClick={addExcludedKeyword} variant="outline" size="sm" className="h-9">
+                          Add
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button variant="outline" size="sm" onClick={handleCancelEdit}>
+                      Cancel
+                    </Button>
+                    <Button size="sm" onClick={handleSaveChanges}>
+                      Save Changes
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            {/* Marketing Analytics Cards - Added below product information */}
+            <div className="mt-4" id="marketing-analytics">
+              <MarketingAnalyticsCards />
+            </div>
+
+            {/* Social Media Cards */}
+            <div className="mt-6">
+              <SocialMediaCards />
+            </div>
+
+            {/* Content Analytics */}
+            <div className="mt-6">
+              <ContentAnalyticsCards />
+            </div>
+
+            {/* Potential Customer Analytics */}
+            <div className="mt-6">
+              <PotentialCustomerAnalytics />
             </div>
           </div>
         </div>
       </div>
-    </Layout>
+    </div>
   )
 }

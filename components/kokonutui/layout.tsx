@@ -32,6 +32,9 @@ export default function Layout({ children }: LayoutProps) {
   // Find the current project from our sample data
   const currentProject = currentProjectId ? projectsData.find((p) => p.id === currentProjectId) : null
 
+  // Check if we're on an individual agent page which needs fixed height
+  const isAgentPage = pathname.includes("/agents/") && pathname.split("/").length > 4
+
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -47,7 +50,9 @@ export default function Layout({ children }: LayoutProps) {
         <header className="h-10 border-b border-gray-200 dark:border-[#1F1F23]">
           <TopNav currentProject={currentProject} />
         </header>
-        <main className="flex-1 overflow-auto p-6 bg-white dark:bg-[#09090B]">{children}</main>
+        <main className={`flex-1 ${isAgentPage ? "overflow-hidden" : "overflow-auto"} p-6 bg-white dark:bg-[#09090B]`}>
+          {children}
+        </main>
       </div>
     </div>
   )
