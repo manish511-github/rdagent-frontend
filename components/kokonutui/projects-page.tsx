@@ -1,12 +1,32 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
+import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Calendar,
@@ -19,586 +39,1808 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
+  Star,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle2,
+  Archive,
+  Trash2,
+  Copy,
+  ExternalLink,
+  Download,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Palette,
+  Code,
+  Megaphone,
+  PenTool,
+  Package,
+  FileText,
+  Hash,
+  Target,
+  Briefcase,
+  Flag,
+  Activity,
+  Layers,
+  MessageSquare,
+  DollarSign,
+  PieChart,
+  TrendingDown,
+  Lightbulb,
+  CalendarDays,
+  Globe,
+  Loader2,
+  X,
 } from "lucide-react"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
+import React from "react"
 
-// Sample project data
+// Enhanced project data with more fields
 const projects = [
   {
     id: "1",
     title: "Marketing Campaign Q2",
-    description: "Q2 2025 product launch campaign planning and execution",
+    description: "Q2 2025 product launch campaign planning and execution across multiple channels",
     status: "In Progress",
     progress: 65,
     dueDate: "2025-06-15",
+    startDate: "2025-04-01",
     lastUpdated: "2025-05-20",
     priority: "High",
+    category: "Marketing",
+    budget: 150000,
+    budgetSpent: 97500,
     team: [
-      { name: "Alex Johnson", avatar: "/abstract-letter-aj.png", initials: "AJ" },
-      { name: "Morgan Garcia", avatar: "/abstract-geometric-mg.png", initials: "MG" },
-      { name: "Dana Kim", avatar: "/abstract-geometric-dk.png", initials: "DK" },
+      { name: "Alex Johnson", avatar: "/abstract-letter-aj.png", initials: "AJ", role: "Project Lead" },
+      { name: "Morgan Garcia", avatar: "/abstract-geometric-mg.png", initials: "MG", role: "Designer" },
+      { name: "Dana Kim", avatar: "/abstract-geometric-dk.png", initials: "DK", role: "Content Writer" },
     ],
-    tags: ["marketing", "campaign", "product-launch"],
+    tags: ["marketing", "campaign", "product-launch", "q2-2025"],
     metrics: {
       tasks: 24,
       completed: 16,
       comments: 38,
+      attachments: 12,
     },
+    health: "on-track",
+    starred: true,
+    icon: <Megaphone className="h-4 w-4" />,
+    color: "blue",
   },
   {
     id: "2",
     title: "Website Redesign",
-    description: "Complete overhaul of company website with new branding",
+    description: "Complete overhaul of company website with new branding and improved user experience",
     status: "Planning",
     progress: 25,
     dueDate: "2025-07-20",
+    startDate: "2025-05-01",
     lastUpdated: "2025-05-18",
     priority: "Medium",
+    category: "Design",
+    budget: 80000,
+    budgetSpent: 20000,
     team: [
-      { name: "Sam Chen", avatar: "/stylized-initials-sc.png", initials: "SC" },
-      { name: "Alex Johnson", avatar: "/abstract-letter-aj.png", initials: "AJ" },
-      { name: "Liam Williams", avatar: "/abstract-lw.png", initials: "LW" },
+      { name: "Sam Chen", avatar: "/stylized-initials-sc.png", initials: "SC", role: "Lead Designer" },
+      { name: "Alex Johnson", avatar: "/abstract-letter-aj.png", initials: "AJ", role: "Developer" },
+      { name: "Liam Williams", avatar: "/abstract-lw.png", initials: "LW", role: "UX Researcher" },
     ],
-    tags: ["design", "website", "branding"],
+    tags: ["design", "website", "branding", "ux"],
     metrics: {
       tasks: 32,
       completed: 8,
       comments: 27,
+      attachments: 45,
     },
+    health: "at-risk",
+    starred: false,
+    icon: <Palette className="h-4 w-4" />,
+    color: "purple",
   },
   {
     id: "3",
-    title: "Product Launch",
-    description: "New product line introduction to market",
+    title: "Product Launch - Alpha Series",
+    description: "New product line introduction to market with comprehensive go-to-market strategy",
     status: "Completed",
     progress: 100,
     dueDate: "2025-05-05",
+    startDate: "2025-02-01",
     lastUpdated: "2025-05-05",
     priority: "High",
+    category: "Product",
+    budget: 200000,
+    budgetSpent: 185000,
     team: [
-      { name: "Morgan Garcia", avatar: "/abstract-geometric-mg.png", initials: "MG" },
-      { name: "Riley Smith", avatar: "/abstract-rs.png", initials: "RS" },
-      { name: "Taylor Adams", avatar: "/ta-symbol.png", initials: "TA" },
+      { name: "Morgan Garcia", avatar: "/abstract-geometric-mg.png", initials: "MG", role: "Product Manager" },
+      { name: "Riley Smith", avatar: "/abstract-rs.png", initials: "RS", role: "Marketing Lead" },
+      { name: "Taylor Adams", avatar: "/ta-symbol.png", initials: "TA", role: "Sales Director" },
     ],
-    tags: ["product", "launch", "marketing"],
+    tags: ["product", "launch", "marketing", "alpha-series"],
     metrics: {
       tasks: 45,
       completed: 45,
       comments: 72,
+      attachments: 28,
     },
+    health: "completed",
+    starred: true,
+    icon: <Package className="h-4 w-4" />,
+    color: "green",
   },
   {
     id: "4",
-    title: "Social Media Strategy",
-    description: "Develop comprehensive social media plan for Q3",
+    title: "Social Media Strategy 2025",
+    description: "Develop comprehensive social media plan for Q3 with focus on engagement and growth",
     status: "In Progress",
     progress: 40,
     dueDate: "2025-06-30",
+    startDate: "2025-05-10",
     lastUpdated: "2025-05-22",
     priority: "Medium",
+    category: "Marketing",
+    budget: 50000,
+    budgetSpent: 20000,
     team: [
-      { name: "Jordan Lee", avatar: "/stylized-jl-logo.png", initials: "JL" },
-      { name: "Dana Kim", avatar: "/abstract-geometric-dk.png", initials: "DK" },
-      { name: "Morgan Garcia", avatar: "/abstract-geometric-mg.png", initials: "MG" },
+      { name: "Jordan Lee", avatar: "/stylized-jl-logo.png", initials: "JL", role: "Social Media Manager" },
+      { name: "Dana Kim", avatar: "/abstract-geometric-dk.png", initials: "DK", role: "Content Creator" },
+      { name: "Morgan Garcia", avatar: "/abstract-geometric-mg.png", initials: "MG", role: "Analyst" },
     ],
-    tags: ["social-media", "strategy", "content"],
+    tags: ["social-media", "strategy", "content", "engagement"],
     metrics: {
       tasks: 18,
       completed: 7,
       comments: 23,
+      attachments: 15,
     },
+    health: "on-track",
+    starred: false,
+    icon: <Hash className="h-4 w-4" />,
+    color: "pink",
   },
   {
     id: "5",
-    title: "Brand Guidelines",
-    description: "Create comprehensive brand style guide and assets",
+    title: "Brand Guidelines 2.0",
+    description: "Create comprehensive brand style guide and assets for global consistency",
     status: "Review",
     progress: 85,
     dueDate: "2025-06-10",
+    startDate: "2025-03-15",
     lastUpdated: "2025-05-19",
     priority: "Low",
+    category: "Design",
+    budget: 30000,
+    budgetSpent: 25500,
     team: [
-      { name: "Sam Chen", avatar: "/stylized-initials-sc.png", initials: "SC" },
-      { name: "Morgan Bailey", avatar: "/monogram-mb.png", initials: "MB" },
-      { name: "Riley Smith", avatar: "/abstract-rs.png", initials: "RS" },
+      { name: "Sam Chen", avatar: "/stylized-initials-sc.png", initials: "SC", role: "Brand Designer" },
+      { name: "Morgan Bailey", avatar: "/monogram-mb.png", initials: "MB", role: "Creative Director" },
+      { name: "Riley Smith", avatar: "/abstract-rs.png", initials: "RS", role: "Copywriter" },
     ],
-    tags: ["branding", "design", "guidelines"],
+    tags: ["branding", "design", "guidelines", "style-guide"],
     metrics: {
       tasks: 15,
       completed: 13,
       comments: 19,
+      attachments: 52,
     },
+    health: "on-track",
+    starred: false,
+    icon: <PenTool className="h-4 w-4" />,
+    color: "orange",
   },
   {
     id: "6",
-    title: "Content Calendar",
-    description: "Plan and organize content for Q3 across all channels",
+    title: "Content Calendar Q3",
+    description: "Plan and organize content for Q3 across all channels with SEO optimization",
     status: "Planning",
     progress: 15,
     dueDate: "2025-07-05",
+    startDate: "2025-05-20",
     lastUpdated: "2025-05-21",
     priority: "Medium",
+    category: "Content",
+    budget: 40000,
+    budgetSpent: 6000,
     team: [
-      { name: "Dana Kim", avatar: "/abstract-geometric-dk.png", initials: "DK" },
-      { name: "Jordan Lee", avatar: "/stylized-jl-logo.png", initials: "JL" },
+      { name: "Dana Kim", avatar: "/abstract-geometric-dk.png", initials: "DK", role: "Content Manager" },
+      { name: "Jordan Lee", avatar: "/stylized-jl-logo.png", initials: "JL", role: "SEO Specialist" },
     ],
-    tags: ["content", "planning", "editorial"],
+    tags: ["content", "planning", "editorial", "seo"],
     metrics: {
       tasks: 22,
       completed: 3,
       comments: 12,
+      attachments: 8,
     },
+    health: "at-risk",
+    starred: false,
+    icon: <FileText className="h-4 w-4" />,
+    color: "teal",
+  },
+  {
+    id: "7",
+    title: "Mobile App Development",
+    description: "Native iOS and Android app development for customer engagement platform",
+    status: "In Progress",
+    progress: 55,
+    dueDate: "2025-08-15",
+    startDate: "2025-03-01",
+    lastUpdated: "2025-05-23",
+    priority: "High",
+    category: "Development",
+    budget: 250000,
+    budgetSpent: 137500,
+    team: [
+      { name: "Alex Johnson", avatar: "/abstract-letter-aj.png", initials: "AJ", role: "Tech Lead" },
+      { name: "Sam Chen", avatar: "/stylized-initials-sc.png", initials: "SC", role: "iOS Developer" },
+      { name: "Liam Williams", avatar: "/abstract-lw.png", initials: "LW", role: "Android Developer" },
+      { name: "Morgan Garcia", avatar: "/abstract-geometric-mg.png", initials: "MG", role: "UI Designer" },
+    ],
+    tags: ["mobile", "app", "development", "ios", "android"],
+    metrics: {
+      tasks: 68,
+      completed: 37,
+      comments: 124,
+      attachments: 35,
+    },
+    health: "on-track",
+    starred: true,
+    icon: <Code className="h-4 w-4" />,
+    color: "indigo",
+  },
+  {
+    id: "8",
+    title: "Customer Research Initiative",
+    description: "Comprehensive user research study to inform product roadmap and strategy",
+    status: "Planning",
+    progress: 20,
+    dueDate: "2025-07-30",
+    startDate: "2025-05-15",
+    lastUpdated: "2025-05-22",
+    priority: "Medium",
+    category: "Research",
+    budget: 60000,
+    budgetSpent: 12000,
+    team: [
+      { name: "Liam Williams", avatar: "/abstract-lw.png", initials: "LW", role: "Research Lead" },
+      { name: "Dana Kim", avatar: "/abstract-geometric-dk.png", initials: "DK", role: "Data Analyst" },
+      { name: "Taylor Adams", avatar: "/ta-symbol.png", initials: "TA", role: "Product Manager" },
+    ],
+    tags: ["research", "user-experience", "data", "insights"],
+    metrics: {
+      tasks: 28,
+      completed: 6,
+      comments: 18,
+      attachments: 22,
+    },
+    health: "on-track",
+    starred: false,
+    icon: <Target className="h-4 w-4" />,
+    color: "cyan",
   },
 ]
 
-export default function ProjectsPage() {
-  const [view, setView] = useState<"grid" | "list">("grid")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filter, setFilter] = useState("All")
-  const [sort, setSort] = useState("Newest")
-  const [activeTab, setActiveTab] = useState("all")
-  const [animateIn, setAnimateIn] = useState(false)
+// Project categories with enhanced metadata
+const projectCategories = [
+  { value: "all", label: "All Categories", icon: <Layers className="h-4 w-4" />, color: "gray" },
+  { value: "marketing", label: "Marketing", icon: <Megaphone className="h-4 w-4" />, color: "blue" },
+  { value: "design", label: "Design", icon: <Palette className="h-4 w-4" />, color: "purple" },
+  { value: "development", label: "Development", icon: <Code className="h-4 w-4" />, color: "indigo" },
+  { value: "product", label: "Product", icon: <Package className="h-4 w-4" />, color: "green" },
+  { value: "content", label: "Content", icon: <FileText className="h-4 w-4" />, color: "teal" },
+  { value: "research", label: "Research", icon: <Target className="h-4 w-4" />, color: "cyan" },
+]
 
-  // Filter projects based on search query and filter
-  const filteredProjects = projects
-    .filter((project) => {
-      const matchesSearch =
-        project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+// Project status options
+const projectStatuses = [
+  { value: "all", label: "All Status", icon: <Activity className="h-4 w-4" /> },
+  { value: "planning", label: "Planning", icon: <Lightbulb className="h-4 w-4" />, color: "purple" },
+  { value: "in-progress", label: "In Progress", icon: <Clock className="h-4 w-4" />, color: "blue" },
+  { value: "review", label: "Review", icon: <AlertCircle className="h-4 w-4" />, color: "amber" },
+  { value: "completed", label: "Completed", icon: <CheckCircle2 className="h-4 w-4" />, color: "green" },
+]
 
-      if (filter === "All") return matchesSearch
-      return matchesSearch && project.status === filter
-    })
-    .filter((project) => {
-      if (activeTab === "all") return true
-      if (activeTab === "active") return project.status !== "Completed"
-      if (activeTab === "completed") return project.status === "Completed"
-      if (activeTab === "high-priority") return project.priority === "High"
-      return true
-    })
+// Priority levels
+const priorityLevels = [
+  { value: "all", label: "All Priorities", icon: <Flag className="h-4 w-4" /> },
+  { value: "low", label: "Low", icon: <ArrowDown className="h-4 w-4" />, color: "green" },
+  { value: "medium", label: "Medium", icon: <ArrowUpDown className="h-4 w-4" />, color: "amber" },
+  { value: "high", label: "High", icon: <ArrowUp className="h-4 w-4" />, color: "red" },
+]
 
-  // Sort projects
-  const sortedProjects = [...filteredProjects].sort((a, b) => {
-    if (sort === "Newest") {
-      return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
-    } else if (sort === "Oldest") {
-      return new Date(a.lastUpdated).getTime() - new Date(b.lastUpdated).getTime()
-    } else if (sort === "Name (A-Z)") {
-      return a.title.localeCompare(b.title)
-    } else if (sort === "Name (Z-A)") {
-      return b.title.localeCompare(a.title)
-    } else if (sort === "Due Date") {
-      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
-    } else if (sort === "Progress") {
-      return b.progress - a.progress
+// Health status
+const healthStatuses = [
+  { value: "all", label: "All Health", icon: <Activity className="h-4 w-4" /> },
+  { value: "on-track", label: "On Track", icon: <TrendingUp className="h-4 w-4" />, color: "green" },
+  { value: "at-risk", label: "At Risk", icon: <AlertCircle className="h-4 w-4" />, color: "amber" },
+  { value: "off-track", label: "Off Track", icon: <TrendingDown className="h-4 w-4" />, color: "red" },
+  { value: "completed", label: "Completed", icon: <CheckCircle2 className="h-4 w-4" />, color: "blue" },
+]
+
+// Mock function to simulate API call for website analysis
+const analyzeWebsite = async (url: string) => {
+  // Simulate API delay
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+
+  // Return mock data based on URL
+  if (url.includes("example.com")) {
+    return {
+      title: "Example Website Project",
+      description:
+        "A comprehensive website for showcasing products and services with modern design and user experience.",
+      targetAudience: "Small to medium businesses and professionals looking for digital solutions",
+      competitors: ["CompetitorA", "CompetitorB", "CompetitorC"],
+      keywords: ["website", "digital", "services", "solutions", "professional"],
+      excludedKeywords: ["cheap", "free", "trial"],
+      category: "design",
+      priority: "medium",
     }
-    return 0
+  } else if (url.includes("tech")) {
+    return {
+      title: "Tech Product Launch",
+      description: "New technology product launch with marketing campaign across digital channels.",
+      targetAudience: "Tech enthusiasts and early adopters aged 25-45",
+      competitors: ["TechGiant", "InnovateNow", "FutureTech"],
+      keywords: ["technology", "innovation", "product", "launch", "digital"],
+      excludedKeywords: ["outdated", "legacy"],
+      category: "product",
+      priority: "high",
+    }
+  } else {
+    return {
+      title: url.split("//")[1]?.split(".")[0] || "New Website Project",
+      description: "Website project based on provided URL.",
+      targetAudience: "General audience interested in the website's content and services",
+      competitors: [],
+      keywords: [url.split("//")[1]?.split(".")[0] || "website"],
+      excludedKeywords: [],
+      category: "design",
+      priority: "medium",
+    }
+  }
+}
+
+export default function ProjectsPage() {
+  const [view, setView] = useState<"grid" | "list" | "kanban">("grid")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [priorityFilter, setPriorityFilter] = useState("all")
+  const [healthFilter, setHealthFilter] = useState("all")
+  const [sort, setSort] = useState("newest")
+  const [showStarredOnly, setShowStarredOnly] = useState(false)
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([])
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [animateIn, setAnimateIn] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // New project form state
+  const [newProject, setNewProject] = useState({
+    title: "",
+    description: "",
+    targetAudience: "",
+    websiteUrl: "",
+    category: "marketing",
+    priority: "medium",
+    dueDate: "",
+    budget: "",
+    team: [],
+    tags: "",
+    competitors: [] as string[],
+    keywords: [] as string[],
+    excludedKeywords: [] as string[],
   })
+
+  // URL analysis state
+  const [websiteUrl, setWebsiteUrl] = useState("")
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [analysisError, setAnalysisError] = useState("")
+  const [activeTab, setActiveTab] = useState("url")
+
+  // Competitor, keyword, and excluded keyword input states
+  const [competitorInput, setCompetitorInput] = useState("")
+  const [keywordInput, setKeywordInput] = useState("")
+  const [excludedKeywordInput, setExcludedKeywordInput] = useState("")
 
   // Animation effect
   useEffect(() => {
-    setAnimateIn(true)
+    const timer = setTimeout(() => setAnimateIn(true), 100)
+    return () => clearTimeout(timer)
   }, [])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "n") {
+        e.preventDefault()
+        setShowCreateDialog(true)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [])
+
+  // Handle website URL analysis
+  const handleAnalyzeWebsite = async () => {
+    if (!websiteUrl) {
+      setAnalysisError("Please enter a website URL")
+      return
+    }
+
+    try {
+      setIsAnalyzing(true)
+      setAnalysisError("")
+
+      // Call the mock API function
+      const result = await analyzeWebsite(websiteUrl)
+
+      // Update the form with the results
+      setNewProject({
+        ...newProject,
+        title: result.title,
+        description: result.description,
+        targetAudience: result.targetAudience,
+        websiteUrl: websiteUrl,
+        category: result.category,
+        priority: result.priority,
+        competitors: result.competitors,
+        keywords: result.keywords,
+        excludedKeywords: result.excludedKeywords,
+      })
+    } catch (error) {
+      setAnalysisError("Failed to analyze website. Please try again or enter details manually.")
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
+  // Reset form when dialog is opened/closed
+  useEffect(() => {
+    if (showCreateDialog) {
+      setNewProject({
+        title: "",
+        description: "",
+        targetAudience: "",
+        websiteUrl: "",
+        category: "marketing",
+        priority: "medium",
+        dueDate: "",
+        budget: "",
+        team: [],
+        tags: "",
+        competitors: [],
+        keywords: [],
+        excludedKeywords: [],
+      })
+      setWebsiteUrl("")
+      setIsAnalyzing(false)
+      setAnalysisError("")
+      setActiveTab("url")
+    }
+  }, [showCreateDialog])
+
+  // Handle adding a competitor
+  const addCompetitor = () => {
+    if (competitorInput.trim() && !newProject.competitors.includes(competitorInput.trim())) {
+      setNewProject({
+        ...newProject,
+        competitors: [...newProject.competitors, competitorInput.trim()],
+      })
+      setCompetitorInput("")
+    }
+  }
+
+  // Handle removing a competitor
+  const removeCompetitor = (competitor: string) => {
+    setNewProject({
+      ...newProject,
+      competitors: newProject.competitors.filter((c) => c !== competitor),
+    })
+  }
+
+  // Handle adding a keyword
+  const addKeyword = () => {
+    if (keywordInput.trim() && !newProject.keywords.includes(keywordInput.trim())) {
+      setNewProject({
+        ...newProject,
+        keywords: [...newProject.keywords, keywordInput.trim()],
+      })
+      setKeywordInput("")
+    }
+  }
+
+  // Handle removing a keyword
+  const removeKeyword = (keyword: string) => {
+    setNewProject({
+      ...newProject,
+      keywords: newProject.keywords.filter((k) => k !== keyword),
+    })
+  }
+
+  // Handle adding an excluded keyword
+  const addExcludedKeyword = () => {
+    if (excludedKeywordInput.trim() && !newProject.excludedKeywords.includes(excludedKeywordInput.trim())) {
+      setNewProject({
+        ...newProject,
+        excludedKeywords: [...newProject.excludedKeywords, excludedKeywordInput.trim()],
+      })
+      setExcludedKeywordInput("")
+    }
+  }
+
+  // Handle removing an excluded keyword
+  const removeExcludedKeyword = (keyword: string) => {
+    setNewProject({
+      ...newProject,
+      excludedKeywords: newProject.excludedKeywords.filter((k) => k !== keyword),
+    })
+  }
+
+  // Handle creating a new project
+  const handleCreateProject = () => {
+    // Here you would typically send the data to your backend
+    console.log("Creating new project:", newProject)
+
+    // Close the dialog
+    setShowCreateDialog(false)
+
+    // You could also add the new project to the local state for immediate UI update
+    // For now, we'll just close the dialog
+  }
+
+  // Filter and sort projects
+  const filteredProjects = useMemo(() => {
+    let filtered = [...projects]
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (project) =>
+          project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          project.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())),
+      )
+    }
+
+    // Category filter
+    if (categoryFilter !== "all") {
+      filtered = filtered.filter((project) => project.category.toLowerCase() === categoryFilter)
+    }
+
+    // Status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((project) => project.status.toLowerCase().replace(" ", "-") === statusFilter)
+    }
+
+    // Priority filter
+    if (priorityFilter !== "all") {
+      filtered = filtered.filter((project) => project.priority.toLowerCase() === priorityFilter)
+    }
+
+    // Health filter
+    if (healthFilter !== "all") {
+      filtered = filtered.filter((project) => project.health === healthFilter)
+    }
+
+    // Starred filter
+    if (showStarredOnly) {
+      filtered = filtered.filter((project) => project.starred)
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      switch (sort) {
+        case "newest":
+          return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+        case "oldest":
+          return new Date(a.lastUpdated).getTime() - new Date(b.lastUpdated).getTime()
+        case "name-asc":
+          return a.title.localeCompare(b.title)
+        case "name-desc":
+          return b.title.localeCompare(a.title)
+        case "due-date":
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+        case "progress":
+          return b.progress - a.progress
+        case "priority":
+          const priorityOrder = { high: 0, medium: 1, low: 2 }
+          return (
+            priorityOrder[a.priority.toLowerCase() as keyof typeof priorityOrder] -
+            priorityOrder[b.priority.toLowerCase() as keyof typeof priorityOrder]
+          )
+        default:
+          return 0
+      }
+    })
+
+    return filtered
+  }, [searchQuery, categoryFilter, statusFilter, priorityFilter, healthFilter, showStarredOnly, sort])
+
+  // Project statistics
+  const projectStats = useMemo(() => {
+    const total = projects.length
+    const active = projects.filter((p) => p.status !== "Completed").length
+    const completed = projects.filter((p) => p.status === "Completed").length
+    const atRisk = projects.filter((p) => p.health === "at-risk").length
+    const totalBudget = projects.reduce((sum, p) => sum + p.budget, 0)
+    const totalSpent = projects.reduce((sum, p) => sum + p.budgetSpent, 0)
+
+    return { total, active, completed, atRisk, totalBudget, totalSpent }
+  }, [])
+
+  // Toggle project selection
+  const toggleProjectSelection = (projectId: string) => {
+    setSelectedProjects((prev) =>
+      prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId],
+    )
+  }
+
+  // Select all projects
+  const selectAllProjects = () => {
+    if (selectedProjects.length === filteredProjects.length) {
+      setSelectedProjects([])
+    } else {
+      setSelectedProjects(filteredProjects.map((p) => p.id))
+    }
+  }
+
+  // Bulk actions
+  const handleBulkAction = (action: string) => {
+    switch (action) {
+      case "archive":
+        console.log("Archiving projects:", selectedProjects)
+        break
+      case "delete":
+        console.log("Deleting projects:", selectedProjects)
+        break
+      case "export":
+        console.log("Exporting projects:", selectedProjects)
+        break
+    }
+    setSelectedProjects([])
+    setIsSelectionMode(false)
+  }
 
   // Get status color
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Completed":
-        return "bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400 border-green-500/20"
-      case "In Progress":
-        return "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 border-blue-500/20"
-      case "Planning":
-        return "bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 border-purple-500/20"
-      case "Review":
-        return "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 border-amber-500/20"
+    switch (status.toLowerCase()) {
+      case "completed":
+        return "bg-blue-100/15 text-blue-800 dark:bg-blue-900/25 dark:text-blue-300 border-blue-800/30"
+      case "in progress":
+        return "bg-blue-100/15 text-blue-700 dark:bg-blue-900/25 dark:text-blue-300 border-blue-700/30"
+      case "planning":
+        return "bg-blue-100/15 text-blue-900 dark:bg-blue-900/25 dark:text-blue-300 border-blue-900/30"
+      case "review":
+        return "bg-blue-100/15 text-blue-800 dark:bg-blue-900/25 dark:text-blue-300 border-blue-800/30"
       default:
-        return "bg-gray-500/10 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400 border-gray-500/20"
+        return "bg-blue-100/15 text-blue-700 dark:bg-blue-900/25 dark:text-blue-300 border-blue-700/30"
     }
   }
 
-  // Get priority indicator
-  const getPriorityIndicator = (priority: string) => {
-    switch (priority) {
-      case "High":
-        return <div className="h-2 w-2 rounded-full bg-red-500" title="High Priority"></div>
-      case "Medium":
-        return <div className="h-2 w-2 rounded-full bg-amber-500" title="Medium Priority"></div>
-      case "Low":
-        return <div className="h-2 w-2 rounded-full bg-green-500" title="Low Priority"></div>
+  // Get priority color
+  const getPriorityColor = (priority: string) => {
+    switch (priority.toLowerCase()) {
+      case "high":
+        return "text-blue-700"
+      case "medium":
+        return "text-blue-500"
+      case "low":
+        return "text-blue-400"
       default:
-        return null
+        return "text-blue-300"
     }
   }
 
-  // Format date to relative time
+  // Get health color
+  const getHealthColor = (health: string) => {
+    switch (health) {
+      case "on-track":
+        return "text-blue-500"
+      case "at-risk":
+        return "text-blue-600"
+      case "off-track":
+        return "text-blue-700"
+      case "completed":
+        return "text-blue-400"
+      default:
+        return "text-blue-300"
+    }
+  }
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
+
+  // Calculate days until due
+  const getDaysUntilDue = (dueDate: string) => {
+    const due = new Date(dueDate)
+    const now = new Date()
+    const diffTime = due.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays < 0) return { text: "Overdue", color: "text-blue-900" }
+    if (diffDays === 0) return { text: "Due today", color: "text-blue-800" }
+    if (diffDays === 1) return { text: "Due tomorrow", color: "text-blue-800" }
+    if (diffDays <= 7) return { text: `${diffDays} days left`, color: "text-blue-700" }
+    return { text: `${diffDays} days left`, color: "text-muted-foreground" }
+  }
+
+  // Format relative date
   const formatRelativeDate = (dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
     const diffTime = Math.abs(now.getTime() - date.getTime())
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-    if (diffDays === 0) return "Today"
-    if (diffDays === 1) return "Yesterday"
-    if (diffDays < 7) return `${diffDays} days ago`
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    if (diffDays === 0) return "today"
+    if (diffDays === 1) return "yesterday"
+    if (diffDays < 7) return `${diffDays}d ago`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   }
 
-  // Calculate days until due
-  const getDaysUntilDue = (dateString: string) => {
-    const dueDate = new Date(dateString)
-    const now = new Date()
-    const diffTime = dueDate.getTime() - now.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  // Render project card
+  const renderProjectCard = (project: (typeof projects)[0], index: number) => {
+    const dueStatus = getDaysUntilDue(project.dueDate)
+    const isSelected = selectedProjects.includes(project.id)
 
-    if (diffDays < 0) return "Overdue"
-    if (diffDays === 0) return "Due today"
-    if (diffDays === 1) return "Due tomorrow"
-    if (diffDays <= 7) return `Due in ${diffDays} days`
-    return `Due ${dueDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-  }
+    return (
+      <div
+        key={project.id}
+        className={cn(
+          "group relative transform transition-all duration-500",
+          animateIn ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
+          isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+        )}
+        style={{ transitionDelay: `${index * 50}ms` }}
+      >
+        <Card className="h-full overflow-hidden border border-blue-200/30 dark:border-blue-400/20 bg-card/50 dark:bg-slate-900/60 backdrop-blur-sm shadow-md dark:shadow-slate-900/10 hover:shadow-lg dark:hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300/40 dark:hover:border-blue-400/30">
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/5 dark:from-slate-800/20 dark:via-slate-900/5 dark:to-slate-950/30 pointer-events-none" />
 
-  // Get due date status color
-  const getDueDateColor = (dateString: string) => {
-    const dueDate = new Date(dateString)
-    const now = new Date()
-    const diffTime = dueDate.getTime() - now.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+          {/* Status indicator line */}
+          <div
+            className={cn(
+              "absolute top-0 left-0 right-0 h-0.5",
+              project.status === "Completed" && "bg-blue-400 dark:bg-blue-400",
+              project.status === "In Progress" && "bg-blue-300 dark:bg-blue-300",
+              project.status === "Planning" && "bg-blue-500 dark:bg-blue-500",
+              project.status === "Review" && "bg-blue-400 dark:bg-blue-400",
+            )}
+          />
 
-    if (diffDays < 0) return "text-red-500"
-    if (diffDays <= 3) return "text-amber-500"
-    return "text-muted-foreground"
-  }
+          {/* Selection checkbox */}
+          {isSelectionMode && (
+            <div className="absolute top-3 left-3 z-10">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => toggleProjectSelection(project.id)}
+                className="bg-background/95 backdrop-blur-sm border-2 h-4 w-4"
+              />
+            </div>
+          )}
 
-  // Get progress color
-  const getProgressColor = (progress: number) => {
-    if (progress >= 80) return "bg-green-500"
-    if (progress >= 40) return "bg-blue-500"
-    return "bg-amber-500"
-  }
+          {/* Star button */}
+          <button
+            className={cn(
+              "absolute top-3 right-3 z-10 p-1.5 rounded-full transition-all duration-200",
+              project.starred
+                ? "bg-amber-100/90 text-amber-600 dark:bg-amber-500/30 dark:text-amber-300"
+                : "bg-background/60 backdrop-blur-sm text-muted-foreground hover:text-amber-500 hover:bg-amber-100/50 dark:hover:bg-amber-500/20 dark:text-slate-400 dark:hover:text-amber-300",
+            )}
+            onClick={(e) => {
+              e.preventDefault()
+              // Toggle star logic here
+            }}
+          >
+            <Star className="h-3 w-3" fill={project.starred ? "currentColor" : "none"} />
+          </button>
 
-  return (
-    <div className="p-6 max-w-7xl mx-auto w-full">
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
-            <p className="text-sm text-muted-foreground mt-1">Manage and organize your marketing projects</p>
-          </div>
-          <Button className="w-full md:w-auto shadow-sm transition-all hover:shadow-md">
-            <Plus className="mr-2 h-4 w-4" />
-            New Project
-          </Button>
-        </div>
+          <Link href={`/projects/${project.id}`} className="block">
+            <div className="p-5">
+              <div className="flex items-start gap-3.5">
+                {/* Icon */}
+                <div
+                  className={cn(
+                    "p-2 rounded-lg flex-shrink-0",
+                    "bg-blue-100 dark:bg-blue-900/70 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-400/30",
+                  )}
+                >
+                  {React.cloneElement(project.icon, { className: "h-3.5 w-3.5" })}
+                </div>
 
-        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <TabsList className="h-9 bg-muted/60 p-1">
-              <TabsTrigger value="all" className="rounded-md text-xs sm:text-sm">
-                All Projects
-              </TabsTrigger>
-              <TabsTrigger value="active" className="rounded-md text-xs sm:text-sm">
-                Active
-              </TabsTrigger>
-              <TabsTrigger value="completed" className="rounded-md text-xs sm:text-sm">
-                Completed
-              </TabsTrigger>
-              <TabsTrigger value="high-priority" className="rounded-md text-xs sm:text-sm">
-                High Priority
-              </TabsTrigger>
-            </TabsList>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  {/* Title and badges */}
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <h3 className="text-sm font-bold tracking-tight line-clamp-1 group-hover:text-primary dark:group-hover:text-primary/90 transition-colors">
+                      {project.title}
+                    </h3>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          "text-[10px] font-medium border-0 px-1.5 py-0 h-5",
+                          getStatusColor(project.status),
+                        )}
+                      >
+                        {project.status}
+                      </Badge>
+                      {project.priority === "High" && (
+                        <div className="h-1.5 w-1.5 rounded-full bg-blue-900 dark:bg-blue-700" title="High Priority" />
+                      )}
+                    </div>
+                  </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search projects..."
-                  className="w-full pl-9 shadow-sm"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+                  {/* Description */}
+                  <p className="text-xs leading-relaxed text-muted-foreground/90 dark:text-slate-300/90 line-clamp-2 mb-3 font-medium">
+                    {project.description}
+                  </p>
 
-              <div className="flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-9 shadow-sm">
-                      <Filter className="mr-2 h-3.5 w-3.5" />
-                      {filter}
-                      <ChevronDown className="ml-2 h-3.5 w-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem onClick={() => setFilter("All")}>All Projects</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setFilter("In Progress")}>In Progress</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setFilter("Completed")}>Completed</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setFilter("Planning")}>Planning</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setFilter("Review")}>Review</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  {/* Meta information */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      {/* Due date */}
+                      <div className="flex items-center gap-1.5">
+                        <CalendarDays className={cn("h-3.5 w-3.5", dueStatus.color)} />
+                        <span className={cn("text-xs font-medium", dueStatus.color)}>
+                          {new Date(project.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </span>
+                      </div>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-9 shadow-sm">
-                      <SlidersHorizontal className="mr-2 h-3.5 w-3.5" />
-                      {sort}
-                      <ChevronDown className="ml-2 h-3.5 w-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem onClick={() => setSort("Newest")}>Newest</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSort("Oldest")}>Oldest</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSort("Name (A-Z)")}>Name (A-Z)</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSort("Name (Z-A)")}>Name (Z-A)</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSort("Due Date")}>Due Date</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSort("Progress")}>Progress</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      {/* Tasks */}
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <span className="font-medium">
+                          {project.metrics.completed}/{project.metrics.tasks}
+                        </span>
+                      </div>
+                    </div>
 
-                <div className="flex items-center rounded-md border border-border shadow-sm">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-9 w-9 rounded-none rounded-l-md ${view === "grid" ? "bg-muted" : ""}`}
-                    onClick={() => setView("grid")}
-                  >
-                    <Grid3X3 className="h-4 w-4" />
-                    <span className="sr-only">Grid view</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-9 w-9 rounded-none rounded-r-md ${view === "list" ? "bg-muted" : ""}`}
-                    onClick={() => setView("list")}
-                  >
-                    <List className="h-4 w-4" />
-                    <span className="sr-only">List view</span>
-                  </Button>
+                    {/* Health indicator */}
+                    <div
+                      className={cn(
+                        "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border",
+                        project.health === "on-track" &&
+                          "bg-blue-100/80 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 border-blue-300/50 dark:border-blue-400/30",
+                        project.health === "at-risk" &&
+                          "bg-blue-100/80 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border-blue-300/50 dark:border-blue-400/30",
+                        project.health === "off-track" &&
+                          "bg-blue-100/80 dark:bg-blue-900/60 text-blue-600 dark:text-blue-300 border-blue-300/50 dark:border-blue-400/30",
+                        project.health === "completed" &&
+                          "bg-blue-100/80 dark:bg-blue-900/60 text-blue-900 dark:text-blue-300 border-blue-300/50 dark:border-blue-400/30",
+                      )}
+                    >
+                      <Activity className="h-3 w-3" />
+                      <span className="capitalize">{project.health.replace("-", " ")}</span>
+                    </div>
+                  </div>
+
+                  {/* Bottom info */}
+                  <div className="flex items-center justify-between">
+                    {/* Team */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex -space-x-1.5">
+                        {project.team.slice(0, 3).map((member) => (
+                          <TooltipProvider key={member.name}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Avatar className="h-6 w-6 border-2 border-background hover:z-10 transition-transform hover:scale-110">
+                                  <AvatarImage src={member.avatar || "/placeholder.svg"} alt={member.name} />
+                                  <AvatarFallback className="text-[9px] font-semibold bg-muted">
+                                    {member.initials}
+                                  </AvatarFallback>
+                                </Avatar>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                <p className="font-semibold">{member.name}</p>
+                                <p className="text-muted-foreground">{member.role}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ))}
+                        {project.team.length > 3 && (
+                          <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[9px] font-semibold">
+                            +{project.team.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Metrics and actions */}
+                    <div className="flex items-center gap-3">
+                      {/* Comments */}
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        <span className="font-medium">{project.metrics.comments}</span>
+                      </div>
+
+                      {/* Updated */}
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span className="font-medium">{formatRelativeDate(project.lastUpdated)}</span>
+                      </div>
+
+                      {/* More actions */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:bg-background/80"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem className="text-xs">
+                            <ExternalLink className="mr-2 h-3 w-3" />
+                            Open in new tab
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-xs">
+                            <Copy className="mr-2 h-3 w-3" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-xs">
+                            <Archive className="mr-2 h-3 w-3" />
+                            Archive
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive text-xs">
+                            <Trash2 className="mr-2 h-3 w-3" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+
+                  {/* Tags */}
+                  <div className="flex items-center gap-1.5 mt-3 flex-wrap">
+                    {project.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="outline"
+                        className="text-[10px] px-2 py-0 h-5 font-normal border-blue-200/40 dark:border-blue-400/20 text-muted-foreground dark:text-slate-300 hover:bg-muted/50 dark:hover:bg-slate-800/50 transition-colors hover:border-blue-300/50 dark:hover:border-blue-400/30"
+                      >
+                        #{tag}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
+          </Link>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
+      <div className="p-6 max-w-[1600px] mx-auto">
+        {/* Header */}
+        <div className="flex flex-col gap-6 mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                Projects
+              </h1>
+              <p className="text-muted-foreground mt-1">Manage and track all your projects in one place</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {isSelectionMode ? (
+                <>
+                  <Button variant="outline" size="sm" onClick={selectAllProjects}>
+                    {selectedProjects.length === filteredProjects.length ? "Deselect All" : "Select All"}
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        Actions ({selectedProjects.length})
+                        <ChevronDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleBulkAction("archive")}>
+                        <Archive className="mr-2 h-4 w-4" />
+                        Archive
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleBulkAction("export")}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Export
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleBulkAction("delete")} className="text-destructive">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setIsSelectionMode(false)
+                      setSelectedProjects([])
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => setIsSelectionMode(true)}>
+                    <Checkbox className="mr-2 h-4 w-4" />
+                    Select
+                  </Button>
+                  <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    New Project
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
-          <TabsContent value="all" className="mt-6">
-            {view === "grid" ? (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {sortedProjects.map((project, index) => (
-                  <Link
-                    href={`/projects/${project.id}`}
-                    key={project.id}
-                    className={`block transform transition-all duration-300 ${
-                      animateIn ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    <Card className="h-full overflow-hidden border border-border/60 bg-card transition-all hover:border-border hover:shadow-md">
-                      <CardHeader className="p-5">
-                        <div className="flex items-start justify-between">
+          {/* Statistics */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <Card className="bg-gradient-to-br from-card to-muted/20 dark:from-slate-900 dark:to-slate-950/80 border border-blue-200/30 dark:border-blue-400/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Total Projects</p>
+                    <p className="text-2xl font-bold">{projectStats.total}</p>
+                  </div>
+                  <Briefcase className="h-8 w-8 text-muted-foreground/20" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-blue-800/10 to-blue-900/5 dark:from-blue-900/30 dark:to-blue-950/20 border border-blue-200/30 dark:border-blue-400/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Active</p>
+                    <p className="text-2xl font-bold text-blue-800 dark:text-blue-400">{projectStats.active}</p>
+                  </div>
+                  <Activity className="h-8 w-8 text-blue-800/20" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-blue-900/10 to-blue-950/5 dark:from-blue-900/30 dark:to-blue-950/20 border border-blue-200/30 dark:border-blue-400/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Completed</p>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-400">{projectStats.completed}</p>
+                  </div>
+                  <CheckCircle2 className="h-8 w-8 text-blue-900/20" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-blue-800/10 to-blue-900/5 dark:from-blue-800/30 dark:to-blue-900/20 border border-blue-200/30 dark:border-blue-400/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">At Risk</p>
+                    <p className="text-2xl font-bold text-blue-800 dark:text-blue-400">{projectStats.atRisk}</p>
+                  </div>
+                  <AlertCircle className="h-8 w-8 text-blue-800/20" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-blue-900/10 to-blue-950/5 dark:from-blue-900/30 dark:to-blue-950/20 border border-blue-200/30 dark:border-blue-400/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Total Budget</p>
+                    <p className="text-xl font-bold text-blue-900 dark:text-blue-400">
+                      {formatCurrency(projectStats.totalBudget)}
+                    </p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-blue-900/20" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-blue-800/10 to-blue-900/5 dark:from-blue-800/30 dark:to-blue-900/20 border border-blue-200/30 dark:border-blue-400/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Budget Used</p>
+                    <p className="text-xl font-bold text-blue-800 dark:text-blue-400">
+                      {((projectStats.totalSpent / projectStats.totalBudget) * 100).toFixed(0)}%
+                    </p>
+                  </div>
+                  <PieChart className="h-8 w-8 text-blue-800/20" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Filters and Search */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[200px] max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              ref={searchInputRef}
+              type="search"
+              placeholder="Search... (⌘K)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 pr-3 h-8 text-xs bg-background/60 dark:bg-slate-900/60 backdrop-blur-sm"
+            />
+          </div>
+
+          {/* Filters Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 px-2.5 text-xs">
+                <Filter className="mr-1.5 h-3 w-3" />
+                Filters
+                {(categoryFilter !== "all" ||
+                  statusFilter !== "all" ||
+                  priorityFilter !== "all" ||
+                  healthFilter !== "all") && (
+                  <Badge variant="secondary" className="ml-1.5 px-1 py-0 text-[10px]">
+                    {[categoryFilter, statusFilter, priorityFilter, healthFilter].filter((f) => f !== "all").length}
+                  </Badge>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-64">
+              <div className="p-2 space-y-3 text-xs">
+                {/* Category Filter */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Category</Label>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projectCategories.map((category) => (
+                        <SelectItem key={category.value} value={category.value}>
                           <div className="flex items-center gap-2">
-                            {getPriorityIndicator(project.priority)}
-                            <CardTitle className="text-lg font-semibold">{project.title}</CardTitle>
+                            {category.icon}
+                            {category.label}
                           </div>
-                          <Badge
-                            variant="outline"
-                            className={`ml-2 text-xs font-medium ${getStatusColor(project.status)}`}
-                          >
-                            {project.status}
-                          </Badge>
-                        </div>
-                        <CardDescription className="mt-2 line-clamp-2 text-sm">{project.description}</CardDescription>
-                      </CardHeader>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                      <CardContent className="px-5 pb-0">
-                        <div className="flex flex-col gap-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Clock className="h-3.5 w-3.5" />
-                              <span>Updated {formatRelativeDate(project.lastUpdated)}</span>
-                            </div>
-                            <div className={`flex items-center gap-1.5 text-xs ${getDueDateColor(project.dueDate)}`}>
-                              <Calendar className="h-3.5 w-3.5" />
-                              <span>{getDaysUntilDue(project.dueDate)}</span>
-                            </div>
+                {/* Status Filter */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Status</Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projectStatuses.map((status) => (
+                        <SelectItem key={status.value} value={status.value}>
+                          <div className="flex items-center gap-2">
+                            {status.icon}
+                            {status.label}
                           </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                          <div className="flex flex-wrap gap-1.5">
-                            {project.tags.map((tag) => (
-                              <Badge key={tag} variant="secondary" className="text-[10px] font-normal">
-                                {tag}
-                              </Badge>
-                            ))}
+                {/* Priority Filter */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Priority</Label>
+                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {priorityLevels.map((priority) => (
+                        <SelectItem key={priority.value} value={priority.value}>
+                          <div className="flex items-center gap-2">
+                            {priority.icon}
+                            {priority.label}
                           </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                          <div className="flex items-center justify-between">
-                            <div className="flex -space-x-2">
-                              {project.team.map((member) => (
-                                <Avatar key={member.name} className="h-7 w-7 border-2 border-background">
-                                  <AvatarImage src={member.avatar || "/placeholder.svg"} alt={member.name} />
-                                  <AvatarFallback className="text-[10px]">{member.initials}</AvatarFallback>
-                                </Avatar>
-                              ))}
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <span className="font-medium">{project.metrics.completed}</span>
-                                <span>/</span>
-                                <span>{project.metrics.tasks}</span>
-                                <span>tasks</span>
-                              </div>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </div>
+                {/* Health Filter */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Health</Label>
+                  <Select value={healthFilter} onValueChange={setHealthFilter}>
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {healthStatuses.map((health) => (
+                        <SelectItem key={health.value} value={health.value}>
+                          <div className="flex items-center gap-2">
+                            {health.icon}
+                            {health.label}
                           </div>
-                        </div>
-                      </CardContent>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                      <CardFooter className="p-5 pt-4">
-                        <div className="w-full">
-                          <div className="flex items-center justify-between text-xs mb-1.5">
-                            <span className="font-medium">Progress</span>
-                            <span>{project.progress}%</span>
-                          </div>
-                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                            <div
-                              className={`h-full ${getProgressColor(project.progress)}`}
-                              style={{ width: `${project.progress}%` }}
-                            />
-                          </div>
-                        </div>
-                      </CardFooter>
-                    </Card>
-                  </Link>
-                ))}
+                <Separator className="my-1" />
+
+                {/* Reset Filters */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-7 text-xs"
+                  onClick={() => {
+                    setCategoryFilter("all")
+                    setStatusFilter("all")
+                    setPriorityFilter("all")
+                    setHealthFilter("all")
+                  }}
+                >
+                  Reset Filters
+                </Button>
               </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Sort */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 px-2.5 text-xs">
+                <SlidersHorizontal className="mr-1.5 h-3 w-3" />
+                Sort
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem onClick={() => setSort("newest")} className="text-xs">
+                <Clock className="mr-2 h-3 w-3" />
+                Newest First
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSort("oldest")} className="text-xs">
+                <Clock className="mr-2 h-3 w-3" />
+                Oldest First
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSort("name-asc")} className="text-xs">
+                <ArrowUp className="mr-2 h-3 w-3" />
+                Name (A-Z)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSort("name-desc")} className="text-xs">
+                <ArrowDown className="mr-2 h-3 w-3" />
+                Name (Z-A)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSort("due-date")} className="text-xs">
+                <Calendar className="mr-2 h-3 w-3" />
+                Due Date
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSort("progress")} className="text-xs">
+                <TrendingUp className="mr-2 h-3 w-3" />
+                Progress
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSort("priority")} className="text-xs">
+                <Flag className="mr-2 h-3 w-3" />
+                Priority
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Starred Toggle */}
+          <Button
+            variant={showStarredOnly ? "default" : "outline"}
+            size="sm"
+            className="h-8 px-2.5 text-xs"
+            onClick={() => setShowStarredOnly(!showStarredOnly)}
+          >
+            <Star className="mr-1.5 h-3 w-3" fill={showStarredOnly ? "currentColor" : "none"} />
+            {showStarredOnly ? "Starred" : "All"}
+          </Button>
+
+          {/* View Toggle */}
+          <div className="flex items-center bg-muted rounded-md p-0.5 h-8">
+            <Button
+              variant={view === "grid" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => setView("grid")}
+            >
+              <Grid3X3 className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant={view === "list" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => setView("list")}
+            >
+              <List className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant={view === "kanban" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => setView("kanban")}
+            >
+              <Layers className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Projects Grid */}
+        {filteredProjects.length === 0 ? (
+          <Card className="p-12">
+            <div className="text-center">
+              <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Search className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No projects found</h3>
+              <p className="text-muted-foreground mb-4">Try adjusting your filters or search query</p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery("")
+                  setCategoryFilter("all")
+                  setStatusFilter("all")
+                  setPriorityFilter("all")
+                  setHealthFilter("all")
+                  setShowStarredOnly(false)
+                }}
+              >
+                Clear all filters
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          <div
+            className={cn(
+              "grid gap-4",
+              view === "grid" && "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3",
+              view === "list" && "grid-cols-1",
+              view === "kanban" && "grid-cols-1",
+            )}
+          >
+            {view === "kanban" ? (
+              <Card className="p-6">
+                <div className="text-center text-muted-foreground">
+                  <Layers className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p>Kanban view coming soon...</p>
+                </div>
+              </Card>
             ) : (
-              <div className="space-y-4">
-                {sortedProjects.map((project, index) => (
-                  <Link
-                    href={`/projects/${project.id}`}
-                    key={project.id}
-                    className={`block transform transition-all duration-300 ${
-                      animateIn ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    <Card className="overflow-hidden border border-border/60 bg-card transition-all hover:border-border hover:shadow-md">
-                      <div className="flex flex-col p-5 md:flex-row md:items-center md:gap-6">
-                        <div className="flex flex-1 flex-col">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-2">
-                              {getPriorityIndicator(project.priority)}
-                              <h3 className="text-lg font-semibold">{project.title}</h3>
-                            </div>
+              filteredProjects.map((project, index) => renderProjectCard(project, index))
+            )}
+          </div>
+        )}
+
+        {/* Create Project Dialog */}
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Create New Project</DialogTitle>
+              <DialogDescription>
+                Fill in the details below to create a new project. You can always edit these later.
+              </DialogDescription>
+            </DialogHeader>
+
+            <Tabs defaultValue="url" value={activeTab} onValueChange={setActiveTab} className="mt-2">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="url" className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  From Website URL
+                </TabsTrigger>
+                <TabsTrigger value="manual" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Manual Entry
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="url" className="space-y-3 mt-3">
+                <div className="space-y-2">
+                  <Label htmlFor="website-url">Website URL</Label>
+                  <div className="flex gap-1.5">
+                    <Input
+                      id="website-url"
+                      placeholder="https://example.com"
+                      value={websiteUrl}
+                      onChange={(e) => setWebsiteUrl(e.target.value)}
+                      disabled={isAnalyzing}
+                      className="flex-1"
+                    />
+                    <Button onClick={handleAnalyzeWebsite} disabled={isAnalyzing || !websiteUrl} className="gap-2">
+                      {isAnalyzing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        "Analyze"
+                      )}
+                    </Button>
+                  </div>
+                  {analysisError && <p className="text-sm text-destructive mt-1">{analysisError}</p>}
+                  <p className="text-xs text-muted-foreground">
+                    Enter a website URL to automatically extract project information. You can edit the details before
+                    saving.
+                  </p>
+                </div>
+
+                {isAnalyzing ? (
+                  <div className="py-6 flex flex-col items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary mb-3" />
+                    <p className="text-sm text-muted-foreground">Analyzing website content...</p>
+                    <p className="text-xs text-muted-foreground mt-1">This may take a few moments</p>
+                  </div>
+                ) : (
+                  newProject.title && (
+                    <div className="space-y-3 border rounded-md p-3 bg-muted/20">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="project-title">Project Name (Required)</Label>
+                          <Input
+                            id="project-title"
+                            value={newProject.title}
+                            onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
+                            placeholder="Enter project name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="website-link">Website URL (Optional)</Label>
+                          <Input
+                            id="website-link"
+                            value={newProject.websiteUrl}
+                            onChange={(e) => setNewProject({ ...newProject, websiteUrl: e.target.value })}
+                            placeholder="https://example.com"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="project-description">Description (Required)</Label>
+                        <Textarea
+                          id="project-description"
+                          value={newProject.description}
+                          onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                          placeholder="Describe your project"
+                          rows={2}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="target-audience">Target Audience (Required)</Label>
+                        <Textarea
+                          id="target-audience"
+                          value={newProject.targetAudience}
+                          onChange={(e) => setNewProject({ ...newProject, targetAudience: e.target.value })}
+                          placeholder="Define your target audience"
+                          rows={2}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="competitors">Competitors (Optional)</Label>
+                        <div className="flex flex-wrap gap-1.5 mb-2 min-h-[36px] p-2 border rounded-md bg-background/60">
+                          {newProject.competitors.map((competitor, index) => (
                             <Badge
+                              key={index}
                               variant="outline"
-                              className={`ml-2 text-xs font-medium ${getStatusColor(project.status)}`}
+                              className="text-sm flex items-center gap-1 px-2.5 py-1 bg-muted/30 text-foreground/80 border-border/40 hover:bg-muted/50 transition-colors"
                             >
-                              {project.status}
+                              {competitor}
+                              <button
+                                onClick={() => removeCompetitor(competitor)}
+                                className="ml-1.5 rounded-full hover:bg-muted/80 transition-colors p-0.5"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
                             </Badge>
-                          </div>
+                          ))}
+                        </div>
+                        <div className="flex gap-1.5">
+                          <Input
+                            id="competitors"
+                            value={competitorInput}
+                            onChange={(e) => setCompetitorInput(e.target.value)}
+                            placeholder="Add a competitor"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault()
+                                addCompetitor()
+                              }
+                            }}
+                          />
+                          <Button type="button" onClick={addCompetitor} variant="outline" size="sm" className="h-9">
+                            Add
+                          </Button>
+                        </div>
+                      </div>
 
-                          <p className="mt-1.5 text-sm text-muted-foreground">{project.description}</p>
-
-                          <div className="mt-3 flex flex-wrap gap-1.5">
-                            {project.tags.map((tag) => (
-                              <Badge key={tag} variant="secondary" className="text-[10px] font-normal">
-                                {tag}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="keywords">Keywords (Required)</Label>
+                          <div className="flex flex-wrap gap-1.5 mb-2 min-h-[36px] p-2 border rounded-md bg-background/60">
+                            {newProject.keywords.map((keyword, index) => (
+                              <Badge
+                                key={index}
+                                variant="secondary"
+                                className="text-sm flex items-center gap-1 px-2.5 py-1 bg-secondary/30 text-foreground/80 hover:bg-secondary/50 transition-colors"
+                              >
+                                {keyword}
+                                <button
+                                  onClick={() => removeKeyword(keyword)}
+                                  className="ml-1.5 rounded-full hover:bg-secondary/80 transition-colors p-0.5"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
                               </Badge>
                             ))}
                           </div>
+                          <div className="flex gap-1.5">
+                            <Input
+                              id="keywords"
+                              value={keywordInput}
+                              onChange={(e) => setKeywordInput(e.target.value)}
+                              placeholder="Add a keyword"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  addKeyword()
+                                }
+                              }}
+                            />
+                            <Button type="button" onClick={addKeyword} variant="outline" size="sm" className="h-9">
+                              Add
+                            </Button>
+                          </div>
                         </div>
 
-                        <div className="mt-4 flex flex-col gap-3 md:mt-0 md:w-64">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Clock className="h-3.5 w-3.5" />
-                              <span>Updated {formatRelativeDate(project.lastUpdated)}</span>
-                            </div>
-                            <div className={`flex items-center gap-1.5 text-xs ${getDueDateColor(project.dueDate)}`}>
-                              <Calendar className="h-3.5 w-3.5" />
-                              <span>{getDaysUntilDue(project.dueDate)}</span>
-                            </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="excluded-keywords">Excluded Keywords (Optional)</Label>
+                          <div className="flex flex-wrap gap-1.5 mb-2 min-h-[36px] p-2 border rounded-md bg-background/60">
+                            {newProject.excludedKeywords.map((keyword, index) => (
+                              <Badge
+                                key={index}
+                                variant="outline"
+                                className="text-sm text-muted-foreground flex items-center gap-1 px-2.5 py-1 bg-muted/20 hover:bg-muted/40 transition-colors"
+                              >
+                                {keyword}
+                                <button
+                                  onClick={() => removeExcludedKeyword(keyword)}
+                                  className="ml-1.5 rounded-full hover:bg-muted/80 transition-colors p-0.5"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            ))}
                           </div>
-
-                          <div className="w-full">
-                            <div className="flex items-center justify-between text-xs mb-1.5">
-                              <span className="font-medium">Progress</span>
-                              <span>{project.progress}%</span>
-                            </div>
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                              <div
-                                className={`h-full ${getProgressColor(project.progress)}`}
-                                style={{ width: `${project.progress}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div className="flex -space-x-2">
-                              {project.team.map((member) => (
-                                <Avatar key={member.name} className="h-7 w-7 border-2 border-background">
-                                  <AvatarImage src={member.avatar || "/placeholder.svg"} alt={member.name} />
-                                  <AvatarFallback className="text-[10px]">{member.initials}</AvatarFallback>
-                                </Avatar>
-                              ))}
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <span className="font-medium">{project.metrics.completed}</span>
-                                <span>/</span>
-                                <span>{project.metrics.tasks}</span>
-                              </div>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </div>
+                          <div className="flex gap-1.5">
+                            <Input
+                              id="excluded-keywords"
+                              value={excludedKeywordInput}
+                              onChange={(e) => setExcludedKeywordInput(e.target.value)}
+                              placeholder="Add an excluded keyword"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  addExcludedKeyword()
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              onClick={addExcludedKeyword}
+                              variant="outline"
+                              size="sm"
+                              className="h-9"
+                            >
+                              Add
+                            </Button>
                           </div>
                         </div>
                       </div>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            )}
+                    </div>
+                  )
+                )}
+              </TabsContent>
 
-            {sortedProjects.length === 0 && (
-              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
-                <div className="rounded-full bg-muted p-3">
-                  <Search className="h-6 w-6 text-muted-foreground" />
+              <TabsContent value="manual" className="space-y-3 mt-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-project-title">Project Name (Required)</Label>
+                    <Input
+                      id="manual-project-title"
+                      value={newProject.title}
+                      onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
+                      placeholder="Enter project name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-website-link">Website URL (Optional)</Label>
+                    <Input
+                      id="manual-website-link"
+                      value={newProject.websiteUrl}
+                      onChange={(e) => setNewProject({ ...newProject, websiteUrl: e.target.value })}
+                      placeholder="https://example.com"
+                    />
+                  </div>
                 </div>
-                <h3 className="mt-4 text-lg font-medium">No projects found</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  We couldn't find any projects matching your search criteria.
-                </p>
-                <Button
-                  onClick={() => {
-                    setSearchQuery("")
-                    setFilter("All")
-                  }}
-                  className="mt-4"
-                  variant="outline"
-                >
-                  Clear filters
-                </Button>
-              </div>
-            )}
-          </TabsContent>
 
-          <TabsContent value="active" className="mt-6">
-            {/* Active projects content - same structure as "all" */}
-          </TabsContent>
+                <div className="space-y-2">
+                  <Label htmlFor="manual-project-description">Description (Required)</Label>
+                  <Textarea
+                    id="manual-project-description"
+                    value={newProject.description}
+                    onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                    placeholder="Describe your project"
+                    rows={2}
+                  />
+                </div>
 
-          <TabsContent value="completed" className="mt-6">
-            {/* Completed projects content - same structure as "all" */}
-          </TabsContent>
+                <div className="space-y-2">
+                  <Label htmlFor="manual-target-audience">Target Audience (Required)</Label>
+                  <Textarea
+                    id="manual-target-audience"
+                    value={newProject.targetAudience}
+                    onChange={(e) => setNewProject({ ...newProject, targetAudience: e.target.value })}
+                    placeholder="Define your target audience"
+                    rows={2}
+                  />
+                </div>
 
-          <TabsContent value="high-priority" className="mt-6">
-            {/* High priority projects content - same structure as "all" */}
-          </TabsContent>
-        </Tabs>
+                <div className="space-y-2">
+                  <Label htmlFor="manual-competitors">Competitors (Optional)</Label>
+                  <div className="flex flex-wrap gap-1.5 mb-2 min-h-[36px] p-2 border rounded-md bg-background/60">
+                    {newProject.competitors.map((competitor, index) => (
+                      <Badge
+                        key={index}
+                        variant="outline"
+                        className="text-sm flex items-center gap-1 px-2.5 py-1 bg-muted/30 text-foreground/80 border-border/40 hover:bg-muted/50 transition-colors"
+                      >
+                        {competitor}
+                        <button
+                          onClick={() => removeCompetitor(competitor)}
+                          className="ml-1.5 rounded-full hover:bg-muted/80 transition-colors p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex gap-1.5">
+                    <Input
+                      id="manual-competitors"
+                      value={competitorInput}
+                      onChange={(e) => setCompetitorInput(e.target.value)}
+                      placeholder="Add a competitor"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          addCompetitor()
+                        }
+                      }}
+                    />
+                    <Button type="button" onClick={addCompetitor} variant="outline" size="sm" className="h-9">
+                      Add
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-keywords">Keywords (Required)</Label>
+                    <div className="flex flex-wrap gap-1.5 mb-2 min-h-[36px] p-2 border rounded-md bg-background/60">
+                      {newProject.keywords.map((keyword, index) => (
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className="text-sm flex items-center gap-1 px-2.5 py-1 bg-secondary/30 text-foreground/80 hover:bg-secondary/50 transition-colors"
+                        >
+                          {keyword}
+                          <button
+                            onClick={() => removeKeyword(keyword)}
+                            className="ml-1.5 rounded-full hover:bg-secondary/80 transition-colors p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-1.5">
+                      <Input
+                        id="manual-keywords"
+                        value={keywordInput}
+                        onChange={(e) => setKeywordInput(e.target.value)}
+                        placeholder="Add a keyword"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault()
+                            addKeyword()
+                          }
+                        }}
+                      />
+                      <Button type="button" onClick={addKeyword} variant="outline" size="sm" className="h-9">
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-excluded-keywords">Excluded Keywords (Optional)</Label>
+                    <div className="flex flex-wrap gap-1.5 mb-2 min-h-[36px] p-2 border rounded-md bg-background/60">
+                      {newProject.excludedKeywords.map((keyword, index) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="text-sm text-muted-foreground flex items-center gap-1 px-2.5 py-1 bg-muted/20 hover:bg-muted/40 transition-colors"
+                        >
+                          {keyword}
+                          <button
+                            onClick={() => removeExcludedKeyword(keyword)}
+                            className="ml-1.5 rounded-full hover:bg-muted/80 transition-colors p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-1.5">
+                      <Input
+                        id="manual-excluded-keywords"
+                        value={excludedKeywordInput}
+                        onChange={(e) => setExcludedKeywordInput(e.target.value)}
+                        placeholder="Add an excluded keyword"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault()
+                            addExcludedKeyword()
+                          }
+                        }}
+                      />
+                      <Button type="button" onClick={addExcludedKeyword} variant="outline" size="sm" className="h-9">
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <DialogFooter className="mt-4">
+              <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateProject}
+                disabled={
+                  !newProject.title ||
+                  !newProject.description ||
+                  !newProject.targetAudience ||
+                  newProject.keywords.length === 0
+                }
+              >
+                Create Project
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

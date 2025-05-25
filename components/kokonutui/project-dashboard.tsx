@@ -16,10 +16,9 @@ import {
   Tag,
   Users,
   Target,
-  BarChart3,
-  ChevronRight,
   FileText,
-  Calendar,
+  Ban,
+  Save,
 } from "lucide-react"
 import SocialMediaCards from "@/components/kokonutui/social-media-cards"
 import MarketingAnalyticsCards from "@/components/kokonutui/marketing-analytics-cards"
@@ -27,7 +26,7 @@ import ContentAnalyticsCards from "@/components/kokonutui/content-analytics-card
 import PotentialCustomerAnalytics from "@/components/kokonutui/potential-customer-analytics"
 
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +37,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
 
 const MOCK_PROJECTS = {
   "1": {
@@ -136,6 +137,38 @@ const MOCK_PROJECTS = {
       { task: "Send press invitations", dueDate: "2025-05-22" },
       { task: "Finalize event schedule", dueDate: "2025-05-25" },
       { task: "Complete media kit", dueDate: "2025-05-28" },
+    ],
+  },
+  "4": {
+    id: "4",
+    name: "Social Media Strategy",
+    description: "Comprehensive social media strategy for Q3 2025",
+    targetAudience: "Young professionals and social media enthusiasts aged 18-35",
+    websiteLink: "https://example.com/social-strategy",
+    competitors: ["SocialGuru", "DigitalPresence", "EngagementPro"],
+    keywords: ["social media", "strategy", "engagement", "content", "analytics"],
+    excludedKeywords: ["spam", "clickbait", "controversy"],
+    lastUpdated: "2025-05-20T10:15:00Z",
+    status: "active",
+    favorite: false,
+    thumbnail: "/interconnected-social-media.png",
+    progress: 55,
+    team: ["Taylor R.", "Jordan S.", "Morgan P."],
+    tasks: {
+      total: 28,
+      completed: 15,
+      inProgress: 8,
+      notStarted: 5,
+    },
+    recentActivities: [
+      { user: "Taylor R.", action: "completed platform analysis", time: "3 hours ago" },
+      { user: "Jordan S.", action: "drafted content calendar", time: "Yesterday" },
+      { user: "Morgan P.", action: "researched trending hashtags", time: "2 days ago" },
+    ],
+    upcomingDeadlines: [
+      { task: "Finalize platform strategy", dueDate: "2025-05-27" },
+      { task: "Complete audience analysis", dueDate: "2025-06-02" },
+      { task: "Develop engagement metrics", dueDate: "2025-06-08" },
     ],
   },
 }
@@ -305,15 +338,15 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
   return (
     <div className="flex flex-col min-h-full">
       <div className="bg-background">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex flex-col gap-3">
+        <div className="max-w-[95%] mx-auto px-2 py-3">
+          <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-3">
                 <Link href="/projects" className="p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors">
                   <ArrowLeft size={16} />
                 </Link>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold">{project.name}</h1>
+                  <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
                   <button
                     onClick={toggleFavorite}
                     className={`p-1 rounded-full ${isFavorite ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"}`}
@@ -350,216 +383,215 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
               </div>
             </div>
 
-            {/* Enhanced Theme-Adaptive Marketing Campaign Card */}
-            <Card className="overflow-hidden border border-border/60 shadow-md bg-gradient-to-br from-background/95 via-background to-background/95 backdrop-blur-sm">
-              {!isEditing ? (
-                <div className="relative">
-                  {/* Header section with refined design */}
-                  <div className="relative p-4 border-b border-border/30 flex justify-between items-start">
+            {/* Premium Enhanced Project Card with Background Shades */}
+            {!isEditing ? (
+              <Card className="overflow-hidden border shadow-md rounded-lg bg-gradient-to-b from-card to-background/80 dark:from-card dark:to-background/90 backdrop-blur-sm">
+                {/* Elegant Header with Enhanced Typography and Background */}
+                <div className="relative px-5 py-4 flex justify-between items-center border-b bg-gradient-to-r from-background/80 via-card/90 to-background/80 dark:from-background/60 dark:via-card/80 dark:to-background/60 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
                     <div>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <h2 className="text-base font-medium text-foreground">{project.name}</h2>
-                        <Badge className="px-1.5 py-0 text-[10px] bg-emerald-100/80 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30">
+                      <div className="flex items-center gap-2.5 mb-1.5">
+                        <h2 className="text-xl font-semibold tracking-tight">{project.name}</h2>
+                        <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100/80 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800/30">
+                          <span className="relative flex h-1.5 w-1.5 mr-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                          </span>
                           Active
-                        </Badge>
+                        </div>
                       </div>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>Updated {formatDate(project.lastUpdated)}</span>
-                      </div>
+                      <p className="text-sm text-muted-foreground flex items-center">
+                        <Clock className="h-3.5 w-3.5 mr-1.5 inline-block" />
+                        Last updated {formatDate(project.lastUpdated)}
+                      </p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsEditing(true)}
-                      className="h-7 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors duration-200"
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                    </Button>
                   </div>
 
-                  {/* Content cards with enhanced design */}
-                  <div className="p-4 bg-muted/10 backdrop-blur-sm">
-                    {/* Description Card - Full Width with Progress */}
-                    <div className="mb-3 p-4 bg-card rounded-md border border-border/60 shadow-md backdrop-blur-sm transition-all duration-200 hover:bg-muted/20 group">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 group-hover:bg-muted transition-colors duration-200">
-                          <FileText className="h-3.5 w-3.5" />
-                        </div>
-                        <h3 className="text-sm font-medium text-foreground/90">Description</h3>
-                      </div>
-                      <p className="text-sm text-foreground/80 leading-relaxed mb-3">{project.description}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditing(true)}
+                    className="h-9 gap-1.5 rounded-md hover:bg-muted/80 hover:border-muted-foreground/20 transition-all duration-200 backdrop-blur-sm"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
+                </div>
 
-                      {/* Progress bar */}
-                      <div className="mt-3 space-y-1.5">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-muted-foreground">Progress</span>
-                          <span className="font-medium text-foreground/90">{project.progress}%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-muted/40 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-500/80 dark:bg-emerald-600/70 rounded-full transition-all duration-300 ease-out"
-                            style={{ width: `${project.progress}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Upcoming deadlines */}
-                      {project.upcomingDeadlines && project.upcomingDeadlines.length > 0 && (
-                        <div className="mt-4">
-                          <div className="flex items-center gap-1.5 mb-2 text-xs font-medium text-foreground/90">
-                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span>Upcoming Deadlines</span>
+                <CardContent className="p-0">
+                  {/* Main Content with Premium Design and Background Shades */}
+                  <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-5 bg-gradient-to-br from-transparent via-background/40 to-transparent dark:from-transparent dark:via-card/30 dark:to-transparent backdrop-blur-sm">
+                    {/* Left Column */}
+                    <div className="space-y-4">
+                      {/* Description with Premium Typography and Background */}
+                      <div className="group">
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center group-hover:text-foreground/90 transition-colors">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted/50 mr-2 group-hover:bg-muted transition-colors backdrop-blur-sm">
+                            <FileText className="h-3.5 w-3.5" />
                           </div>
-                          <ul className="space-y-1.5">
-                            {project.upcomingDeadlines.slice(0, 2).map((deadline, index) => (
-                              <li key={index} className="flex justify-between text-xs">
-                                <span className="text-foreground/80">{deadline.task}</span>
-                                <span className="text-muted-foreground">{formatDate(deadline.dueDate)}</span>
-                              </li>
-                            ))}
-                          </ul>
+                          Description
+                        </h3>
+                        <div className="pl-8">
+                          <p className="text-sm leading-tight text-foreground/90 p-2.5 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm">
+                            {project.description}
+                          </p>
                         </div>
-                      )}
-                    </div>
+                      </div>
 
-                    {/* Card Grid with enhanced styling */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {/* Website Card */}
-                      <div className="p-4 bg-card rounded-md border border-border/60 shadow-md backdrop-blur-sm transition-all duration-200 hover:bg-muted/20 group">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 group-hover:bg-muted transition-colors duration-200">
+                      {/* Website with Premium Design and Background */}
+                      <div className="group">
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center group-hover:text-foreground/90 transition-colors">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted/50 mr-2 group-hover:bg-muted transition-colors backdrop-blur-sm">
                             <Globe className="h-3.5 w-3.5" />
                           </div>
-                          <h3 className="text-sm font-medium text-foreground/90">Website</h3>
-                        </div>
-                        <a
-                          href={project.websiteLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-sm text-foreground/80 hover:text-foreground transition-colors duration-200 border-b border-dashed border-border/40 hover:border-border/80 pb-0.5"
-                        >
-                          {project.websiteLink}
-                          <ExternalLink className="h-3.5 w-3.5 ml-1.5 flex-shrink-0 opacity-70 group-hover:translate-x-0.5 transition-transform duration-200" />
-                        </a>
-                      </div>
-
-                      {/* Target Audience Card */}
-                      <div className="p-4 bg-card rounded-md border border-border/60 shadow-md backdrop-blur-sm transition-all duration-200 hover:bg-muted/20 group">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 group-hover:bg-muted transition-colors duration-200">
-                            <Target className="h-3.5 w-3.5" />
-                          </div>
-                          <h3 className="text-sm font-medium text-foreground/90">Target Audience</h3>
-                        </div>
-                        <p className="text-sm text-foreground/80 mb-3 leading-relaxed">{project.targetAudience}</p>
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 text-xs font-medium border border-border/30 shadow-sm group-hover:bg-muted transition-colors duration-200">
-                            M
-                          </span>
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 text-xs font-medium border border-border/30 shadow-sm group-hover:bg-muted transition-colors duration-200">
-                            G
-                          </span>
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 text-xs font-medium border border-border/30 shadow-sm group-hover:bg-muted transition-colors duration-200">
-                            SP
-                          </span>
+                          Website
+                        </h3>
+                        <div className="pl-8">
+                          <a
+                            href={project.websiteLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-sm text-primary hover:text-primary/80 transition-colors group p-2.5 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm w-full"
+                          >
+                            {project.websiteLink}
+                            <ExternalLink className="h-3.5 w-3.5 ml-1.5 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-200" />
+                          </a>
                         </div>
                       </div>
 
-                      {/* Competitors Card */}
-                      <div className="p-4 bg-card rounded-md border border-border/60 shadow-md backdrop-blur-sm transition-all duration-200 hover:bg-muted/20 group">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 group-hover:bg-muted transition-colors duration-200">
+                      {/* Competitors with Premium Design and Background */}
+                      <div className="group">
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center group-hover:text-foreground/90 transition-colors">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted/50 mr-2 group-hover:bg-muted transition-colors backdrop-blur-sm">
                             <Users className="h-3.5 w-3.5" />
                           </div>
-                          <h3 className="text-sm font-medium text-foreground/90">Competitors</h3>
+                          Competitors
+                        </h3>
+                        <div className="pl-8">
+                          <div className="flex flex-wrap gap-2 p-2.5 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm">
+                            {project.competitors.map((competitor, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-2 bg-muted/30 hover:bg-muted/50 px-3 py-1.5 rounded-md text-sm transition-all duration-200 border border-border/30 hover:border-border/50 backdrop-blur-sm"
+                              >
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-medium text-white shadow-sm",
+                                    index % 3 === 0 && "bg-blue-500/90 dark:bg-blue-600/90",
+                                    index % 3 === 1 && "bg-green-500/90 dark:bg-green-600/90",
+                                    index % 3 === 2 && "bg-amber-500/90 dark:bg-amber-600/90",
+                                  )}
+                                >
+                                  {competitor.charAt(0)}
+                                </span>
+                                <span>{competitor}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <ul className="space-y-2">
-                          {project.competitors.map((competitor, index) => (
-                            <li
-                              key={index}
-                              className="flex items-center gap-2 text-sm text-foreground/80 group-hover:text-foreground/90 transition-colors duration-200"
-                            >
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-muted/70 text-foreground/80 text-xs font-medium border border-border/30 group-hover:bg-muted transition-colors duration-200">
-                                {competitor.charAt(0)}
-                              </span>
-                              <span className="truncate">{competitor}</span>
-                            </li>
-                          ))}
-                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-4">
+                      {/* Target Audience with Premium Typography and Background */}
+                      <div className="group">
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center group-hover:text-foreground/90 transition-colors">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted/50 mr-2 group-hover:bg-muted transition-colors backdrop-blur-sm">
+                            <Target className="h-3.5 w-3.5" />
+                          </div>
+                          Target Audience
+                        </h3>
+                        <div className="pl-8">
+                          <p className="text-sm leading-tight text-foreground/90 p-2.5 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm">
+                            {project.targetAudience}
+                          </p>
+                        </div>
                       </div>
 
-                      {/* Keywords Card */}
-                      <div className="p-4 bg-card rounded-md border border-border/60 shadow-md backdrop-blur-sm transition-all duration-200 hover:bg-muted/20 group">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted/70 text-foreground/80 group-hover:bg-muted transition-colors duration-200">
+                      {/* Keywords with Premium Design and Background */}
+                      <div className="group">
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center group-hover:text-foreground/90 transition-colors">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted/50 mr-2 group-hover:bg-muted transition-colors backdrop-blur-sm">
                             <Tag className="h-3.5 w-3.5" />
                           </div>
-                          <h3 className="text-sm font-medium text-foreground/90">Keywords</h3>
+                          Keywords
+                        </h3>
+                        <div className="pl-8">
+                          <div className="flex flex-wrap gap-1.5 p-2.5 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm">
+                            {project.keywords.map((keyword, index) => (
+                              <Badge
+                                key={index}
+                                variant="secondary"
+                                className="rounded-md text-xs font-normal py-1 px-2.5 hover:bg-secondary/80 transition-all duration-200 backdrop-blur-sm"
+                              >
+                                {keyword}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          {project.keywords.map((keyword, index) => (
-                            <Badge
-                              key={index}
-                              variant="secondary"
-                              className="px-2 py-0.5 bg-muted/70 text-foreground/80 border-border/40 font-normal text-xs group-hover:bg-muted transition-colors duration-200"
-                            >
-                              {keyword}
-                            </Badge>
-                          ))}
+                      </div>
+
+                      {/* Excluded Keywords with Premium Design and Background */}
+                      <div className="group">
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center group-hover:text-foreground/90 transition-colors">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted/50 mr-2 group-hover:bg-muted transition-colors backdrop-blur-sm">
+                            <Ban className="h-3.5 w-3.5" />
+                          </div>
+                          Excluded Keywords
+                        </h3>
+                        <div className="pl-8">
+                          <div className="flex flex-wrap gap-1.5 p-2.5 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm">
+                            {project.excludedKeywords.map((keyword, index) => (
+                              <Badge
+                                key={index}
+                                variant="outline"
+                                className="rounded-md text-xs font-normal py-1 px-2.5 text-muted-foreground hover:bg-muted/60 transition-all duration-200 backdrop-blur-sm"
+                              >
+                                {keyword}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Footer with action buttons */}
-                  <div className="p-4 border-t border-border/30 bg-muted/30 backdrop-blur-sm flex justify-between items-center">
-                    <Link
-                      href="#marketing-analytics"
-                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 group"
-                    >
-                      <BarChart3 className="h-4 w-4" />
-                      <span>Marketing Analytics</span>
-                      <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform duration-200" />
-                    </Link>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-sm border-border/60 text-foreground/90 hover:bg-muted hover:text-foreground transition-all duration-200"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <Edit size={14} className="mr-1.5" />
-                      Edit Details
-                    </Button>
-                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="overflow-hidden border shadow-md rounded-lg bg-gradient-to-b from-card to-background/80 dark:from-card dark:to-background/90 backdrop-blur-sm">
+                <div className="px-6 py-4 border-b bg-gradient-to-r from-background/80 via-card/90 to-background/80 dark:from-background/60 dark:via-card/80 dark:to-background/60 backdrop-blur-sm">
+                  <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                    <Edit className="h-4 w-4 text-muted-foreground" />
+                    Edit Project Details
+                  </h3>
                 </div>
-              ) : (
-                <div className="space-y-4 bg-card p-5 border-border">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-6 space-y-5 bg-gradient-to-br from-transparent via-background/40 to-transparent dark:from-transparent dark:via-card/30 dark:to-transparent backdrop-blur-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
                       <label
                         htmlFor="project-name"
-                        className="text-sm font-medium text-foreground/90 block mb-1.5 flex items-center gap-1.5"
+                        className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2"
                       >
-                        Brand Name
-                        <span className="text-xs text-muted-foreground font-normal">Used for promotion</span>
+                        Project Name
+                        <span className="text-xs text-muted-foreground font-normal">(Required)</span>
                       </label>
                       <Input
                         id="project-name"
                         value={editedName}
                         onChange={(e) => setEditedName(e.target.value)}
-                        placeholder="Enter your brand name"
-                        className="h-9 text-sm"
+                        placeholder="Enter project name"
+                        className="h-10 text-sm bg-background/60 dark:bg-card/60 backdrop-blur-sm"
                       />
                     </div>
 
                     <div>
                       <label
                         htmlFor="website-link"
-                        className="text-sm font-medium text-foreground/90 block mb-1.5 flex items-center gap-1.5"
+                        className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2"
                       >
-                        Website Link
-                        <span className="text-xs text-muted-foreground font-normal">Ensure correct URL</span>
+                        Website URL
+                        <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
                       </label>
                       <Input
                         id="website-link"
@@ -567,7 +599,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         onChange={(e) => setEditedWebsiteLink(e.target.value)}
                         placeholder="https://example.com"
                         type="url"
-                        className="h-9 text-sm"
+                        className="h-10 text-sm bg-background/60 dark:bg-card/60 backdrop-blur-sm"
                       />
                     </div>
                   </div>
@@ -575,10 +607,10 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                   <div>
                     <label
                       htmlFor="project-description"
-                      className="text-sm font-medium text-foreground/90 block mb-1.5 flex items-center gap-1.5"
+                      className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2"
                     >
                       Description
-                      <span className="text-xs text-muted-foreground font-normal">What your project is about</span>
+                      <span className="text-xs text-muted-foreground font-normal">(Required)</span>
                     </label>
                     <Textarea
                       id="project-description"
@@ -586,17 +618,17 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                       onChange={(e) => setEditedDescription(e.target.value)}
                       placeholder="Describe what your project is about"
                       rows={3}
-                      className="text-sm min-h-[80px]"
+                      className="text-sm min-h-[80px] resize-none bg-background/60 dark:bg-card/60 backdrop-blur-sm"
                     />
                   </div>
 
                   <div>
                     <label
                       htmlFor="target-audience"
-                      className="text-sm font-medium text-foreground/90 block mb-1.5 flex items-center gap-1.5"
+                      className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2"
                     >
                       Target Audience
-                      <span className="text-xs text-muted-foreground font-normal">Who you're targeting</span>
+                      <span className="text-xs text-muted-foreground font-normal">(Required)</span>
                     </label>
                     <Textarea
                       id="target-audience"
@@ -604,19 +636,19 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                       onChange={(e) => setEditedTargetAudience(e.target.value)}
                       placeholder="Describe your target audience"
                       rows={2}
-                      className="text-sm min-h-[60px]"
+                      className="text-sm min-h-[60px] resize-none bg-background/60 dark:bg-card/60 backdrop-blur-sm"
                     />
                   </div>
 
                   <div>
                     <label
                       htmlFor="competitors"
-                      className="text-sm font-medium text-foreground/90 block mb-1.5 flex items-center gap-1.5"
+                      className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2"
                     >
                       Competitors
-                      <span className="text-xs text-muted-foreground font-normal">Main market competitors</span>
+                      <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
                     </label>
-                    <div className="flex flex-wrap gap-1.5 mb-2 min-h-[28px] p-2.5 border border-border rounded-md bg-muted/20">
+                    <div className="flex flex-wrap gap-1.5 mb-2 min-h-[40px] p-3 border rounded-md bg-background/60 dark:bg-card/60 backdrop-blur-sm">
                       {editedCompetitors
                         .split(",")
                         .map((k) => k.trim())
@@ -625,14 +657,14 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                           <Badge
                             key={index}
                             variant="outline"
-                            className="text-sm flex items-center gap-1 px-2 py-0.5 bg-muted/40 text-foreground/80 border-border/60"
+                            className="text-sm flex items-center gap-1 px-2.5 py-1 bg-muted/30 text-foreground/80 border-border/40 hover:bg-muted/50 transition-colors backdrop-blur-sm"
                           >
                             {competitor}
                             <button
                               onClick={() => removeCompetitor(competitor)}
-                              className="ml-1 rounded-full hover:bg-muted transition-colors duration-150"
+                              className="ml-1.5 rounded-full hover:bg-muted/80 transition-colors p-0.5"
                             >
-                              <X className="h-3.5 w-3.5" />
+                              <X className="h-3 w-3" />
                             </button>
                           </Badge>
                         ))}
@@ -643,7 +675,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         value={competitorInput}
                         onChange={(e) => setCompetitorInput(e.target.value)}
                         placeholder="Add a competitor"
-                        className="h-9 text-sm"
+                        className="h-10 text-sm bg-background/60 dark:bg-card/60 backdrop-blur-sm"
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault()
@@ -651,22 +683,28 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                           }
                         }}
                       />
-                      <Button type="button" onClick={addCompetitor} variant="outline" size="sm" className="h-9">
+                      <Button
+                        type="button"
+                        onClick={addCompetitor}
+                        variant="outline"
+                        size="sm"
+                        className="h-10 backdrop-blur-sm"
+                      >
                         Add
                       </Button>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
                       <label
                         htmlFor="keywords"
-                        className="text-sm font-medium text-foreground/90 block mb-1.5 flex items-center gap-1.5"
+                        className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2"
                       >
                         Keywords
-                        <span className="text-xs text-muted-foreground font-normal">Terms to target</span>
+                        <span className="text-xs text-muted-foreground font-normal">(Required)</span>
                       </label>
-                      <div className="flex flex-wrap gap-1.5 mb-2 min-h-[28px] p-2.5 border border-border rounded-md bg-muted/20">
+                      <div className="flex flex-wrap gap-1.5 mb-2 min-h-[40px] p-3 border rounded-md bg-background/60 dark:bg-card/60 backdrop-blur-sm">
                         {editedKeywords
                           .split(",")
                           .map((k) => k.trim())
@@ -675,14 +713,14 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                             <Badge
                               key={index}
                               variant="secondary"
-                              className="text-sm flex items-center gap-1 px-2 py-0.5 bg-muted/40 text-foreground/80 border-border/60"
+                              className="text-sm flex items-center gap-1 px-2.5 py-1 bg-secondary/30 text-foreground/80 hover:bg-secondary/50 transition-colors backdrop-blur-sm"
                             >
                               {keyword}
                               <button
                                 onClick={() => removeKeyword(keyword)}
-                                className="ml-1 rounded-full hover:bg-muted transition-colors duration-150"
+                                className="ml-1.5 rounded-full hover:bg-secondary/80 transition-colors p-0.5"
                               >
-                                <X className="h-3.5 w-3.5" />
+                                <X className="h-3 w-3" />
                               </button>
                             </Badge>
                           ))}
@@ -693,7 +731,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                           value={keywordInput}
                           onChange={(e) => setKeywordInput(e.target.value)}
                           placeholder="Add a keyword"
-                          className="h-9 text-sm"
+                          className="h-10 text-sm bg-background/60 dark:bg-card/60 backdrop-blur-sm"
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               e.preventDefault()
@@ -701,7 +739,13 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                             }
                           }}
                         />
-                        <Button type="button" onClick={addKeyword} variant="outline" size="sm" className="h-9">
+                        <Button
+                          type="button"
+                          onClick={addKeyword}
+                          variant="outline"
+                          size="sm"
+                          className="h-10 backdrop-blur-sm"
+                        >
                           Add
                         </Button>
                       </div>
@@ -710,12 +754,12 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                     <div>
                       <label
                         htmlFor="excluded-keywords"
-                        className="text-sm font-medium text-foreground/90 block mb-1.5 flex items-center gap-1.5"
+                        className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2"
                       >
                         Excluded Keywords
-                        <span className="text-xs text-muted-foreground font-normal">Terms to avoid</span>
+                        <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
                       </label>
-                      <div className="flex flex-wrap gap-1.5 mb-2 min-h-[28px] p-2.5 border border-border rounded-md bg-muted/20">
+                      <div className="flex flex-wrap gap-1.5 mb-2 min-h-[40px] p-3 border rounded-md bg-background/60 dark:bg-card/60 backdrop-blur-sm">
                         {editedExcludedKeywords
                           .split(",")
                           .map((k) => k.trim())
@@ -724,14 +768,14 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                             <Badge
                               key={index}
                               variant="outline"
-                              className="text-sm border-border/60 text-muted-foreground flex items-center gap-1 px-2 py-0.5 bg-muted/30"
+                              className="text-sm text-muted-foreground flex items-center gap-1 px-2.5 py-1 bg-muted/20 hover:bg-muted/40 transition-colors backdrop-blur-sm"
                             >
                               {keyword}
                               <button
                                 onClick={() => removeExcludedKeyword(keyword)}
-                                className="ml-1 rounded-full hover:bg-muted transition-colors duration-150"
+                                className="ml-1.5 rounded-full hover:bg-muted/80 transition-colors p-0.5"
                               >
-                                <X className="h-3.5 w-3.5" />
+                                <X className="h-3 w-3" />
                               </button>
                             </Badge>
                           ))}
@@ -742,7 +786,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                           value={excludedKeywordInput}
                           onChange={(e) => setExcludedKeywordInput(e.target.value)}
                           placeholder="Add an excluded keyword"
-                          className="h-9 text-sm"
+                          className="h-10 text-sm bg-background/60 dark:bg-card/60 backdrop-blur-sm"
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               e.preventDefault()
@@ -750,24 +794,42 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                             }
                           }}
                         />
-                        <Button type="button" onClick={addExcludedKeyword} variant="outline" size="sm" className="h-9">
+                        <Button
+                          type="button"
+                          onClick={addExcludedKeyword}
+                          variant="outline"
+                          size="sm"
+                          className="h-10 backdrop-blur-sm"
+                        >
                           Add
                         </Button>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button variant="outline" size="sm" onClick={handleCancelEdit}>
+                  <Separator className="my-2" />
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelEdit}
+                      className="h-10 px-4 font-medium hover:bg-muted/50 transition-colors backdrop-blur-sm"
+                    >
                       Cancel
                     </Button>
-                    <Button size="sm" onClick={handleSaveChanges}>
+                    <Button
+                      size="sm"
+                      onClick={handleSaveChanges}
+                      className="h-10 px-4 font-medium gap-1.5 bg-primary hover:bg-primary/90 transition-colors backdrop-blur-sm"
+                    >
+                      <Save className="h-4 w-4" />
                       Save Changes
                     </Button>
                   </div>
                 </div>
-              )}
-            </Card>
+              </Card>
+            )}
 
             {/* Marketing Analytics Cards - Added below product information */}
             <div className="mt-4" id="marketing-analytics">
