@@ -80,13 +80,61 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: Arial, Helvetica, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
-}
 
-@layer utilities {
+  /* Typography styles */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-inter font-semibold tracking-tight;
+  }
+
+  h1 {
+    @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-[1.1];
+    letter-spacing: -0.03em;
+  }
+
+  h2 {
+    @apply text-2xl sm:text-3xl md:text-4xl leading-[1.2];
+    letter-spacing: -0.02em;
+  }
+
+  h3 {
+    @apply text-xl sm:text-2xl leading-[1.3];
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    @apply leading-relaxed;
+  }
+
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Font weight utilities */
+  .font-light {
+    font-weight: 300;
+  }
+
+  .font-normal {
+    font-weight: 400;
+  }
+
+  .font-medium {
+    font-weight: 500;
+  }
+
+  .font-semibold {
+    font-weight: 600;
+  }
+
+  .font-bold {
+    font-weight: 700;
   }
 }
 
@@ -136,6 +184,14 @@
   animation: pulseOnce 0.3s ease-out forwards;
 }
 
+.animate-pulse-slow {
+  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-pulse-slower {
+  animation: pulse 5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 /* For staggered animations */
 .animating .stagger-1 {
   transition-delay: 50ms;
@@ -147,4 +203,27 @@
 
 .animating .stagger-3 {
   transition-delay: 150ms;
+}
+
+/* Custom animations */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Glass effect */
+.glass-effect {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
