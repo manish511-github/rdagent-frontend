@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/theme-toggle"
+import ThemeToggle from "@/components/theme-toggle"
 import { Menu, X, Search, ChevronDown, Layers, BarChart2, Users, MessageSquare } from "lucide-react"
 
 export default function Navbar() {
@@ -174,7 +174,7 @@ export default function Navbar() {
 
               <div className="hidden md:flex items-center gap-3">
                 <Link
-                  href="#"
+                  href="/sign-in"
                   className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Sign in
@@ -315,7 +315,7 @@ export default function Navbar() {
           {/* Mobile menu footer */}
           <div className="p-4 border-t border-border space-y-3">
             <Link
-              href="#"
+              href="/sign-in"
               className="block w-full py-3 px-4 text-center text-base font-medium hover:bg-muted rounded-lg transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >

@@ -5,7 +5,7 @@ import Image from "next/image"
 import { Bell, ChevronRight, Plus } from "lucide-react"
 import Profile01 from "./profile-01"
 import Link from "next/link"
-import { ThemeToggle } from "../theme-toggle"
+import ThemeToggle from "../theme-toggle"
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 
@@ -57,7 +57,10 @@ export default function TopNav({ currentProject }: TopNavProps) {
 
       <div className="flex items-center gap-2 sm:gap-4 ml-auto">
         {isProjectsPage && (
-          <Button size="sm" className="mr-2">
+          <Button
+            size="sm"
+            className="mr-2 bg-gray-800 hover:bg-gray-700 text-white dark:bg-gray-700 dark:hover:bg-gray-600"
+          >
             <Plus className="h-3.5 w-3.5 mr-1" />
             New Project
           </Button>

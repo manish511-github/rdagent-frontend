@@ -866,7 +866,7 @@ export default function ProjectsPage() {
                 <div className="flex-1 min-w-0">
                   {/* Title and badges */}
                   <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <h3 className="text-sm font-bold tracking-tight line-clamp-1 group-hover:text-primary dark:group-hover:text-primary/90 transition-colors">
+                    <h3 className="text-sm font-bold tracking-tight line-clamp-1 group-hover:text-foreground/80 dark:group-hover:text-foreground/90 transition-colors">
                       {project.title}
                     </h3>
                     <div className="flex items-center gap-1.5 flex-shrink-0">

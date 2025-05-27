@@ -1,29 +1,34 @@
 "use client"
 
-import * as React from "react"
-import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
+import { Button } from "@/components/ui/button"
+import { SunIcon, MoonIcon } from "lucide-react"
+import { useEffect, useState } from "react"
 
-export function ThemeToggle() {
-  const [mounted, setMounted] = React.useState(false)
+export default function ThemeToggle() {
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
-  React.useEffect(() => {
+  // Ensure this component only renders client-side to prevent hydration mismatch
+  useEffect(() => {
     setMounted(true)
   }, [])
 
-  if (!mounted) {
-    return null
-  }
+  if (!mounted) return null
 
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="icon"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="relative p-1.5 hover:bg-gray-100 dark:hover:bg-[#1F1F23] rounded-full transition-colors"
+      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+      className="rounded-full w-10 h-10"
     >
-      <Sun className="h-4 w-4 text-gray-600 dark:text-gray-300 transition-all dark:hidden" />
-      <Moon className="h-4 w-4 text-gray-600 dark:text-gray-300 transition-all hidden dark:block" />
-      <span className="sr-only">Toggle theme</span>
-    </button>
+      {theme === "dark" ? (
+        <SunIcon className="h-5 w-5 text-yellow-300" />
+      ) : (
+        <MoonIcon className="h-5 w-5 text-gray-800" />
+      )}
+    </Button>
   )
 }
