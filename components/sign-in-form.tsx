@@ -55,18 +55,23 @@ export default function SignInForm() {
     try {
       // Simulate API call to FastAPI backend
       await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      // For demo purposes - in a real app, you would call your FastAPI endpoint
-      // const response = await fetch('/api/auth/signin', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password })
-      // })
-
-      // if (!response.ok) throw new Error('Invalid credentials')
-
-      // Success - redirect to dashboard
-      router.push("/projects")
+      const response = await fetch("http://localhost:8000/auth/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          username: email,      
+          password: password,
+        }),
+      });
+      
+      if (!response.ok) throw new Error("Invalid credentials");
+      
+      const data = await response.json();
+      localStorage.setItem("token", data.access_token);  // Save token
+      
+      router.push("/projects");
     } catch (err) {
       setError("Invalid email or password. Please try again.")
     } finally {
