@@ -358,48 +358,52 @@ const healthStatuses = [
   { value: "completed", label: "Completed", icon: <CheckCircle2 className="h-4 w-4" />, color: "blue" },
 ]
 
-// Mock function to simulate API call for website analysis
-const analyzeWebsite = async (url: string) => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 2000))
-
-  // Return mock data based on URL
-  if (url.includes("example.com")) {
-    return {
-      title: "Example Website Project",
-      description:
-        "A comprehensive website for showcasing products and services with modern design and user experience.",
-      targetAudience: "Small to medium businesses and professionals looking for digital solutions",
-      competitors: ["CompetitorA", "CompetitorB", "CompetitorC"],
-      keywords: ["website", "digital", "services", "solutions", "professional"],
-      excludedKeywords: ["cheap", "free", "trial"],
-      category: "design",
-      priority: "medium",
-    }
-  } else if (url.includes("tech")) {
-    return {
-      title: "Tech Product Launch",
-      description: "New technology product launch with marketing campaign across digital channels.",
-      targetAudience: "Tech enthusiasts and early adopters aged 25-45",
-      competitors: ["TechGiant", "InnovateNow", "FutureTech"],
-      keywords: ["technology", "innovation", "product", "launch", "digital"],
-      excludedKeywords: ["outdated", "legacy"],
-      category: "product",
-      priority: "high",
-    }
-  } else {
-    return {
-      title: url.split("//")[1]?.split(".")[0] || "New Website Project",
-      description: "Website project based on provided URL.",
-      targetAudience: "General audience interested in the website's content and services",
-      competitors: [],
-      keywords: [url.split("//")[1]?.split(".")[0] || "website"],
-      excludedKeywords: [],
-      category: "design",
-      priority: "medium",
-    }
-  }
+interface WebsiteAnalysisResult {
+  url: string;
+  title: string;
+  description: string;
+  target_audience: string;
+  keywords: string[];
+  main_category: string;
 }
+
+// Replace mock function with API call
+const analyzeWebsite = async (url: string) => {
+  try {
+    const response = await fetch('http://localhost:8000/scraper/scrape-website', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url }),
+    });
+
+    if (!response.ok) {
+      // Attempt to read error message from response body if available
+      const errorBody = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+      throw new Error(errorBody.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const data: WebsiteAnalysisResult = await response.json();
+
+    // Map API response to the expected project structure
+    return {
+      title: data.title,
+      description: data.description,
+      targetAudience: data.target_audience,
+      // The API does not provide competitors, excludedKeywords, or priority.
+      // We will initialize them as empty or default values.
+      competitors: [],
+      keywords: data.keywords,
+      excludedKeywords: [],
+      category: data.main_category || 'marketing', // Default to 'marketing' if category is missing
+      priority: 'medium', // Default to 'medium' if priority is missing
+    };
+  } catch (error: any) {
+    console.error("Error analyzing website:", error);
+    throw new Error(`Failed to analyze website: ${error.message || 'Unknown error'}`);
+  }
+};
 
 export default function ProjectsPage() {
   const [view, setView] = useState<"grid" | "list" | "kanban">("grid")
@@ -866,7 +870,7 @@ export default function ProjectsPage() {
                 <div className="flex-1 min-w-0">
                   {/* Title and badges */}
                   <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <h3 className="text-sm font-bold tracking-tight line-clamp-1 group-hover:text-foreground/80 dark:group-hover:text-foreground/90 transition-colors">
+                    <h3 className="text-sm font-bold tracking-tight line-clamp-1 group-hover:text-primary dark:group-hover:text-primary/90 transition-colors">
                       {project.title}
                     </h3>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
