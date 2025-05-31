@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import Cookies from 'js-cookie';
+import { useToast } from "@/components/ui/use-toast"
 import { EyeIcon, EyeOffIcon, LoaderCircleIcon, AlertCircleIcon } from "lucide-react"
 
 export default function SignInForm() {
@@ -17,6 +19,8 @@ export default function SignInForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const { toast } = useToast()
+
 
   const handleContinue = (e: React.FormEvent) => {
     e.preventDefault()
@@ -69,8 +73,15 @@ export default function SignInForm() {
       if (!response.ok) throw new Error("Invalid credentials");
       
       const data = await response.json();
-      localStorage.setItem("token", data.access_token);  // Save token
-      
+      // localStorage.setItem("token", data.access_token);  // Save token
+      Cookies.set("token", data.access_token, { expires: 7 }); 
+
+      toast({
+        title: "Success!",
+        description: "You have successfully signed in.",
+        variant: "default", // Or "success" if you have a custom success variant
+      });
+
       router.push("/projects");
     } catch (err) {
       setError("Invalid email or password. Please try again.")

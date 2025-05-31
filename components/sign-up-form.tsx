@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useToast } from "@/components/ui/use-toast"
+
 import { EyeIcon, EyeOffIcon, LoaderCircleIcon, AlertCircleIcon } from "lucide-react"
 
 export default function SignUpForm() {
@@ -21,6 +23,7 @@ export default function SignUpForm() {
     password: "",
     confirmPassword: "",
   })
+  const { toast } = useToast()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -70,31 +73,42 @@ export default function SignUpForm() {
   }
 
   const handleSignUp = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
+    setError(""); // Clear previous errors
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const response = await fetch('http://localhost:8000/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // You might need to include an Authorization header here if your API is protected
+          // 'Authorization': `Bearer YOUR_AUTH_TOKEN`,
+        },
+        body: JSON.stringify({
+          username: formData.fullName, // Mapping fullName to username as per backend schema
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
 
-      // For demo purposes - in a real app, you would call your API endpoint
-      // const response = await fetch('/api/auth/signup', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     name: formData.fullName,
-      //     email: formData.email,
-      //     password: formData.password
-      //   })
-      // })
+      if (!response.ok) {
+        // Attempt to read error message from response body if available
+        const errorBody = await response.json().catch(() => ({ detail: `HTTP error! status: ${response.status}` }));
+        throw new Error(errorBody.detail || `HTTP error! status: ${response.status}`);
+      }
 
-      // if (!response.ok) throw new Error('Failed to create account')
+      toast({
+        title: "Success!",
+        description: "Your account has been created. Please sign in.",
+        variant: "default", // Or "success" if you have a custom success variant
+      });
+      router.push("/sign-in"); // Redirect to sign-in page
 
-      // Success - redirect to projects page
-      router.push("/projects")
-    } catch (err) {
-      setError("Failed to create account. Please try again.")
+    } catch (err: any) {
+      console.error("Sign up failed:", err);
+      setError(err.message || "Failed to create account. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

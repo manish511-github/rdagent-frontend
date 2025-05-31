@@ -76,6 +76,9 @@ import {
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import React from "react"
+import Cookies from 'js-cookie';
+import { useToast } from "@/components/ui/use-toast"
+
 
 // Enhanced project data with more fields
 const projects = [
@@ -566,6 +569,7 @@ export default function ProjectsPage() {
       keywords: newProject.keywords.filter((k) => k !== keyword),
     })
   }
+  const { toast } = useToast()
 
   // Handle adding an excluded keyword
   const addExcludedKeyword = () => {
@@ -587,15 +591,46 @@ export default function ProjectsPage() {
   }
 
   // Handle creating a new project
-  const handleCreateProject = () => {
-    // Here you would typically send the data to your backend
-    console.log("Creating new project:", newProject)
+  const handleCreateProject = async () => {
+    try {
+      console.log("Creating new project:", newProject);
+      // const token = localStorage.getItem("token");  
+      const token = Cookies.get("token"); // Get token from cookie
 
-    // Close the dialog
-    setShowCreateDialog(false)
+      const response = await fetch('http://localhost:8000/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`  
+        },
+        body: JSON.stringify(newProject), 
+      });
 
-    // You could also add the new project to the local state for immediate UI update
-    // For now, we'll just close the dialog
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+        throw new Error(errorBody.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const createdProject = await response.json();
+      console.log("Project created successfully:", createdProject);
+
+      toast({
+        title: "Project Created",
+        description: `Project "${createdProject.name}" created successfully.`,
+        variant: "default", //
+      });
+  
+
+    } catch (error: any) {
+      console.error("Error creating project:", error);
+      toast({
+        title: "Failed to Create Project",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setShowCreateDialog(false);
+    }
   }
 
   // Filter and sort projects
@@ -1437,7 +1472,7 @@ export default function ProjectsPage() {
 
         {/* Create Project Dialog */}
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Project</DialogTitle>
               <DialogDescription>
@@ -1524,7 +1559,7 @@ export default function ProjectsPage() {
                           value={newProject.description}
                           onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
                           placeholder="Describe your project"
-                          rows={2}
+                          rows={10}
                         />
                       </div>
 
@@ -1535,7 +1570,7 @@ export default function ProjectsPage() {
                           value={newProject.targetAudience}
                           onChange={(e) => setNewProject({ ...newProject, targetAudience: e.target.value })}
                           placeholder="Define your target audience"
-                          rows={2}
+                          rows={4}
                         />
                       </div>
 
@@ -1577,7 +1612,7 @@ export default function ProjectsPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3">
                         <div className="space-y-2">
                           <Label htmlFor="keywords">Keywords (Required)</Label>
                           <div className="flex flex-wrap gap-1.5 mb-2 min-h-[36px] p-2 border rounded-md bg-background/60">
@@ -1585,14 +1620,14 @@ export default function ProjectsPage() {
                               <Badge
                                 key={index}
                                 variant="secondary"
-                                className="text-sm flex items-center gap-1 px-2.5 py-1 bg-secondary/30 text-foreground/80 hover:bg-secondary/50 transition-colors"
-                              >
+                                className="text-sm font-normal flex items-center gap-1 px-2.5 py-1 bg-secondary/20 text-foreground/60 hover:bg-secondary/40 transition-colors"
+                                >
                                 {keyword}
                                 <button
                                   onClick={() => removeKeyword(keyword)}
-                                  className="ml-1.5 rounded-full hover:bg-secondary/80 transition-colors p-0.5"
-                                >
-                                  <X className="h-3 w-3" />
+                                  className="ml-1.5 rounded-full hover:bg-secondary/70 transition-colors p-0.5"
+                                  >
+                                <X className="h-3 w-3 text-foreground/60" />
                                 </button>
                               </Badge>
                             ))}
@@ -1666,7 +1701,7 @@ export default function ProjectsPage() {
               </TabsContent>
 
               <TabsContent value="manual" className="space-y-3 mt-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="manual-project-title">Project Name (Required)</Label>
                     <Input
