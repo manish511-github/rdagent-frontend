@@ -78,7 +78,41 @@ import { cn } from "@/lib/utils"
 import React from "react"
 import Cookies from 'js-cookie';
 import { useToast } from "@/components/ui/use-toast"
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '@/store/store';
+import { fetchProjects } from '@/store/slices/projectsSlice';
+import { LucideIcon } from 'lucide-react';
 
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  progress: number;
+  dueDate: string;
+  startDate: string;
+  lastUpdated: string;
+  priority: string;
+  category: string;
+  budget: number;
+  budgetSpent: number;
+  team: Array<{
+    name: string;
+    avatar: string;
+    initials: string;
+    role: string;
+  }>;
+  tags: string[];
+  metrics: {
+    tasks: number;
+    completed: number;
+    comments: number;
+    attachments: number;
+  };
+  health: string;
+  starred: boolean;
+  icon: LucideIcon;
+}
 
 // Enhanced project data with more fields
 const projects = [
@@ -409,6 +443,11 @@ const analyzeWebsite = async (url: string) => {
 };
 
 export default function ProjectsPage() {
+  // Redux hooks
+  const dispatch = useDispatch<AppDispatch>();
+  const { items: projects, status, error } = useSelector((state: RootState) => state.projects);
+  
+  // All state declarations
   const [view, setView] = useState<"grid" | "list" | "kanban">("grid")
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
@@ -451,6 +490,16 @@ export default function ProjectsPage() {
   const [keywordInput, setKeywordInput] = useState("")
   const [excludedKeywordInput, setExcludedKeywordInput] = useState("")
 
+  // Toast hook
+  const { toast } = useToast()
+
+  // Fetch projects on component mount
+  useEffect(() => {
+    if (status === 'idle') {
+      dispatch(fetchProjects());
+    }
+  }, [status, dispatch]);
+
   // Animation effect
   useEffect(() => {
     const timer = setTimeout(() => setAnimateIn(true), 100)
@@ -472,40 +521,6 @@ export default function ProjectsPage() {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [])
-
-  // Handle website URL analysis
-  const handleAnalyzeWebsite = async () => {
-    if (!websiteUrl) {
-      setAnalysisError("Please enter a website URL")
-      return
-    }
-
-    try {
-      setIsAnalyzing(true)
-      setAnalysisError("")
-
-      // Call the mock API function
-      const result = await analyzeWebsite(websiteUrl)
-
-      // Update the form with the results
-      setNewProject({
-        ...newProject,
-        title: result.title,
-        description: result.description,
-        targetAudience: result.targetAudience,
-        websiteUrl: websiteUrl,
-        category: result.category,
-        priority: result.priority,
-        competitors: result.competitors,
-        keywords: result.keywords,
-        excludedKeywords: result.excludedKeywords,
-      })
-    } catch (error) {
-      setAnalysisError("Failed to analyze website. Please try again or enter details manually.")
-    } finally {
-      setIsAnalyzing(false)
-    }
-  }
 
   // Reset form when dialog is opened/closed
   useEffect(() => {
@@ -531,107 +546,6 @@ export default function ProjectsPage() {
       setActiveTab("url")
     }
   }, [showCreateDialog])
-
-  // Handle adding a competitor
-  const addCompetitor = () => {
-    if (competitorInput.trim() && !newProject.competitors.includes(competitorInput.trim())) {
-      setNewProject({
-        ...newProject,
-        competitors: [...newProject.competitors, competitorInput.trim()],
-      })
-      setCompetitorInput("")
-    }
-  }
-
-  // Handle removing a competitor
-  const removeCompetitor = (competitor: string) => {
-    setNewProject({
-      ...newProject,
-      competitors: newProject.competitors.filter((c) => c !== competitor),
-    })
-  }
-
-  // Handle adding a keyword
-  const addKeyword = () => {
-    if (keywordInput.trim() && !newProject.keywords.includes(keywordInput.trim())) {
-      setNewProject({
-        ...newProject,
-        keywords: [...newProject.keywords, keywordInput.trim()],
-      })
-      setKeywordInput("")
-    }
-  }
-
-  // Handle removing a keyword
-  const removeKeyword = (keyword: string) => {
-    setNewProject({
-      ...newProject,
-      keywords: newProject.keywords.filter((k) => k !== keyword),
-    })
-  }
-  const { toast } = useToast()
-
-  // Handle adding an excluded keyword
-  const addExcludedKeyword = () => {
-    if (excludedKeywordInput.trim() && !newProject.excludedKeywords.includes(excludedKeywordInput.trim())) {
-      setNewProject({
-        ...newProject,
-        excludedKeywords: [...newProject.excludedKeywords, excludedKeywordInput.trim()],
-      })
-      setExcludedKeywordInput("")
-    }
-  }
-
-  // Handle removing an excluded keyword
-  const removeExcludedKeyword = (keyword: string) => {
-    setNewProject({
-      ...newProject,
-      excludedKeywords: newProject.excludedKeywords.filter((k) => k !== keyword),
-    })
-  }
-
-  // Handle creating a new project
-  const handleCreateProject = async () => {
-    try {
-      console.log("Creating new project:", newProject);
-      // const token = localStorage.getItem("token");  
-      const token = Cookies.get("token"); // Get token from cookie
-
-      const response = await fetch('http://localhost:8000/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`  
-        },
-        body: JSON.stringify(newProject), 
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
-        throw new Error(errorBody.message || `HTTP error! status: ${response.status}`);
-      }
-
-      const createdProject = await response.json();
-      console.log("Project created successfully:", createdProject);
-
-      toast({
-        title: "Project Created",
-        description: `Project "${createdProject.name}" created successfully.`,
-        variant: "default", //
-      });
-  
-
-    } catch (error: any) {
-      console.error("Error creating project:", error);
-      toast({
-        title: "Failed to Create Project",
-        description: error.message || "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setShowCreateDialog(false);
-    }
-  }
 
   // Filter and sort projects
   const filteredProjects = useMemo(() => {
@@ -699,7 +613,7 @@ export default function ProjectsPage() {
     })
 
     return filtered
-  }, [searchQuery, categoryFilter, statusFilter, priorityFilter, healthFilter, showStarredOnly, sort])
+  }, [projects, searchQuery, categoryFilter, statusFilter, priorityFilter, healthFilter, showStarredOnly, sort])
 
   // Project statistics
   const projectStats = useMemo(() => {
@@ -711,7 +625,175 @@ export default function ProjectsPage() {
     const totalSpent = projects.reduce((sum, p) => sum + p.budgetSpent, 0)
 
     return { total, active, completed, atRisk, totalBudget, totalSpent }
-  }, [])
+  }, [projects])
+
+  // Loading state
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
+        <div className="p-6 max-w-[1600px] mx-auto">
+          <div className="flex items-center justify-center h-[50vh]">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading projects...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (status === 'failed') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
+        <div className="p-6 max-w-[1600px] mx-auto">
+          <div className="flex items-center justify-center h-[50vh]">
+            <div className="text-center">
+              <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-4" />
+              <p className="text-destructive mb-2">Failed to load projects</p>
+              <p className="text-muted-foreground mb-4">{error}</p>
+              <Button onClick={() => dispatch(fetchProjects())}>Try Again</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle website URL analysis
+  const handleAnalyzeWebsite = async () => {
+    if (!websiteUrl) {
+      setAnalysisError("Please enter a website URL")
+      return
+    }
+
+    try {
+      setIsAnalyzing(true)
+      setAnalysisError("")
+
+      // Call the mock API function
+      const result = await analyzeWebsite(websiteUrl)
+
+      // Update the form with the results
+      setNewProject({
+        ...newProject,
+        title: result.title,
+        description: result.description,
+        targetAudience: result.targetAudience,
+        websiteUrl: websiteUrl,
+        category: result.category,
+        priority: result.priority,
+        competitors: result.competitors,
+        keywords: result.keywords,
+        excludedKeywords: result.excludedKeywords,
+      })
+    } catch (error) {
+      setAnalysisError("Failed to analyze website. Please try again or enter details manually.")
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
+  // Handle adding a competitor
+  const addCompetitor = () => {
+    if (competitorInput.trim() && !newProject.competitors.includes(competitorInput.trim())) {
+      setNewProject({
+        ...newProject,
+        competitors: [...newProject.competitors, competitorInput.trim()],
+      })
+      setCompetitorInput("")
+    }
+  }
+
+  // Handle removing a competitor
+  const removeCompetitor = (competitor: string) => {
+    setNewProject({
+      ...newProject,
+      competitors: newProject.competitors.filter((c) => c !== competitor),
+    })
+  }
+
+  // Handle adding a keyword
+  const addKeyword = () => {
+    if (keywordInput.trim() && !newProject.keywords.includes(keywordInput.trim())) {
+      setNewProject({
+        ...newProject,
+        keywords: [...newProject.keywords, keywordInput.trim()],
+      })
+      setKeywordInput("")
+    }
+  }
+
+  // Handle removing a keyword
+  const removeKeyword = (keyword: string) => {
+    setNewProject({
+      ...newProject,
+      keywords: newProject.keywords.filter((k) => k !== keyword),
+    })
+  }
+
+  // Handle adding an excluded keyword
+  const addExcludedKeyword = () => {
+    if (excludedKeywordInput.trim() && !newProject.excludedKeywords.includes(excludedKeywordInput.trim())) {
+      setNewProject({
+        ...newProject,
+        excludedKeywords: [...newProject.excludedKeywords, excludedKeywordInput.trim()],
+      })
+      setExcludedKeywordInput("")
+    }
+  }
+
+  // Handle removing an excluded keyword
+  const removeExcludedKeyword = (keyword: string) => {
+    setNewProject({
+      ...newProject,
+      excludedKeywords: newProject.excludedKeywords.filter((k) => k !== keyword),
+    })
+  }
+
+  // Handle creating a new project
+  const handleCreateProject = async () => {
+    try {
+      console.log("Creating new project:", newProject);
+      // const token = localStorage.getItem("token");  
+      const token = Cookies.get("token"); // Get token from cookie
+
+      const response = await fetch('http://localhost:8000/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`  
+        },
+        body: JSON.stringify(newProject), 
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+        throw new Error(errorBody.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const createdProject = await response.json();
+      console.log("Project created successfully:", createdProject);
+
+      toast({
+        title: "Project Created",
+        description: `Project "${createdProject.name}" created successfully.`,
+        variant: "default", //
+      });
+  
+
+    } catch (error: any) {
+      console.error("Error creating project:", error);
+      toast({
+        title: "Failed to Create Project",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setShowCreateDialog(false);
+    }
+  }
 
   // Toggle project selection
   const toggleProjectSelection = (projectId: string) => {
@@ -747,7 +829,11 @@ export default function ProjectsPage() {
   }
 
   // Get status color
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
+    if (!status) {
+      return "bg-blue-100/15 text-blue-700 dark:bg-blue-900/25 dark:text-blue-300 border-blue-700/30"
+    }
+    
     switch (status.toLowerCase()) {
       case "completed":
         return "bg-blue-100/15 text-blue-800 dark:bg-blue-900/25 dark:text-blue-300 border-blue-800/30"
@@ -835,6 +921,12 @@ export default function ProjectsPage() {
   const renderProjectCard = (project: (typeof projects)[0], index: number) => {
     const dueStatus = getDaysUntilDue(project.dueDate)
     const isSelected = selectedProjects.includes(project.id)
+    const completedTasks = project.metrics?.completed ?? 0
+    const totalTasks = project.metrics?.tasks ?? 0
+    const comments = project.metrics?.comments ?? 0
+    const health = project.health ?? 'on-track'
+    const tags = Array.isArray(project.tags) ? project.tags : []
+    const Icon = project.icon ?? Briefcase // Use Briefcase as default icon
 
     return (
       <div
@@ -898,7 +990,7 @@ export default function ProjectsPage() {
                     "bg-blue-100 dark:bg-blue-900/70 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-400/30",
                   )}
                 >
-                  {React.cloneElement(project.icon, { className: "h-3.5 w-3.5" })}
+                  <Icon className="h-3.5 w-3.5" />
                 </div>
 
                 {/* Content */}
@@ -944,7 +1036,7 @@ export default function ProjectsPage() {
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         <span className="font-medium">
-                          {project.metrics.completed}/{project.metrics.tasks}
+                          {completedTasks}/{totalTasks}
                         </span>
                       </div>
                     </div>
@@ -953,18 +1045,18 @@ export default function ProjectsPage() {
                     <div
                       className={cn(
                         "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border",
-                        project.health === "on-track" &&
+                        health === "on-track" &&
                           "bg-blue-100/80 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 border-blue-300/50 dark:border-blue-400/30",
-                        project.health === "at-risk" &&
+                        health === "at-risk" &&
                           "bg-blue-100/80 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border-blue-300/50 dark:border-blue-400/30",
-                        project.health === "off-track" &&
+                        health === "off-track" &&
                           "bg-blue-100/80 dark:bg-blue-900/60 text-blue-600 dark:text-blue-300 border-blue-300/50 dark:border-blue-400/30",
-                        project.health === "completed" &&
+                        health === "completed" &&
                           "bg-blue-100/80 dark:bg-blue-900/60 text-blue-900 dark:text-blue-300 border-blue-300/50 dark:border-blue-400/30",
                       )}
                     >
                       <Activity className="h-3 w-3" />
-                      <span className="capitalize">{project.health.replace("-", " ")}</span>
+                      <span className="capitalize">{health.replace("-", " ")}</span>
                     </div>
                   </div>
 
@@ -1004,7 +1096,7 @@ export default function ProjectsPage() {
                       {/* Comments */}
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <MessageSquare className="h-3.5 w-3.5" />
-                        <span className="font-medium">{project.metrics.comments}</span>
+                        <span className="font-medium">{comments}</span>
                       </div>
 
                       {/* Updated */}
@@ -1050,7 +1142,7 @@ export default function ProjectsPage() {
 
                   {/* Tags */}
                   <div className="flex items-center gap-1.5 mt-3 flex-wrap">
-                    {project.tags.map((tag) => (
+                    {tags.map((tag) => (
                       <Badge
                         key={tag}
                         variant="outline"
@@ -1123,10 +1215,17 @@ export default function ProjectsPage() {
                 </>
               ) : (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => setIsSelectionMode(true)}>
-                    <Checkbox className="mr-2 h-4 w-4" />
-                    Select
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="select-mode"
+                      checked={isSelectionMode}
+                      onCheckedChange={() => setIsSelectionMode(true)}
+                      className="mr-2 h-4 w-4"
+                    />
+                    <Button variant="outline" size="sm" onClick={() => setIsSelectionMode(true)}>
+                      Select
+                    </Button>
+                  </div>
                   <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
                     <Plus className="h-4 w-4" />
                     New Project

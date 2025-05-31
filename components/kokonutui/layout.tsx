@@ -21,7 +21,7 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { theme } = useTheme()
+  const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
 
@@ -39,19 +39,19 @@ export default function Layout({ children }: LayoutProps) {
     setMounted(true)
   }, [])
 
-  if (!mounted) {
-    return null
-  }
-
   return (
-    <div className={`flex h-screen ${theme === "dark" ? "dark" : ""}`}>
+    <div className={`flex h-screen ${mounted && resolvedTheme === "dark" ? "dark" : ""}`}>
       <Sidebar currentProject={currentProject} />
       <div className="w-full flex flex-1 flex-col">
         <header className="h-10 border-b border-gray-200 dark:border-[#1F1F23]">
           <TopNav currentProject={currentProject} />
         </header>
         <main className={`flex-1 ${isAgentPage ? "overflow-hidden" : "overflow-auto"} p-6 bg-white dark:bg-[#09090B]`}>
-          {children}
+          {mounted ? children : (
+            <div className="flex items-center justify-center h-full">
+              <div className="animate-pulse">Loading...</div>
+            </div>
+          )}
         </main>
       </div>
     </div>

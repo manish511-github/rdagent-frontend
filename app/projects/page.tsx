@@ -1,3 +1,5 @@
+"use client"
+
 import ProjectsPage from "@/components/kokonutui/projects-page"
 import Layout from "@/components/kokonutui/layout"
 
