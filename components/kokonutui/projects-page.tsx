@@ -82,6 +82,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchProjects } from '@/store/slices/projectsSlice';
 import { LucideIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation'
 
 interface Project {
   id: string;
@@ -443,6 +444,8 @@ const analyzeWebsite = async (url: string) => {
 };
 
 export default function ProjectsPage() {
+  const router = useRouter()
+  const [loadingProjectId, setLoadingProjectId] = useState<string | null>(null)
   // Redux hooks
   const dispatch = useDispatch<AppDispatch>();
   const { items: projects, status, error } = useSelector((state: RootState) => state.projects);
@@ -755,17 +758,33 @@ export default function ProjectsPage() {
   // Handle creating a new project
   const handleCreateProject = async () => {
     try {
-      console.log("Creating new project:", newProject);
-      // const token = localStorage.getItem("token");  
-      const token = Cookies.get("token"); // Get token from cookie
+      // Prepare project data matching the backend model
+      const projectData = {
+        title: newProject.title,
+        description: newProject.description || null,
+        target_audience: newProject.targetAudience || null,
+        website_url: newProject.websiteUrl || null,
+        category: newProject.category || null,
+        priority: newProject.priority || null,
+        due_date: newProject.dueDate || null,
+        budget: newProject.budget || null,
+        team: newProject.team || null,
+        tags: newProject.tags || null,
+        competitors: newProject.competitors || null,
+        keywords: newProject.keywords || null,
+        excluded_keywords: newProject.excludedKeywords || null,
+      };
+
+      console.log("Creating new project:", projectData);
+      const token = Cookies.get("token");
 
       const response = await fetch('http://localhost:8000/projects', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`  
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(newProject), 
+        body: JSON.stringify(projectData),
       });
 
       if (!response.ok) {
@@ -778,10 +797,9 @@ export default function ProjectsPage() {
 
       toast({
         title: "Project Created",
-        description: `Project "${createdProject.name}" created successfully.`,
-        variant: "default", //
+        description: `Project "${createdProject.title}" created successfully.`,
+        variant: "default",
       });
-  
 
     } catch (error: any) {
       console.error("Error creating project:", error);
@@ -917,6 +935,12 @@ export default function ProjectsPage() {
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   }
 
+  // Handle project click
+  const handleProjectClick = (projectId: string) => {
+    setLoadingProjectId(projectId)
+    router.push(`/projects/${projectId}`)
+  }
+
   // Render project card
   const renderProjectCard = (project: (typeof projects)[0], index: number) => {
     const dueStatus = getDaysUntilDue(project.dueDate)
@@ -926,7 +950,8 @@ export default function ProjectsPage() {
     const comments = project.metrics?.comments ?? 0
     const health = project.health ?? 'on-track'
     const tags = Array.isArray(project.tags) ? project.tags : []
-    const Icon = project.icon ?? Briefcase // Use Briefcase as default icon
+    const Icon = project.icon ?? Briefcase
+    const isLoading = loadingProjectId === project.id
 
     return (
       <div
@@ -938,7 +963,13 @@ export default function ProjectsPage() {
         )}
         style={{ transitionDelay: `${index * 50}ms` }}
       >
-        <Card className="h-full overflow-hidden border border-blue-200/30 dark:border-blue-400/20 bg-card/50 dark:bg-slate-900/60 backdrop-blur-sm shadow-md dark:shadow-slate-900/10 hover:shadow-lg dark:hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300/40 dark:hover:border-blue-400/30">
+        <Card 
+          className={cn(
+            "h-full overflow-hidden border border-blue-200/30 dark:border-blue-400/20 bg-card/50 dark:bg-slate-900/60 backdrop-blur-sm shadow-md dark:shadow-slate-900/10 hover:shadow-lg dark:hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300/40 dark:hover:border-blue-400/30",
+            isLoading && "cursor-wait"
+          )}
+          onClick={() => handleProjectClick(project.id)}
+        >
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/5 dark:from-slate-800/20 dark:via-slate-900/5 dark:to-slate-950/30 pointer-events-none" />
 
@@ -986,7 +1017,7 @@ export default function ProjectsPage() {
                 {/* Icon */}
                 <div
                   className={cn(
-                    "p-2 rounded-lg flex-shrink-0",
+                    "p-2 rounded-lg flex-shrink-0 transition-transform duration-200 group-hover:scale-110",
                     "bg-blue-100 dark:bg-blue-900/70 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-400/30",
                   )}
                 >
@@ -997,7 +1028,7 @@ export default function ProjectsPage() {
                 <div className="flex-1 min-w-0">
                   {/* Title and badges */}
                   <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <h3 className="text-sm font-bold tracking-tight line-clamp-1 group-hover:text-primary dark:group-hover:text-primary/90 transition-colors">
+                    <h3 className="text-base font-semibold tracking-tight line-clamp-1 group-hover:text-primary dark:group-hover:text-primary/90 transition-colors font-sans">
                       {project.title}
                     </h3>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -1017,7 +1048,7 @@ export default function ProjectsPage() {
                   </div>
 
                   {/* Description */}
-                  <p className="text-xs leading-relaxed text-muted-foreground/90 dark:text-slate-300/90 line-clamp-2 mb-3 font-medium">
+                  <p className="text-[13px] leading-relaxed text-foreground/80 dark:text-slate-100/90 line-clamp-4 mb-3 font-normal tracking-wide font-inter">
                     {project.description}
                   </p>
 
@@ -1044,7 +1075,7 @@ export default function ProjectsPage() {
                     {/* Health indicator */}
                     <div
                       className={cn(
-                        "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border",
+                        "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors duration-200",
                         health === "on-track" &&
                           "bg-blue-100/80 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 border-blue-300/50 dark:border-blue-400/30",
                         health === "at-risk" &&
@@ -1156,6 +1187,11 @@ export default function ProjectsPage() {
               </div>
             </div>
           </Link>
+          {isLoading && (
+            <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
         </Card>
       </div>
     )
