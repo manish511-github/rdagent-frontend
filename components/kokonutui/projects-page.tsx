@@ -85,7 +85,7 @@ import { LucideIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation'
 
 interface Project {
-  id: string;
+  uuid: string;
   title: string;
   description: string;
   status: string;
@@ -118,7 +118,7 @@ interface Project {
 // Enhanced project data with more fields
 const projects = [
   {
-    id: "1",
+    uuid: "1",
     title: "Marketing Campaign Q2",
     description: "Q2 2025 product launch campaign planning and execution across multiple channels",
     status: "In Progress",
@@ -148,7 +148,7 @@ const projects = [
     color: "blue",
   },
   {
-    id: "2",
+    uuid: "2",
     title: "Website Redesign",
     description: "Complete overhaul of company website with new branding and improved user experience",
     status: "Planning",
@@ -178,7 +178,7 @@ const projects = [
     color: "purple",
   },
   {
-    id: "3",
+    uuid: "3",
     title: "Product Launch - Alpha Series",
     description: "New product line introduction to market with comprehensive go-to-market strategy",
     status: "Completed",
@@ -208,7 +208,7 @@ const projects = [
     color: "green",
   },
   {
-    id: "4",
+    uuid: "4",
     title: "Social Media Strategy 2025",
     description: "Develop comprehensive social media plan for Q3 with focus on engagement and growth",
     status: "In Progress",
@@ -238,7 +238,7 @@ const projects = [
     color: "pink",
   },
   {
-    id: "5",
+    uuid: "5",
     title: "Brand Guidelines 2.0",
     description: "Create comprehensive brand style guide and assets for global consistency",
     status: "Review",
@@ -268,7 +268,7 @@ const projects = [
     color: "orange",
   },
   {
-    id: "6",
+    uuid: "6",
     title: "Content Calendar Q3",
     description: "Plan and organize content for Q3 across all channels with SEO optimization",
     status: "Planning",
@@ -297,7 +297,7 @@ const projects = [
     color: "teal",
   },
   {
-    id: "7",
+    uuid: "7",
     title: "Mobile App Development",
     description: "Native iOS and Android app development for customer engagement platform",
     status: "In Progress",
@@ -328,7 +328,7 @@ const projects = [
     color: "indigo",
   },
   {
-    id: "8",
+    uuid: "8",
     title: "Customer Research Initiative",
     description: "Comprehensive user research study to inform product roadmap and strategy",
     status: "Planning",
@@ -825,7 +825,7 @@ export default function ProjectsPage() {
     if (selectedProjects.length === filteredProjects.length) {
       setSelectedProjects([])
     } else {
-      setSelectedProjects(filteredProjects.map((p) => p.id))
+      setSelectedProjects(filteredProjects.map((p) => p.uuid))
     }
   }
 
@@ -937,6 +937,15 @@ export default function ProjectsPage() {
 
   // Handle project click
   const handleProjectClick = (projectId: string) => {
+    debugger
+    if (!projectId) {
+      toast({
+        title: "Error",
+        description: "Invalid project ID",
+        variant: "destructive",
+      })
+      return
+    }
     setLoadingProjectId(projectId)
     router.push(`/projects/${projectId}`)
   }
@@ -944,18 +953,18 @@ export default function ProjectsPage() {
   // Render project card
   const renderProjectCard = (project: (typeof projects)[0], index: number) => {
     const dueStatus = getDaysUntilDue(project.dueDate)
-    const isSelected = selectedProjects.includes(project.id)
+    const isSelected = selectedProjects.includes(project.uuid)
     const completedTasks = project.metrics?.completed ?? 0
     const totalTasks = project.metrics?.tasks ?? 0
     const comments = project.metrics?.comments ?? 0
     const health = project.health ?? 'on-track'
     const tags = Array.isArray(project.tags) ? project.tags : []
     const Icon = project.icon ?? Briefcase
-    const isLoading = loadingProjectId === project.id
+    const isLoading = loadingProjectId === project.uuid
 
     return (
       <div
-        key={project.id}
+        key={project.uuid}
         className={cn(
           "group relative transform transition-all duration-500",
           animateIn ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
@@ -968,7 +977,7 @@ export default function ProjectsPage() {
             "h-full overflow-hidden border border-blue-200/30 dark:border-blue-400/20 bg-card/50 dark:bg-slate-900/60 backdrop-blur-sm shadow-md dark:shadow-slate-900/10 hover:shadow-lg dark:hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300/40 dark:hover:border-blue-400/30",
             isLoading && "cursor-wait"
           )}
-          onClick={() => handleProjectClick(project.id)}
+          onClick={() => handleProjectClick(project.uuid)}
         >
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/5 dark:from-slate-800/20 dark:via-slate-900/5 dark:to-slate-950/30 pointer-events-none" />
@@ -989,7 +998,7 @@ export default function ProjectsPage() {
             <div className="absolute top-3 left-3 z-10">
               <Checkbox
                 checked={isSelected}
-                onCheckedChange={() => toggleProjectSelection(project.id)}
+                onCheckedChange={() => toggleProjectSelection(project.uuid)}
                 className="bg-background/95 backdrop-blur-sm border-2 h-4 w-4"
               />
             </div>
@@ -1011,7 +1020,7 @@ export default function ProjectsPage() {
             <Star className="h-3 w-3" fill={project.starred ? "currentColor" : "none"} />
           </button>
 
-          <Link href={`/projects/${project.id}`} className="block">
+          <Link href={`/projects/${project.uuid}`} className="block">
             <div className="p-5">
               <div className="flex items-start gap-3.5">
                 {/* Icon */}

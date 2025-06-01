@@ -6,31 +6,64 @@ import TopNav from "./top-nav"
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
-
-// Sample project data - in a real app, this would come from an API or context
-const projectsData = [
-  { id: "1", name: "Marketing Campaign" },
-  { id: "2", name: "Website Redesign" },
-  { id: "3", name: "Product Launch" },
-  { id: "4", name: "Social Media Strategy" },
-  { id: "5", name: "Brand Guidelines" },
-]
+import Cookies from 'js-cookie'
 
 interface LayoutProps {
   children: ReactNode
 }
 
+interface Project {
+  uuid: string
+  name: string
+}
+
 export default function Layout({ children }: LayoutProps) {
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const [currentProject, setCurrentProject] = useState<Project | null>(null)
+  const [loading, setLoading] = useState(true)
   const pathname = usePathname()
 
   // Extract project ID from path if we're on a project page
   const projectIdMatch = pathname.match(/\/projects\/([^/]+)/)
   const currentProjectId = projectIdMatch ? projectIdMatch[1] : null
 
-  // Find the current project from our sample data
-  const currentProject = currentProjectId ? projectsData.find((p) => p.id === currentProjectId) : null
+  // Fetch project data when projectId changes
+  useEffect(() => {
+    const fetchProject = async () => {
+      if (!currentProjectId) {
+        setCurrentProject(null)
+        setLoading(false)
+        return
+      }
+
+      try {
+        const token = Cookies.get("token")
+        const response = await fetch(`http://localhost:8000/projects/${currentProjectId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch project details')
+        }
+
+        const data = await response.json()
+        setCurrentProject({
+          uuid: data.uuid,
+          name: data.title
+        })
+      } catch (err) {
+        console.error('Error fetching project:', err)
+        setCurrentProject(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProject()
+  }, [currentProjectId])
 
   // Check if we're on an individual agent page which needs fixed height
   const isAgentPage = pathname.includes("/agents/") && pathname.split("/").length > 4

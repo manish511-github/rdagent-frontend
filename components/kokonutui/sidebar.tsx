@@ -30,6 +30,7 @@ import {
   Bookmark,
   Archive,
   Users,
+  Bot,
 } from "lucide-react"
 
 import Link from "next/link"
@@ -40,7 +41,7 @@ import { usePathname } from "next/navigation"
 
 // Project type definition
 interface Project {
-  id: string
+  uuid: string
   name: string
 }
 
@@ -70,6 +71,7 @@ export default function Sidebar({ currentProject }: SidebarProps) {
   const isSpecificProject = pathname.startsWith("/projects/") && pathname !== "/projects"
 
   useEffect(() => {
+    
     setIsMounted(true)
     // Check if there's a saved preference in localStorage
     const savedCollapsedState = localStorage.getItem("sidebarCollapsed")
@@ -236,30 +238,30 @@ export default function Sidebar({ currentProject }: SidebarProps) {
         )}
         <div className="space-y-1">
           <NavItem
-            href={currentProject ? `/projects/${currentProject.id}` : "#"}
+            href={currentProject ? `/projects/${currentProject.uuid}` : "#"}
             icon={Home}
-            isActive={pathname === `/projects/${currentProject?.id}`}
+            isActive={pathname === `/projects/${currentProject?.uuid}`}
           >
             Overview
           </NavItem>
           <NavItem
-            href={currentProject ? `/projects/${currentProject.id}/analytics` : "#"}
+            href={currentProject ? `/projects/${currentProject.uuid}/analytics` : "#"}
             icon={BarChart2}
-            isActive={pathname === `/projects/${currentProject?.id}/analytics`}
+            isActive={pathname === `/projects/${currentProject?.uuid}/analytics`}
           >
             Analytics
           </NavItem>
           <NavItem
-            href={currentProject ? `/projects/${currentProject.id}/calendar` : "#"}
+            href={currentProject ? `/projects/${currentProject.uuid}/calendar` : "#"}
             icon={Calendar}
-            isActive={pathname === `/projects/${currentProject?.id}/calendar`}
+            isActive={pathname === `/projects/${currentProject?.uuid}/calendar`}
           >
             Content Calendar
           </NavItem>
           <NavItem
-            href={currentProject ? `/projects/${currentProject.id}/audience` : "#"}
+            href={currentProject ? `/projects/${currentProject.uuid}/audience` : "#"}
             icon={Users2}
-            isActive={pathname === `/projects/${currentProject?.id}/audience`}
+            isActive={pathname === `/projects/${currentProject?.uuid}/audience`}
           >
             Audience
           </NavItem>
@@ -274,30 +276,30 @@ export default function Sidebar({ currentProject }: SidebarProps) {
         )}
         <div className="space-y-1">
           <NavItem
-            href={currentProject ? `/projects/${currentProject.id}/content` : "#"}
+            href={currentProject ? `/projects/${currentProject.uuid}/content` : "#"}
             icon={MessageSquare}
-            isActive={pathname === `/projects/${currentProject?.id}/content`}
+            isActive={pathname === `/projects/${currentProject?.uuid}/content`}
           >
             Content Creator
           </NavItem>
           <NavItem
-            href={currentProject ? `/projects/${currentProject.id}/leads` : "#"}
+            href={currentProject ? `/projects/${currentProject.uuid}/leads` : "#"}
             icon={Target}
-            isActive={pathname === `/projects/${currentProject?.id}/leads`}
+            isActive={pathname === `/projects/${currentProject?.uuid}/leads`}
           >
             Lead Generator
           </NavItem>
           <NavItem
-            href={currentProject ? `/projects/${currentProject.id}/ads` : "#"}
+            href={currentProject ? `/projects/${currentProject.uuid}/ads` : "#"}
             icon={TrendingUp}
-            isActive={pathname === `/projects/${currentProject?.id}/ads`}
+            isActive={pathname === `/projects/${currentProject?.uuid}/ads`}
           >
             Ad Optimizer
           </NavItem>
           <NavItem
-            href={currentProject ? `/projects/${currentProject.id}/agents` : "#"}
-            icon={Users}
-            isActive={pathname === `/projects/${currentProject?.id}/agents`}
+            href={currentProject ? `/projects/${currentProject.uuid}/agents` : "#"}
+            icon={Bot}
+            isActive={pathname === `/projects/${currentProject?.uuid}/agents`}
           >
             Agents
           </NavItem>
@@ -312,30 +314,30 @@ export default function Sidebar({ currentProject }: SidebarProps) {
         )}
         <div className="space-y-1">
           <NavItem
-            href={currentProject ? `/projects/${currentProject.id}/twitter` : "#"}
+            href={currentProject ? `/projects/${currentProject.uuid}/twitter` : "#"}
             icon={Twitter}
-            isActive={pathname === `/projects/${currentProject?.id}/twitter`}
+            isActive={pathname === `/projects/${currentProject?.uuid}/twitter`}
           >
             Twitter/X
           </NavItem>
           <NavItem
-            href={currentProject ? `/projects/${currentProject.id}/linkedin` : "#"}
+            href={currentProject ? `/projects/${currentProject.uuid}/linkedin` : "#"}
             icon={Linkedin}
-            isActive={pathname === `/projects/${currentProject?.id}/linkedin`}
+            isActive={pathname === `/projects/${currentProject?.uuid}/linkedin`}
           >
             LinkedIn
           </NavItem>
           <NavItem
-            href={currentProject ? `/projects/${currentProject.id}/instagram` : "#"}
+            href={currentProject ? `/projects/${currentProject.uuid}/instagram` : "#"}
             icon={Instagram}
-            isActive={pathname === `/projects/${currentProject?.id}/instagram`}
+            isActive={pathname === `/projects/${currentProject?.uuid}/instagram`}
           >
             Instagram
           </NavItem>
           <NavItem
-            href={currentProject ? `/projects/${currentProject.id}/email` : "#"}
+            href={currentProject ? `/projects/${currentProject.uuid}/email` : "#"}
             icon={Mail}
-            isActive={pathname === `/projects/${currentProject?.id}/email`}
+            isActive={pathname === `/projects/${currentProject?.uuid}/email`}
           >
             Email
           </NavItem>
@@ -431,7 +433,7 @@ export default function Sidebar({ currentProject }: SidebarProps) {
                       </TooltipProvider>
                     ) : (
                       <Link
-                        href={`/projects/${currentProject.id}`}
+                        href={`/projects/${currentProject.uuid}`}
                         className="px-2 py-1.5 flex items-center gap-2 text-xs font-medium text-gray-900 dark:text-white rounded-md hover:bg-gray-50 dark:hover:bg-[#1F1F23] transition-colors"
                       >
                         <FolderKanban className="h-4 w-4 text-gray-600 dark:text-gray-300" />

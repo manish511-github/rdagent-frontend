@@ -20,12 +20,14 @@ import {
   Ban,
   Save,
   Loader2,
+  Bot,
 } from "lucide-react"
 import SocialMediaCards from "@/components/kokonutui/social-media-cards"
 import MarketingAnalyticsCards from "@/components/kokonutui/marketing-analytics-cards"
 import ContentAnalyticsCards from "@/components/kokonutui/content-analytics-cards"
 import PotentialCustomerAnalytics from "@/components/kokonutui/potential-customer-analytics"
 import { useToast } from "@/components/ui/use-toast"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -44,7 +46,7 @@ import { cn } from "@/lib/utils"
 import Cookies from 'js-cookie'
 
 interface Project {
-  id: string
+  uuid: string
   title: string
   description: string
   target_audience: string
@@ -67,6 +69,7 @@ interface Project {
 
 export default function ProjectDashboard({ projectId }: { projectId: string }) {
   const { toast } = useToast()
+  const router = useRouter()
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -84,7 +87,21 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
   const [editedCompetitors, setEditedCompetitors] = useState("")
   const [competitorInput, setCompetitorInput] = useState("")
 
+  // Validate project ID format
   useEffect(() => {
+    if (!projectId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) {
+      toast({
+        title: "Error",
+        description: "Invalid project ID format",
+        variant: "destructive",
+      })
+      router.push('/projects')
+      return
+    }
+  }, [projectId, router, toast])
+
+  useEffect(() => {
+  
     const fetchProjectDetails = async () => {
       try {
         const token = Cookies.get("token")
@@ -300,6 +317,12 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
               </div>
 
               <div className="flex items-center gap-2 self-end sm:self-auto">
+                <Link href={`/projects/${projectId}/agents`} passHref>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Bot size={16} />
+                    Agents
+                  </Button>
+                </Link>
                 <Button variant="outline" size="sm" className="gap-1.5">
                   <Share2 size={16} />
                   Share

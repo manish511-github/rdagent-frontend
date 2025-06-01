@@ -4,6 +4,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { ReduxProvider } from "@/components/providers/redux-provider"
+import Providers from './providers'
 
 export const metadata: Metadata = {
   title: "v0 App",
@@ -15,12 +16,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ReduxProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            {children}
-          </ThemeProvider>
-          <Toaster />
-        </ReduxProvider>
+        <Providers>
+          <ReduxProvider>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+              {children}
+            </ThemeProvider>
+            <Toaster />
+          </ReduxProvider>
+        </Providers>
       </body>
     </html>
   )

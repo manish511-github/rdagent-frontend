@@ -3,7 +3,8 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams, usePathname } from "next/navigation"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   Search,
   Filter,
@@ -61,6 +62,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { PlatformIcon } from "./platform-icons"
 import Layout from "./layout"
 import { cn } from "@/lib/utils"
+import { toast } from "@/components/ui/use-toast"
+import Cookies from 'js-cookie'
 
 // Mock data for agents
 const mockAgents = [
@@ -353,34 +356,298 @@ type PlatformSettings = {
   };
 };
 
+// Add this type definition
+type Agent = {
+  id: string
+  agent_name: string
+  agent_platform: string
+  agent_status: string
+  goals: string
+  instructions: string
+  expectations: string
+  project_id: string
+  mode: string
+  review_period: string
+  review_minutes: string
+  advanced_settings: Record<string, any>
+  platform_settings: PlatformSettings
+  created_at: string
+}
+
+// Add API Agent type
+type ApiAgent = {
+  agent_name: string
+  agent_platform: string
+  agent_status: string
+  goals: string
+  instructions: string
+  expectations: string
+  project_id: string
+  mode: string
+  review_period: string
+  review_minutes: string
+  advanced_settings: Record<string, any>
+  platform_settings: PlatformSettings
+}
+
+// Add this function to get auth token
+function getAuthToken(): string | undefined {
+  return Cookies.get('token')
+}
+
+// Add this function to fetch agents
+async function fetchAgents(projectId: string): Promise<Agent[]> {
+  const token = getAuthToken()
+  if (!token) {
+    throw new Error('Authentication required')
+  }
+
+  const response = await fetch(`http://localhost:8000/agents/project/${projectId}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  })
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Authentication failed')
+    }
+    throw new Error('Failed to fetch agents')
+  }
+  return response.json()
+}
+
+// Add mutation function for updating agent status
+async function updateAgentStatus(projectId: string, agentId: string, status: string): Promise<Agent> {
+  const token = getAuthToken()
+  if (!token) {
+    throw new Error('Authentication required')
+  }
+
+  const response = await fetch(`http://localhost:8000/agents/${projectId}/${agentId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ status }),
+  })
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Authentication failed')
+    }
+    throw new Error('Failed to update agent status')
+  }
+  return response.json()
+}
+
+// Add mutation function for creating new agent
+async function createNewAgent(projectId: string, agentData: ApiAgent): Promise<Agent> {
+  const token = getAuthToken()
+  if (!token) {
+    throw new Error('Authentication required')
+  }
+
+  const response = await fetch(`http://localhost:8000/agents`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(agentData),
+  })
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Authentication failed')
+    }
+    if (response.status === 404) {
+      throw new Error('Project not found or you don\'t have access to it')
+    }
+    const errorData = await response.json()
+    throw new Error(errorData.detail || 'Failed to create agent')
+  }
+
+  return response.json()
+}
+
 export default function AgentsPage() {
   const router = useRouter()
-  const [agents, setAgents] = useState(mockAgents)
+  const params = useParams()
+  const pathname = usePathname()
+  
+  // Extract project ID from URL with better validation
+  const projectId = (() => {
+    // First try to get from URL params
+    const id = typeof params?.project_id === 'string' ? params.project_id : 
+              typeof params?.projectId === 'string' ? params.projectId : null
+    
+    // If not found in params, try to extract from pathname
+    if (!id && pathname) {
+      const match = pathname.match(/\/projects\/([^/]+)/)
+      return match ? match[1] : null
+    }
+    
+    // Validate UUID format
+    if (id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      console.warn('Invalid UUID format for project ID:', id)
+      return null
+    }
+    
+    return id
+  })()
+
+  // Add validation for project ID
+  useEffect(() => {
+    if (!projectId) {
+      toast({
+        title: "Error",
+        description: "Invalid project ID. Redirecting to projects page...",
+        variant: "destructive",
+      })
+      router.push('/projects')
+      return
+    }
+
+    // If we're on /agents without a project ID, redirect to the project's agents page
+    if (pathname === '/agents' && projectId) {
+      router.push(`/projects/${projectId}/agents`)
+      return
+    }
+
+    // If we're on a project page but not on the agents page, redirect to the project's agents page
+    if (pathname.startsWith('/projects/') && !pathname.includes('/agents') && projectId) {
+      router.push(`/projects/${projectId}/agents`)
+      return
+    }
+  }, [projectId, router, pathname])
+
+  const queryClient = useQueryClient()
+  
+  // Replace mock data with React Query
+  const { data: agents = [], isLoading, error } = useQuery<Agent[], Error>({
+    queryKey: ['agents', projectId],
+    queryFn: () => {
+      if (!projectId) {
+        throw new Error('Project ID is required')
+      }
+      return fetchAgents(projectId)
+    },
+    enabled: Boolean(projectId), // Only run query if projectId exists
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors or missing project ID
+      if (error instanceof Error && 
+          (error.message === 'Authentication failed' || error.message === 'Project ID is required')) {
+        return false
+      }
+      return failureCount < 3
+    },
+  })
+
+  // Add error handling for authentication and missing project ID
+  useEffect(() => {
+    if (error instanceof Error) {
+      if (error.message === 'Authentication failed') {
+        toast({
+          title: "Authentication Error",
+          description: "Please log in to continue",
+          variant: "destructive",
+        })
+        // You can add router.push('/login') here if needed
+      } else if (error.message === 'Project ID is required') {
+        toast({
+          title: "Error",
+          description: "Project ID is required. Redirecting to projects page...",
+          variant: "destructive",
+        })
+        router.push('/projects')
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to load agents",
+          variant: "destructive",
+        })
+      }
+    }
+  }, [error, router])
+
+  // Add mutation for updating agent status
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ agentId, status }: { agentId: string; status: string }) => 
+      updateAgentStatus(projectId || '', agentId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents', projectId] })
+      toast({
+        title: "Status updated",
+        description: "Agent status has been updated successfully.",
+      })
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update agent status",
+        variant: "destructive",
+      })
+    },
+  })
+
+  // Add mutation for creating new agent
+  const createAgentMutation = useMutation({
+    mutationFn: (agentData: ApiAgent) => createNewAgent(projectId || '', agentData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents', projectId] })
+      setIsCreateModalOpen(false)
+      toast({
+        title: "Agent created",
+        description: "New agent has been created successfully.",
+      })
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create agent",
+        variant: "destructive",
+      })
+    },
+  })
+
   const [searchQuery, setSearchQuery] = useState("")
   const [filterPlatform, setFilterPlatform] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
-  const [formData, setFormData] = useState({
-    name: "",
-    goal: "",
-    instructions: "",
-    expectations: "",
-    platform: "reddit",
-    mode: "copilot",
-    reviewPeriod: "weekly",
-    reviewMinutes: "0",
+  const [formData, setFormData] = useState<{
+    name: string
+    platform: string
+    goal: string
+    instructions: string
+    expectations: string
+    mode: string
+    reviewPeriod: string
+    reviewMinutes: string
+    advancedSettings: Record<string, any>
+    platformSettings: PlatformSettings
+  }>({
+    name: '',
+    platform: '',
+    goal: '',
+    instructions: '',
+    expectations: '',
+    mode: 'auto',
+    reviewPeriod: 'daily',
+    reviewMinutes: '30',
     advancedSettings: {},
-    platformSettings: {} as PlatformSettings,
+    platformSettings: {}
   })
 
   // Filter agents based on search query and filters
   const filteredAgents = agents.filter((agent) => {
     const matchesSearch =
-      agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      agent.description.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesPlatform = filterPlatform === "all" || agent.platform === filterPlatform
-    const matchesStatus = filterStatus === "all" || agent.status === filterStatus
+      (agent.agent_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (agent.instructions || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (agent.expectations || '').toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesPlatform = filterPlatform === "all" || agent.agent_platform === filterPlatform
+    const matchesStatus = filterStatus === "all" || agent.agent_status === filterStatus
 
     return matchesSearch && matchesPlatform && matchesStatus
   })
@@ -388,112 +655,48 @@ export default function AgentsPage() {
   // Toggle agent status
   const toggleAgentStatus = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    setAgents(
-      agents.map((agent) =>
-        agent.id === id ? { ...agent, status: agent.status === "active" ? "paused" : "active" } : agent,
-      ),
-    )
-  }
-
-  // Navigate to agent detail page
-  const navigateToAgentDetail = (agentId: string) => {
-    router.push(`/projects/1/agents/${agentId}`)
-  }
-
-  // Reset form data when modal is closed
-  useEffect(() => {
-    if (!isCreateModalOpen) {
-      setFormData({
-        name: "",
-        goal: "",
-        instructions: "",
-        expectations: "",
-        platform: "reddit",
-        mode: "copilot",
-        reviewPeriod: "weekly",
-        reviewMinutes: "0",
-        advancedSettings: {},
-        platformSettings: {} as PlatformSettings,
-      })
-      setCurrentStep(1)
+    const agent = agents.find(a => a.id === id)
+    if (agent) {
+      const newStatus = agent.agent_status === "active" ? "paused" : "active"
+      updateStatusMutation.mutate({ agentId: id, status: newStatus })
     }
-  }, [isCreateModalOpen])
-
-  // Handle form input changes
-  const handleInputChange = (field: string, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-  }
-
-  // Handle advanced settings changes
-  const handleAdvancedSettingChange = (field: string, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      advancedSettings: {
-        ...prev.advancedSettings,
-        [field]: value,
-      },
-    }))
-  }
-
-  // Handle platform settings changes
-  const handlePlatformSettingChange = (field: string, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      platformSettings: {
-        ...prev.platformSettings,
-        [formData.platform]: {
-          ...prev.platformSettings[formData.platform as keyof PlatformSettings],
-          [field]: value,
-        },
-      },
-    }))
-  }
-
-  // Go to next step in the form
-  const goToNextStep = () => {
-    setCurrentStep((prev) => prev + 1)
-  }
-
-  // Go to previous step in the form
-  const goToPrevStep = () => {
-    setCurrentStep((prev) => prev - 1)
   }
 
   // Create a new agent
   const createAgent = () => {
-    const newAgent = {
-      id: (agents.length + 1).toString(),
-      name: formData.name,
-      platform: formData.platform,
-      status: "active" as const,
-      goal: formData.goal,
-      lastActive: "Just now",
-      keyMetric: {
-        value: "0",
-        label: "Starting up...",
-        trend: "—",
-      },
-      description: formData.instructions,
-      performance: 0,
-      messages: 0,
-      engagement: 0,
-      conversions: 0,
-      rating: 0,
+    if (!projectId) {
+      toast({
+        title: "Error",
+        description: "Project ID is required",
+        variant: "destructive",
+      })
+      return
     }
 
-    setAgents([...agents, newAgent])
-    setIsCreateModalOpen(false)
+    const newAgent: ApiAgent = {
+      agent_name: formData.name,
+      agent_platform: formData.platform,
+      agent_status: "active",
+      goals: formData.goal,
+      instructions: formData.instructions,
+      expectations: formData.expectations,
+      project_id: projectId,
+      mode: formData.mode,
+      review_period: formData.reviewPeriod,
+      review_minutes: formData.reviewMinutes,
+      advanced_settings: formData.advancedSettings,
+      platform_settings: formData.platformSettings
+    }
+
+    createAgentMutation.mutate(newAgent)
   }
 
   // Calculate total stats
-  const totalActive = agents.filter((a) => a.status === "active").length
-  const totalMessages = agents.reduce((sum, a) => sum + a.messages, 0)
-  const totalEngagement = agents.reduce((sum, a) => sum + a.engagement, 0)
-  const totalConversions = agents.reduce((sum, a) => sum + a.conversions, 0)
-  const avgPerformance = Math.round(agents.reduce((sum, a) => sum + a.performance, 0) / agents.length)
+  const totalActive = agents.filter((a) => a.agent_status === "active").length
+  const totalMessages = agents.reduce((sum, a) => sum + (a.advanced_settings?.messages || 0), 0)
+  const totalEngagement = agents.reduce((sum, a) => sum + (a.advanced_settings?.engagement || 0), 0)
+  const totalConversions = agents.reduce((sum, a) => sum + (a.advanced_settings?.conversions || 0), 0)
+  const avgPerformance = Math.round(agents.reduce((sum, a) => sum + (a.advanced_settings?.performance || 0), 0) / agents.length)
 
   // Add renderPlatformSettings function
   const renderPlatformSettings = () => {
@@ -994,6 +1197,82 @@ export default function AgentsPage() {
     }
   };
 
+  // Navigate to agent detail page
+  const navigateToAgentDetail = (agentId: string) => {
+    if (!projectId) {
+      toast({
+        title: "Error",
+        description: "Project ID is required",
+        variant: "destructive",
+      })
+      return
+    }
+    router.push(`/projects/${projectId}/agents/${agentId}`)
+  }
+
+  // Reset form data when modal is closed
+  useEffect(() => {
+    if (!isCreateModalOpen) {
+      setFormData({
+        name: '',
+        platform: '',
+        goal: '',
+        instructions: '',
+        expectations: '',
+        mode: 'auto',
+        reviewPeriod: 'daily',
+        reviewMinutes: '30',
+        advancedSettings: {},
+        platformSettings: {}
+      })
+      setCurrentStep(1)
+    }
+  }, [isCreateModalOpen])
+
+  // Handle form input changes
+  const handleInputChange = (field: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  // Handle advanced settings changes
+  const handleAdvancedSettingChange = (field: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      advancedSettings: {
+        ...prev.advancedSettings,
+        [field]: value,
+      },
+    }))
+  }
+
+  // Handle platform settings changes
+  const handlePlatformSettingChange = (field: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      platformSettings: {
+        ...prev.platformSettings,
+        [formData.platform]: {
+          ...prev.platformSettings[formData.platform as keyof PlatformSettings],
+          [field]: value,
+        },
+      },
+    }))
+  }
+
+  // Go to next step in the form
+  const goToNextStep = () => {
+    setCurrentStep((prev) => prev + 1)
+  }
+
+  // Go to previous step in the form
+  const goToPrevStep = () => {
+    setCurrentStep((prev) => prev - 1)
+  }
+
+  // Update the agents grid to handle loading and error states
   return (
     <Layout>
       <div className="space-y-8">
@@ -1225,149 +1504,30 @@ export default function AgentsPage() {
 
         {/* Agents Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {filteredAgents.map((agent) => {
-            const GoalIcon = getGoalIcon(agent.goal)
-            return (
-              <Card
-                key={agent.id}
-                className={cn(
-                  "group relative overflow-hidden cursor-pointer transition-all duration-300",
-                  "hover:shadow-xl hover:-translate-y-1",
-                  "bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800",
-                )}
-                onClick={() => navigateToAgentDetail(agent.id)}
-              >
-                {/* Gradient Background */}
-                <div
-                  className={cn(
-                    "absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity",
-                    "bg-gradient-to-br",
-                    getPlatformGradient(agent.platform),
-                  )}
-                />
-
-                <CardHeader className="relative pb-3 pt-4 px-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "p-2 rounded-lg bg-gradient-to-br text-white shadow-lg",
-                          getPlatformGradient(agent.platform),
-                        )}
-                      >
-                        <PlatformIcon platform={agent.platform} className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base font-semibold">{agent.name}</CardTitle>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge
-                            variant="secondary"
-                            className={cn("text-xs px-2 py-0.5", getStatusColor(agent.status))}
-                          >
-                            {agent.status}
-                          </Badge>
-                          {agent.rating > 0 && (
-                            <div className="flex items-center gap-1">
-                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                              <span className="text-xs font-medium">{agent.rating}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        // Settings menu can be added here
-                      }}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">{agent.description}</p>
-                </CardHeader>
-
-                <CardContent className="relative space-y-3 px-4 py-2">
-                  {/* Goal Badge */}
-                  <div className="flex items-center gap-1.5">
-                    <GoalIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-xs font-medium capitalize">{agent.goal.replace("_", " ")}</span>
-                  </div>
-
-                  {/* Key Metrics */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[10px] text-muted-foreground">{agent.keyMetric.label}</span>
-                        {agent.keyMetric.trend !== "—" && (
-                          <span
-                            className={cn(
-                              "text-[10px] font-medium",
-                              agent.keyMetric.trend.startsWith("+") ? "text-emerald-600" : "text-red-600",
-                            )}
-                          >
-                            {agent.keyMetric.trend}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-sm font-bold">{agent.keyMetric.value}</span>
-                    </div>
-                    {agent.secondaryMetric && (
-                      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2">
-                        <div className="text-[10px] text-muted-foreground mb-0.5">{agent.secondaryMetric.label}</div>
-                        <span className="text-sm font-bold">{agent.secondaryMetric.value}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Performance Bar */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-medium">Performance</span>
-                      <span className="text-[10px] font-bold">{agent.performance}%</span>
-                    </div>
-                    <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                      <div
-                        className={cn(
-                          "h-full transition-all duration-500 rounded-full",
-                          agent.performance >= 80
-                            ? "bg-gradient-to-r from-emerald-500 to-emerald-600"
-                            : agent.performance >= 60
-                              ? "bg-gradient-to-r from-amber-500 to-amber-600"
-                              : "bg-gradient-to-r from-red-500 to-red-600",
-                        )}
-                        style={{ width: `${agent.performance}%` }}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-
-                <CardFooter className="relative pt-2 pb-3 px-4 border-t">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      <span>{agent.lastActive}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={agent.status === "active"}
-                        onCheckedChange={() => toggleAgentStatus(agent.id, { stopPropagation: () => {} } as any)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="scale-90 data-[state=checked]:bg-emerald-500"
-                      />
-                    </div>
-                  </div>
-                </CardFooter>
-              </Card>
-            )
-          })}
-
-          {/* Empty State */}
-          {filteredAgents.length === 0 && (
+          {isLoading ? (
+            // Loading state
+            <div className="col-span-full flex flex-col items-center justify-center py-12">
+              <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full mb-4 animate-spin">
+                <Bot className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Loading agents...</h3>
+            </div>
+          ) : error ? (
+            // Error state
+            <div className="col-span-full flex flex-col items-center justify-center py-12">
+              <div className="p-4 bg-red-100 dark:bg-red-900/20 rounded-full mb-4">
+                <Bot className="h-8 w-8 text-red-500" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Error loading agents</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-sm">
+                {error instanceof Error ? error.message : 'Failed to load agents'}
+              </p>
+              <Button onClick={() => window.location.reload()} className="mt-4">
+                Try Again
+              </Button>
+            </div>
+          ) : filteredAgents.length === 0 ? (
+            // Empty state
             <div className="col-span-full flex flex-col items-center justify-center py-12">
               <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
                 <Bot className="h-8 w-8 text-muted-foreground" />
@@ -1381,6 +1541,148 @@ export default function AgentsPage() {
                 Create Your First Agent
               </Button>
             </div>
+          ) : (
+            // Existing agents grid
+            filteredAgents.map((agent) => {
+              const GoalIcon = getGoalIcon(agent.goals)
+              return (
+                <Card
+                  key={agent.id}
+                  className={cn(
+                    "group relative overflow-hidden cursor-pointer transition-all duration-300",
+                    "hover:shadow-xl hover:-translate-y-1",
+                    "bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800",
+                  )}
+                  onClick={() => navigateToAgentDetail(agent.id)}
+                >
+                  {/* Gradient Background */}
+                  <div
+                    className={cn(
+                      "absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity",
+                      "bg-gradient-to-br",
+                      getPlatformGradient(agent.agent_platform),
+                    )}
+                  />
+
+                  <CardHeader className="relative pb-3 pt-4 px-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            "p-2 rounded-lg bg-gradient-to-br text-white shadow-lg",
+                            getPlatformGradient(agent.agent_platform),
+                          )}
+                        >
+                          <PlatformIcon platform={agent.agent_platform} className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-base font-semibold">{agent.agent_name}</CardTitle>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge
+                              variant="secondary"
+                              className={cn("text-xs px-2 py-0.5", getStatusColor(agent.agent_status))}
+                            >
+                              {agent.agent_status}
+                            </Badge>
+                            {agent.advanced_settings?.rating > 0 && (
+                              <div className="flex items-center gap-1">
+                                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                                <span className="text-xs font-medium">{agent.advanced_settings.rating}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          // Settings menu can be added here
+                        }}
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">{agent.instructions}</p>
+                  </CardHeader>
+
+                  <CardContent className="relative space-y-3 px-4 py-2">
+                    {/* Goal Badge */}
+                    <div className="flex items-center gap-1.5">
+                      <GoalIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs font-medium capitalize">{agent.goals.replace("_", " ")}</span>
+                    </div>
+
+                    {/* Key Metrics */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[10px] text-muted-foreground">{agent.advanced_settings?.keyMetric?.label || 'No metric'}</span>
+                          {agent.advanced_settings?.keyMetric?.trend !== "—" && (
+                            <span
+                              className={cn(
+                                "text-[10px] font-medium",
+                                agent.advanced_settings?.keyMetric?.trend?.startsWith("+") ? "text-emerald-600" : "text-red-600",
+                              )}
+                            >
+                              {agent.advanced_settings?.keyMetric?.trend}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-sm font-bold">{agent.advanced_settings?.keyMetric?.value || '0'}</span>
+                      </div>
+                      {agent.advanced_settings?.secondaryMetric && (
+                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2">
+                          <div className="text-[10px] text-muted-foreground mb-0.5">{agent.advanced_settings.secondaryMetric.label}</div>
+                          <span className="text-sm font-bold">{agent.advanced_settings.secondaryMetric.value}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Performance Bar */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-medium">Performance</span>
+                        <span className="text-[10px] font-bold">{agent.advanced_settings?.performance || 0}%</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full transition-all duration-500 rounded-full",
+                            (agent.advanced_settings?.performance || 0) >= 80
+                              ? "bg-gradient-to-r from-emerald-500 to-emerald-600"
+                              : (agent.advanced_settings?.performance || 0) >= 60
+                                ? "bg-gradient-to-r from-amber-500 to-amber-600"
+                                : "bg-gradient-to-r from-red-500 to-red-600",
+                          )}
+                          style={{ width: `${agent.advanced_settings?.performance || 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="relative pt-2 pb-3 px-4 border-t">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>{agent.advanced_settings?.lastActive || 'Never'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={agent.agent_status === "active"}
+                          onCheckedChange={() => toggleAgentStatus(agent.id, { stopPropagation: () => {} } as any)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="scale-90 data-[state=checked]:bg-emerald-500"
+                        />
+                      </div>
+                    </div>
+                  </CardFooter>
+                </Card>
+              )
+            })
           )}
         </div>
 

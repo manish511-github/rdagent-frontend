@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 
 interface Project {
-  id: string
+  uuid: string
   name: string
 }
 
@@ -31,7 +31,7 @@ export default function TopNav({ currentProject }: TopNavProps) {
   const breadcrumbs: BreadcrumbItem[] = currentProject
     ? [
         { label: "Projects", href: "/projects" },
-        { label: currentProject.name, href: `/projects/${currentProject.id}` },
+        { label: currentProject.name, href: `/projects/${currentProject.uuid}` },
       ]
     : [{ label: "Projects", href: "/projects" }]
 

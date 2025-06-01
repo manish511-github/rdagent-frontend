@@ -3,6 +3,7 @@ import Cookies from 'js-cookie';
 import { LucideIcon } from 'lucide-react';
 
 interface Project {
+  uuid: string;
   id: string;
   title: string;
   description: string;
