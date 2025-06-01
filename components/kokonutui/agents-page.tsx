@@ -210,28 +210,28 @@ const goalOptions = [
     label: "Lead Generation",
     icon: Users,
     description: "Find and engage with potential customers",
-    color: "from-blue-500 to-indigo-600",
+    color: "from-zinc-800 to-zinc-950",
   },
   {
     value: "brand_awareness",
     label: "Brand Awareness",
     icon: Eye,
     description: "Increase brand visibility and recognition",
-    color: "from-purple-500 to-pink-600",
+    color: "from-zinc-800 to-zinc-950",
   },
   {
     value: "engagement",
     label: "Engagement",
     icon: MessageSquare,
     description: "Build community and foster interactions",
-    color: "from-green-500 to-emerald-600",
+    color: "from-zinc-800 to-zinc-950",
   },
   {
     value: "support",
     label: "Customer Support",
     icon: Shield,
     description: "Provide assistance and resolve issues",
-    color: "from-amber-500 to-orange-600",
+    color: "from-zinc-800 to-zinc-950",
   },
 ]
 
@@ -295,6 +295,7 @@ export default function AgentsPage() {
     name: "",
     goal: "",
     instructions: "",
+    expectations: "",
     platform: "",
     mode: "copilot",
     reviewPeriod: "weekly",
@@ -334,6 +335,7 @@ export default function AgentsPage() {
         name: "",
         goal: "",
         instructions: "",
+        expectations: "",
         platform: "",
         mode: "copilot",
         reviewPeriod: "weekly",
@@ -797,7 +799,7 @@ export default function AgentsPage() {
 
         {/* Create Agent Modal */}
         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-          <DialogContent className="max-w-[900px] max-h-[90vh] overflow-hidden">
+          <DialogContent className="max-w-[900px] max-h-[90vh] flex flex-col">
             <DialogHeader className="pb-4">
               <DialogTitle className="text-2xl font-bold">Create AI Agent</DialogTitle>
               <DialogDescription>
@@ -848,7 +850,7 @@ export default function AgentsPage() {
               </div>
             </div>
 
-            <div className="overflow-y-auto max-h-[calc(90vh-300px)] px-1">
+            <div className="flex-1 overflow-y-auto px-1">
               {/* Step 1: Goal & Details */}
               {currentStep === 1 && (
                 <div className="space-y-6 animate-in fade-in-50 duration-300">
@@ -875,25 +877,34 @@ export default function AgentsPage() {
                             key={goal.value}
                             className={cn(
                               "relative cursor-pointer rounded-xl border-2 p-5 transition-all",
-                              "hover:shadow-md hover:border-cyan-400",
+                              "hover:shadow-md hover:border-zinc-400",
                               formData.goal === goal.value
-                                ? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 shadow-md"
-                                : "border-gray-200 dark:border-gray-700",
+                                ? "border-zinc-600 bg-zinc-50 dark:bg-zinc-900/20 shadow-md"
+                                : "border-zinc-200 dark:border-zinc-800",
                             )}
                             onClick={() => handleInputChange("goal", goal.value)}
                           >
                             <div className="flex items-start gap-4">
-                              <div className={cn("p-3 rounded-lg bg-gradient-to-br text-white", goal.color)}>
-                                <Icon className="h-6 w-6" />
+                              <div className={cn(
+                                "p-3 rounded-lg bg-gradient-to-br text-white shadow-lg",
+                                "ring-1 ring-black/10 dark:ring-white/5",
+                                "relative overflow-hidden group",
+                                goal.color
+                              )}>
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                                <div className="relative">
+                                  <Icon className="h-6 w-6 drop-shadow-sm" />
+                                </div>
                               </div>
                               <div className="flex-1">
                                 <h3 className="font-semibold mb-1">{goal.label}</h3>
-                                <p className="text-sm text-muted-foreground">{goal.description}</p>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400">{goal.description}</p>
                               </div>
                             </div>
                             {formData.goal === goal.value && (
                               <div className="absolute top-3 right-3">
-                                <Check className="h-5 w-5 text-cyan-600" />
+                                <Check className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
                               </div>
                             )}
                           </div>
@@ -914,6 +925,19 @@ export default function AgentsPage() {
                       onChange={(e) => handleInputChange("instructions", e.target.value)}
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="agent-expectations" className="text-base font-medium">
+                      Expected Outcomes
+                    </Label>
+                    <Textarea
+                      id="agent-expectations"
+                      placeholder="Describe what you expect the agent to achieve, key metrics to track, and success criteria..."
+                      className="min-h-[120px] resize-none"
+                      value={formData.expectations}
+                      onChange={(e) => handleInputChange("expectations", e.target.value)}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -927,28 +951,45 @@ export default function AgentsPage() {
                         <div
                           key={platform.value}
                           className={cn(
-                            "relative cursor-pointer rounded-xl border-2 p-6 transition-all",
-                            "hover:shadow-md hover:border-cyan-400",
+                            "relative cursor-pointer rounded-xl border-2 p-6 transition-all duration-200",
+                            "hover:shadow-lg hover:border-cyan-400 hover:-translate-y-0.5",
                             formData.platform === platform.value
-                              ? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 shadow-md"
-                              : "border-gray-200 dark:border-gray-700",
+                              ? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 shadow-lg"
+                              : "border-zinc-200 dark:border-zinc-800",
                           )}
                           onClick={() => handleInputChange("platform", platform.value)}
                         >
-                          <div className="flex flex-col items-center gap-3">
+                          <div className="flex flex-col items-center gap-4">
                             <div
                               className={cn(
                                 "p-4 rounded-xl bg-gradient-to-br text-white shadow-lg",
-                                getPlatformGradient(platform.value),
+                                "ring-1 ring-black/10 dark:ring-white/5",
+                                "relative overflow-hidden group",
+                                getPlatformGradient(platform.value)
                               )}
                             >
-                              <PlatformIcon platform={platform.value} className="h-8 w-8" />
+                              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                              <div className="relative">
+                                <PlatformIcon platform={platform.value} className="h-8 w-8 drop-shadow-sm" />
+                              </div>
                             </div>
-                            <span className="font-medium text-lg">{platform.label}</span>
+                            <div className="text-center">
+                              <span className="font-medium text-lg block mb-1">{platform.label}</span>
+                              <span className="text-sm text-muted-foreground">
+                                {platform.value === "reddit" && "Community engagement"}
+                                {platform.value === "linkedin" && "Professional networking"}
+                                {platform.value === "twitter" && "Real-time updates"}
+                                {platform.value === "instagram" && "Visual content"}
+                                {platform.value === "email" && "Direct communication"}
+                              </span>
+                            </div>
                           </div>
                           {formData.platform === platform.value && (
                             <div className="absolute top-3 right-3">
-                              <Check className="h-5 w-5 text-cyan-600" />
+                              <div className="bg-cyan-600 text-white p-1 rounded-full">
+                                <Check className="h-4 w-4" />
+                              </div>
                             </div>
                           )}
                         </div>
@@ -965,15 +1006,16 @@ export default function AgentsPage() {
                     >
                       <div
                         className={cn(
-                          "relative cursor-pointer rounded-xl border-2 p-5 transition-all",
+                          "relative cursor-pointer rounded-xl border-2 p-5 transition-all duration-200",
+                          "hover:shadow-lg hover:border-cyan-400 hover:-translate-y-0.5",
                           formData.mode === "copilot"
-                            ? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20"
-                            : "border-gray-200 dark:border-gray-700",
+                            ? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 shadow-lg"
+                            : "border-zinc-200 dark:border-zinc-800",
                         )}
                       >
                         <RadioGroupItem value="copilot" id="copilot" className="sr-only" />
                         <Label htmlFor="copilot" className="flex items-start gap-4 cursor-pointer">
-                          <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                          <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg">
                             <Brain className="h-6 w-6" />
                           </div>
                           <div className="flex-1">
@@ -987,15 +1029,16 @@ export default function AgentsPage() {
 
                       <div
                         className={cn(
-                          "relative cursor-pointer rounded-xl border-2 p-5 transition-all",
+                          "relative cursor-pointer rounded-xl border-2 p-5 transition-all duration-200",
+                          "hover:shadow-lg hover:border-cyan-400 hover:-translate-y-0.5",
                           formData.mode === "autopilot"
-                            ? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20"
-                            : "border-gray-200 dark:border-gray-700",
+                            ? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 shadow-lg"
+                            : "border-zinc-200 dark:border-zinc-800",
                         )}
                       >
                         <RadioGroupItem value="autopilot" id="autopilot" className="sr-only" />
                         <Label htmlFor="autopilot" className="flex items-start gap-4 cursor-pointer">
-                          <div className="p-3 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+                          <div className="p-3 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg">
                             <Rocket className="h-6 w-6" />
                           </div>
                           <div className="flex-1">
@@ -1119,7 +1162,7 @@ export default function AgentsPage() {
               )}
             </div>
 
-            <DialogFooter className="flex justify-between pt-6 border-t">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-6 border-t mt-4">
               {currentStep > 1 ? (
                 <Button variant="outline" onClick={goToPrevStep} className="gap-2">
                   <ChevronLeft className="h-4 w-4" />
@@ -1132,7 +1175,7 @@ export default function AgentsPage() {
               {currentStep < 3 ? (
                 <Button
                   onClick={goToNextStep}
-                  className="gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white"
+                  className="gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white w-full sm:w-auto"
                 >
                   Next
                   <ChevronRight className="h-4 w-4" />
@@ -1140,7 +1183,7 @@ export default function AgentsPage() {
               ) : (
                 <Button
                   onClick={createAgent}
-                  className="gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-lg shadow-cyan-500/25"
+                  className="gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-lg shadow-cyan-500/25 w-full sm:w-auto"
                 >
                   <Rocket className="h-4 w-4" />
                   Launch Agent

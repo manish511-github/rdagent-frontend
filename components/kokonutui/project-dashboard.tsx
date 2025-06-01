@@ -19,11 +19,13 @@ import {
   FileText,
   Ban,
   Save,
+  Loader2,
 } from "lucide-react"
 import SocialMediaCards from "@/components/kokonutui/social-media-cards"
 import MarketingAnalyticsCards from "@/components/kokonutui/marketing-analytics-cards"
 import ContentAnalyticsCards from "@/components/kokonutui/content-analytics-cards"
 import PotentialCustomerAnalytics from "@/components/kokonutui/potential-customer-analytics"
+import { useToast } from "@/components/ui/use-toast"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -39,195 +41,117 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
+import Cookies from 'js-cookie'
 
-const MOCK_PROJECTS = {
-  "1": {
-    id: "1",
-    name: "Marketing Campaign Q2",
-    description: "Q2 2025 marketing campaign assets and planning",
-    targetAudience: "Millennials and Gen Z consumers interested in sustainable products",
-    websiteLink: "https://example.com/campaign-q2",
-    competitors: ["CompetitorX", "MarketLeader Inc.", "InnovativeBrand"],
-    keywords: ["marketing", "campaign", "q2", "promotion", "digital"],
-    excludedKeywords: ["competitor", "negative"],
-    lastUpdated: "2025-05-18T14:30:00Z",
-    status: "active",
-    favorite: true,
-    thumbnail: "/marketing-campaign-brainstorm.png",
-    progress: 68,
-    team: ["John D.", "Sarah L.", "Mike T."],
-    tasks: {
-      total: 24,
-      completed: 16,
-      inProgress: 5,
-      notStarted: 3,
-    },
-    recentActivities: [
-      { user: "Sarah L.", action: "updated the campaign brief", time: "2 hours ago" },
-      { user: "Mike T.", action: "uploaded 5 new social media assets", time: "Yesterday" },
-      { user: "John D.", action: "completed the email template design", time: "2 days ago" },
-      { user: "Sarah L.", action: "scheduled a team meeting", time: "3 days ago" },
-    ],
-    upcomingDeadlines: [
-      { task: "Finalize social media calendar", dueDate: "2025-05-25" },
-      { task: "Complete landing page design", dueDate: "2025-05-28" },
-      { task: "Prepare campaign analytics report", dueDate: "2025-06-05" },
-    ],
-  },
-  "2": {
-    id: "2",
-    name: "Website Redesign",
-    description: "Company website redesign project with new branding",
-    targetAudience: "Small to medium business owners and corporate decision makers",
-    websiteLink: "https://example.com/redesign-preview",
-    competitors: ["DesignAgency", "WebCrafters", "UXMasters"],
-    keywords: ["website", "redesign", "branding", "ui", "ux"],
-    excludedKeywords: ["old design", "legacy"],
-    lastUpdated: "2025-05-15T09:45:00Z",
-    status: "active",
-    favorite: false,
-    thumbnail: "/website-design-concept.png",
-    progress: 42,
-    team: ["Alex K.", "Emma R."],
-    tasks: {
-      total: 18,
-      completed: 7,
-      inProgress: 8,
-      notStarted: 3,
-    },
-    recentActivities: [
-      { user: "Alex K.", action: "updated the homepage wireframe", time: "5 hours ago" },
-      { user: "Emma R.", action: "added new brand colors to the style guide", time: "Yesterday" },
-      { user: "Alex K.", action: "completed the mobile navigation design", time: "3 days ago" },
-    ],
-    upcomingDeadlines: [
-      { task: "Finalize homepage design", dueDate: "2025-05-30" },
-      { task: "Complete responsive layouts", dueDate: "2025-06-10" },
-      { task: "Prepare content migration plan", dueDate: "2025-06-15" },
-    ],
-  },
-  "3": {
-    id: "3",
-    name: "Product Launch",
-    description: "New product launch campaign and materials",
-    targetAudience: "Tech enthusiasts and early adopters aged 25-45",
-    websiteLink: "https://example.com/new-product",
-    competitors: ["TechGiant", "InnovateNow", "FutureTech"],
-    keywords: ["product launch", "new product", "marketing", "sales"],
-    excludedKeywords: ["beta", "prototype", "discontinued"],
-    lastUpdated: "2025-05-10T16:20:00Z",
-    status: "active",
-    favorite: true,
-    thumbnail: "/product-launch-excitement.png",
-    progress: 85,
-    team: ["Chris B.", "Diana M.", "Frank O.", "Grace P."],
-    tasks: {
-      total: 32,
-      completed: 27,
-      inProgress: 4,
-      notStarted: 1,
-    },
-    recentActivities: [
-      { user: "Diana M.", action: "finalized the press release", time: "1 hour ago" },
-      { user: "Frank O.", action: "updated the launch timeline", time: "Yesterday" },
-      { user: "Grace P.", action: "completed the product demo video", time: "2 days ago" },
-      { user: "Chris B.", action: "confirmed the launch event venue", time: "4 days ago" },
-    ],
-    upcomingDeadlines: [
-      { task: "Send press invitations", dueDate: "2025-05-22" },
-      { task: "Finalize event schedule", dueDate: "2025-05-25" },
-      { task: "Complete media kit", dueDate: "2025-05-28" },
-    ],
-  },
-  "4": {
-    id: "4",
-    name: "Social Media Strategy",
-    description: "Comprehensive social media strategy for Q3 2025",
-    targetAudience: "Young professionals and social media enthusiasts aged 18-35",
-    websiteLink: "https://example.com/social-strategy",
-    competitors: ["SocialGuru", "DigitalPresence", "EngagementPro"],
-    keywords: ["social media", "strategy", "engagement", "content", "analytics"],
-    excludedKeywords: ["spam", "clickbait", "controversy"],
-    lastUpdated: "2025-05-20T10:15:00Z",
-    status: "active",
-    favorite: false,
-    thumbnail: "/interconnected-social-media.png",
-    progress: 55,
-    team: ["Taylor R.", "Jordan S.", "Morgan P."],
-    tasks: {
-      total: 28,
-      completed: 15,
-      inProgress: 8,
-      notStarted: 5,
-    },
-    recentActivities: [
-      { user: "Taylor R.", action: "completed platform analysis", time: "3 hours ago" },
-      { user: "Jordan S.", action: "drafted content calendar", time: "Yesterday" },
-      { user: "Morgan P.", action: "researched trending hashtags", time: "2 days ago" },
-    ],
-    upcomingDeadlines: [
-      { task: "Finalize platform strategy", dueDate: "2025-05-27" },
-      { task: "Complete audience analysis", dueDate: "2025-06-02" },
-      { task: "Develop engagement metrics", dueDate: "2025-06-08" },
-    ],
-  },
-}
-
-const DEFAULT_PROJECT = {
-  id: "new",
-  name: "New Project",
-  description: "Your new project description",
-  targetAudience: "Define your target audience here",
-  websiteLink: "",
-  competitors: [],
-  keywords: [],
-  excludedKeywords: [],
-  lastUpdated: new Date().toISOString(),
-  status: "active",
-  favorite: false,
-  thumbnail: "/new-project-concept.png",
-  progress: 0,
-  team: ["You"],
-  tasks: {
-    total: 0,
-    completed: 0,
-    inProgress: 0,
-    notStarted: 0,
-  },
-  recentActivities: [{ user: "You", action: "created this project", time: "Just now" }],
-  upcomingDeadlines: [],
+interface Project {
+  id: string
+  title: string
+  description: string
+  target_audience: string
+  website_url: string
+  category: string
+  priority: string
+  due_date: string
+  budget: number
+  team: any[]
+  tags: string[]
+  competitors: string[]
+  keywords: string[]
+  excluded_keywords: string[]
+  status: string
+  progress: number
+  health: string
+  created_at: string
+  updated_at: string
 }
 
 export default function ProjectDashboard({ projectId }: { projectId: string }) {
-  const [project, setProject] = useState(MOCK_PROJECTS[projectId as keyof typeof MOCK_PROJECTS] || DEFAULT_PROJECT)
-  const [isFavorite, setIsFavorite] = useState(project.favorite)
+  const { toast } = useToast()
+  const [project, setProject] = useState<Project | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isFavorite, setIsFavorite] = useState(false)
 
   const [isEditing, setIsEditing] = useState(false)
-  const [editedName, setEditedName] = useState(project.name)
-  const [editedDescription, setEditedDescription] = useState(project.description)
-  const [editedTargetAudience, setEditedTargetAudience] = useState(project.targetAudience)
-  const [editedWebsiteLink, setEditedWebsiteLink] = useState(project.websiteLink)
-  const [editedKeywords, setEditedKeywords] = useState(project.keywords.join(", "))
-  const [editedExcludedKeywords, setEditedExcludedKeywords] = useState(project.excludedKeywords.join(", "))
+  const [editedName, setEditedName] = useState("")
+  const [editedDescription, setEditedDescription] = useState("")
+  const [editedTargetAudience, setEditedTargetAudience] = useState("")
+  const [editedWebsiteLink, setEditedWebsiteLink] = useState("")
+  const [editedKeywords, setEditedKeywords] = useState("")
+  const [editedExcludedKeywords, setEditedExcludedKeywords] = useState("")
   const [keywordInput, setKeywordInput] = useState("")
   const [excludedKeywordInput, setExcludedKeywordInput] = useState("")
-
-  const [editedCompetitors, setEditedCompetitors] = useState(project.competitors?.join(", ") || "")
+  const [editedCompetitors, setEditedCompetitors] = useState("")
   const [competitorInput, setCompetitorInput] = useState("")
 
   useEffect(() => {
-    const projectData = MOCK_PROJECTS[projectId as keyof typeof MOCK_PROJECTS] || DEFAULT_PROJECT
-    setProject(projectData)
-    setIsFavorite(projectData.favorite)
+    const fetchProjectDetails = async () => {
+      try {
+        const token = Cookies.get("token")
+        const response = await fetch(`http://localhost:8000/projects/${projectId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
 
-    setEditedName(projectData.name)
-    setEditedDescription(projectData.description)
-    setEditedTargetAudience(projectData.targetAudience)
-    setEditedWebsiteLink(projectData.websiteLink)
-    setEditedKeywords(projectData.keywords.join(", "))
-    setEditedExcludedKeywords(projectData.excludedKeywords.join(", "))
-    setEditedCompetitors(projectData.competitors?.join(", ") || "")
+        if (!response.ok) {
+          throw new Error('Failed to fetch project details')
+        }
+
+        const data = await response.json()
+        setProject(data)
+        
+        // Initialize edit form with fetched data
+        setEditedName(data.title)
+        setEditedDescription(data.description)
+        setEditedTargetAudience(data.target_audience)
+        setEditedWebsiteLink(data.website_url)
+        setEditedKeywords(data.keywords.join(", "))
+        setEditedExcludedKeywords(data.excluded_keywords.join(", "))
+        setEditedCompetitors(data.competitors.join(", "))
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProjectDetails()
   }, [projectId])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
+        <div className="p-6 max-w-[1600px] mx-auto">
+          <div className="flex items-center justify-center h-[50vh]">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading project details...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
+        <div className="p-6 max-w-[1600px] mx-auto">
+          <div className="flex items-center justify-center h-[50vh]">
+            <div className="text-center">
+              <p className="text-destructive mb-4">{error}</p>
+              <Button onClick={() => window.history.back()}>Go Back</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!project) {
+    return null
+  }
 
   const toggleFavorite = () => {
     setIsFavorite(!isFavorite)
@@ -261,39 +185,57 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
     setEditedCompetitors(competitors.join(", "))
   }
 
-  const handleSaveChanges = () => {
-    const updatedProject = {
-      ...project,
-      name: editedName,
-      description: editedDescription,
-      targetAudience: editedTargetAudience,
-      websiteLink: editedWebsiteLink,
-      competitors: editedCompetitors
-        .split(",")
-        .map((k) => k.trim())
-        .filter((k) => k),
-      keywords: editedKeywords
-        .split(",")
-        .map((k) => k.trim())
-        .filter((k) => k),
-      excludedKeywords: editedExcludedKeywords
-        .split(",")
-        .map((k) => k.trim())
-        .filter((k) => k),
-      lastUpdated: new Date().toISOString(),
+  const handleSaveChanges = async () => {
+    try {
+      const token = Cookies.get("token")
+      const response = await fetch(`http://localhost:8000/projects/${projectId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: editedName,
+          description: editedDescription,
+          target_audience: editedTargetAudience,
+          website_url: editedWebsiteLink,
+          competitors: editedCompetitors.split(",").map((k) => k.trim()).filter((k) => k),
+          keywords: editedKeywords.split(",").map((k) => k.trim()).filter((k) => k),
+          excluded_keywords: editedExcludedKeywords.split(",").map((k) => k.trim()).filter((k) => k),
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update project')
+      }
+
+      const updatedProject = await response.json()
+      setProject(updatedProject)
+      setIsEditing(false)
+      
+      toast({
+        title: "Success",
+        description: "Project details updated successfully",
+        variant: "default",
+      })
+    } catch (error) {
+      console.error('Error updating project:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update project details. Please try again.",
+        variant: "destructive",
+      })
     }
-    setProject(updatedProject)
-    setIsEditing(false)
   }
 
   const handleCancelEdit = () => {
-    setEditedName(project.name)
+    setEditedName(project.title)
     setEditedDescription(project.description)
-    setEditedTargetAudience(project.targetAudience)
-    setEditedWebsiteLink(project.websiteLink)
+    setEditedTargetAudience(project.target_audience)
+    setEditedWebsiteLink(project.website_url)
     setEditedKeywords(project.keywords.join(", "))
-    setEditedExcludedKeywords(project.excludedKeywords.join(", "))
-    setEditedCompetitors(project.competitors?.join(", ") || "")
+    setEditedExcludedKeywords(project.excluded_keywords.join(", "))
+    setEditedCompetitors(project.competitors.join(", "))
     setIsEditing(false)
   }
 
@@ -346,7 +288,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                   <ArrowLeft size={16} />
                 </Link>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
+                  <h1 className="text-2xl font-bold tracking-tight">{project.title}</h1>
                   <button
                     onClick={toggleFavorite}
                     className={`p-1 rounded-full ${isFavorite ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"}`}
@@ -383,26 +325,25 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
               </div>
             </div>
 
-            {/* Premium Enhanced Project Card with Background Shades */}
+            {/* Project details card */}
             {!isEditing ? (
               <Card className="overflow-hidden border shadow-md rounded-lg bg-gradient-to-b from-card to-background/80 dark:from-card dark:to-background/90 backdrop-blur-sm">
-                {/* Elegant Header with Enhanced Typography and Background */}
                 <div className="relative px-5 py-4 flex justify-between items-center border-b bg-gradient-to-r from-background/80 via-card/90 to-background/80 dark:from-background/60 dark:via-card/80 dark:to-background/60 backdrop-blur-sm">
                   <div className="flex items-center gap-3">
                     <div>
                       <div className="flex items-center gap-2.5 mb-1.5">
-                        <h2 className="text-xl font-semibold tracking-tight">{project.name}</h2>
+                        <h2 className="text-xl font-semibold tracking-tight">{project.title}</h2>
                         <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100/80 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800/30">
                           <span className="relative flex h-1.5 w-1.5 mr-1.5">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
                           </span>
-                          Active
+                          {project.status}
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground flex items-center">
                         <Clock className="h-3.5 w-3.5 mr-1.5 inline-block" />
-                        Last updated {formatDate(project.lastUpdated)}
+                        Last updated {new Date(project.updated_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -419,26 +360,37 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                 </div>
 
                 <CardContent className="p-0">
-                  {/* Main Content with Premium Design and Background Shades */}
                   <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-5 bg-gradient-to-br from-transparent via-background/40 to-transparent dark:from-transparent dark:via-card/30 dark:to-transparent backdrop-blur-sm">
                     {/* Left Column */}
                     <div className="space-y-4">
-                      {/* Description with Premium Typography and Background */}
                       <div className="group">
                         <h3 className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center group-hover:text-foreground/90 transition-colors">
                           <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted/50 mr-2 group-hover:bg-muted transition-colors backdrop-blur-sm">
                             <FileText className="h-3.5 w-3.5" />
                           </div>
-                          Description
+                          Project Overview
                         </h3>
                         <div className="pl-8">
-                          <p className="text-sm leading-tight text-foreground/90 p-2.5 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm">
-                            {project.description}
-                          </p>
+                          <div className="p-4 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm space-y-4">
+                            <div>
+                              <h4 className="text-sm font-medium text-foreground/90 mb-2">Description</h4>
+                              <p className="text-sm leading-relaxed text-foreground/80">
+                                {project.description}
+                              </p>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 gap-4 pt-2 border-t border-border/10">
+                              <div>
+                                <h4 className="text-xs font-medium text-muted-foreground mb-1.5">Category</h4>
+                                <Badge variant="secondary" className="text-xs">
+                                  {project.category}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Website with Premium Design and Background */}
                       <div className="group">
                         <h3 className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center group-hover:text-foreground/90 transition-colors">
                           <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted/50 mr-2 group-hover:bg-muted transition-colors backdrop-blur-sm">
@@ -448,18 +400,17 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         </h3>
                         <div className="pl-8">
                           <a
-                            href={project.websiteLink}
+                            href={project.website_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center text-sm text-primary hover:text-primary/80 transition-colors group p-2.5 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm w-full"
                           >
-                            {project.websiteLink}
+                            {project.website_url}
                             <ExternalLink className="h-3.5 w-3.5 ml-1.5 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-200" />
                           </a>
                         </div>
                       </div>
 
-                      {/* Competitors with Premium Design and Background */}
                       <div className="group">
                         <h3 className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center group-hover:text-foreground/90 transition-colors">
                           <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted/50 mr-2 group-hover:bg-muted transition-colors backdrop-blur-sm">
@@ -494,7 +445,6 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
 
                     {/* Right Column */}
                     <div className="space-y-4">
-                      {/* Target Audience with Premium Typography and Background */}
                       <div className="group">
                         <h3 className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center group-hover:text-foreground/90 transition-colors">
                           <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted/50 mr-2 group-hover:bg-muted transition-colors backdrop-blur-sm">
@@ -504,12 +454,11 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         </h3>
                         <div className="pl-8">
                           <p className="text-sm leading-tight text-foreground/90 p-2.5 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm">
-                            {project.targetAudience}
+                            {project.target_audience}
                           </p>
                         </div>
                       </div>
 
-                      {/* Keywords with Premium Design and Background */}
                       <div className="group">
                         <h3 className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center group-hover:text-foreground/90 transition-colors">
                           <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted/50 mr-2 group-hover:bg-muted transition-colors backdrop-blur-sm">
@@ -532,7 +481,6 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         </div>
                       </div>
 
-                      {/* Excluded Keywords with Premium Design and Background */}
                       <div className="group">
                         <h3 className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center group-hover:text-foreground/90 transition-colors">
                           <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted/50 mr-2 group-hover:bg-muted transition-colors backdrop-blur-sm">
@@ -542,7 +490,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         </h3>
                         <div className="pl-8">
                           <div className="flex flex-wrap gap-1.5 p-2.5 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm">
-                            {project.excludedKeywords.map((keyword, index) => (
+                            {project.excluded_keywords.map((keyword, index) => (
                               <Badge
                                 key={index}
                                 variant="outline"
@@ -831,22 +779,19 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
               </Card>
             )}
 
-            {/* Marketing Analytics Cards - Added below product information */}
+            {/* Analytics sections */}
             <div className="mt-4" id="marketing-analytics">
               <MarketingAnalyticsCards />
             </div>
 
-            {/* Social Media Cards */}
             <div className="mt-6">
               <SocialMediaCards />
             </div>
 
-            {/* Content Analytics */}
             <div className="mt-6">
               <ContentAnalyticsCards />
             </div>
 
-            {/* Potential Customer Analytics */}
             <div className="mt-6">
               <PotentialCustomerAnalytics />
             </div>
