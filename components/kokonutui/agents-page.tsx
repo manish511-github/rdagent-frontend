@@ -29,6 +29,15 @@ import {
   Shield,
   Star,
   MoreVertical,
+  Hash,
+  Globe,
+  Smile,
+  Image,
+  FileText,
+  Building2,
+  Video,
+  Music,
+  CheckCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -200,7 +209,7 @@ const platformOptions = [
   { value: "linkedin", label: "LinkedIn", icon: "linkedin" },
   { value: "twitter", label: "Twitter", icon: "twitter" },
   { value: "instagram", label: "Instagram", icon: "instagram" },
-  { value: "email", label: "Email", icon: "email" },
+  { value: "tiktok", label: "TikTok", icon: "tiktok" },
 ]
 
 // Goal options for the form
@@ -283,6 +292,67 @@ const getGoalIcon = (goal: string) => {
   }
 }
 
+// Add platform settings types
+type PlatformSettings = {
+  reddit?: {
+    subreddit: string;
+    timeRange: string;
+    relevanceThreshold: number;
+    minUpvotes: number;
+    monitorComments: boolean;
+  };
+  twitter?: {
+    keywords: string;
+    accountsToMonitor: string;
+    timeRange: string;
+    minEngagement: number;
+    relevanceThreshold: number;
+    language: string;
+    sentiment: string;
+    mode: string;
+    reviewPeriod: string;
+    action: string;
+  };
+  instagram?: {
+    keywords: string;
+    accountsToMonitor: string;
+    timeRange: string;
+    minEngagement: number;
+    relevanceThreshold: number;
+    contentType: string;
+    sentiment: string;
+    mode: string;
+    reviewPeriod: string;
+    action: string;
+  };
+  linkedin?: {
+    keywords: string;
+    accountsToMonitor: string;
+    timeRange: string;
+    minEngagement: number;
+    relevanceThreshold: number;
+    contentType: string;
+    industryFilter: string;
+    sentiment: string;
+    mode: string;
+    reviewPeriod: string;
+    action: string;
+  };
+  tiktok?: {
+    keywords: string;
+    accountsToMonitor: string;
+    timeRange: string;
+    minEngagement: number;
+    relevanceThreshold: number;
+    contentType: string;
+    soundFilter: string;
+    sentiment: string;
+    mode: string;
+    reviewPeriod: string;
+    action: string;
+  };
+};
+
 export default function AgentsPage() {
   const router = useRouter()
   const [agents, setAgents] = useState(mockAgents)
@@ -296,10 +366,12 @@ export default function AgentsPage() {
     goal: "",
     instructions: "",
     expectations: "",
-    platform: "",
+    platform: "reddit",
     mode: "copilot",
     reviewPeriod: "weekly",
+    reviewMinutes: "0",
     advancedSettings: {},
+    platformSettings: {} as PlatformSettings,
   })
 
   // Filter agents based on search query and filters
@@ -336,10 +408,12 @@ export default function AgentsPage() {
         goal: "",
         instructions: "",
         expectations: "",
-        platform: "",
+        platform: "reddit",
         mode: "copilot",
         reviewPeriod: "weekly",
+        reviewMinutes: "0",
         advancedSettings: {},
+        platformSettings: {} as PlatformSettings,
       })
       setCurrentStep(1)
     }
@@ -360,6 +434,20 @@ export default function AgentsPage() {
       advancedSettings: {
         ...prev.advancedSettings,
         [field]: value,
+      },
+    }))
+  }
+
+  // Handle platform settings changes
+  const handlePlatformSettingChange = (field: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      platformSettings: {
+        ...prev.platformSettings,
+        [formData.platform]: {
+          ...prev.platformSettings[formData.platform as keyof PlatformSettings],
+          [field]: value,
+        },
       },
     }))
   }
@@ -406,6 +494,505 @@ export default function AgentsPage() {
   const totalEngagement = agents.reduce((sum, a) => sum + a.engagement, 0)
   const totalConversions = agents.reduce((sum, a) => sum + a.conversions, 0)
   const avgPerformance = Math.round(agents.reduce((sum, a) => sum + a.performance, 0) / agents.length)
+
+  // Add renderPlatformSettings function
+  const renderPlatformSettings = () => {
+    if (!formData.platform) return null;
+
+    switch (formData.platform) {
+      case "reddit":
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="subreddit">Subreddit to Monitor</Label>
+                </div>
+                <Input
+                  id="subreddit"
+                  placeholder="e.g., AskReddit, marketing"
+                  value={formData.platformSettings.reddit?.subreddit || ""}
+                  onChange={(e) => handlePlatformSettingChange("subreddit", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="timeRange">Time Range</Label>
+                </div>
+                <Select
+                  value={formData.platformSettings.reddit?.timeRange || ""}
+                  onValueChange={(value) => handlePlatformSettingChange("timeRange", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select time range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Past Day</SelectItem>
+                    <SelectItem value="week">Past Week</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="relevanceThreshold">Relevance Threshold</Label>
+                </div>
+                <Input
+                  id="relevanceThreshold"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="0-100"
+                  value={formData.platformSettings.reddit?.relevanceThreshold || ""}
+                  onChange={(e) => handlePlatformSettingChange("relevanceThreshold", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="minUpvotes">Minimum Upvotes</Label>
+                </div>
+                <Input
+                  id="minUpvotes"
+                  type="number"
+                  min="0"
+                  placeholder="Minimum upvotes"
+                  value={formData.platformSettings.reddit?.minUpvotes || ""}
+                  onChange={(e) => handlePlatformSettingChange("minUpvotes", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="monitorComments"
+                checked={formData.platformSettings.reddit?.monitorComments || false}
+                onCheckedChange={(checked) => handlePlatformSettingChange("monitorComments", checked)}
+              />
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="monitorComments">Also check keywords in comments</Label>
+              </div>
+            </div>
+          </div>
+        );
+      case "twitter":
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Hash className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="keywords">Keywords / Hashtags</Label>
+                </div>
+                <Input
+                  id="keywords"
+                  placeholder="Enter keywords or hashtags"
+                  value={formData.platformSettings.twitter?.keywords || ""}
+                  onChange={(e) => handlePlatformSettingChange("keywords", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="accountsToMonitor">Accounts to Monitor</Label>
+                </div>
+                <Input
+                  id="accountsToMonitor"
+                  placeholder="Enter account handles"
+                  value={formData.platformSettings.twitter?.accountsToMonitor || ""}
+                  onChange={(e) => handlePlatformSettingChange("accountsToMonitor", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="timeRange">Time Range</Label>
+                </div>
+                <Select
+                  value={formData.platformSettings.twitter?.timeRange || ""}
+                  onValueChange={(value) => handlePlatformSettingChange("timeRange", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select time range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hour">Past Hour</SelectItem>
+                    <SelectItem value="day">Past Day</SelectItem>
+                    <SelectItem value="week">Past Week</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="minEngagement">Minimum Engagement</Label>
+                </div>
+                <Input
+                  id="minEngagement"
+                  type="number"
+                  min="0"
+                  placeholder="Min likes/retweets"
+                  value={formData.platformSettings.twitter?.minEngagement || ""}
+                  onChange={(e) => handlePlatformSettingChange("minEngagement", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="language">Language Filter</Label>
+                </div>
+                <Select
+                  value={formData.platformSettings.twitter?.language || ""}
+                  onValueChange={(value) => handlePlatformSettingChange("language", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="es">Spanish</SelectItem>
+                    <SelectItem value="fr">French</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Smile className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="sentiment">Sentiment Filter</Label>
+                </div>
+                <Select
+                  value={formData.platformSettings.twitter?.sentiment || ""}
+                  onValueChange={(value) => handlePlatformSettingChange("sentiment", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select sentiment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="positive">Positive</SelectItem>
+                    <SelectItem value="neutral">Neutral</SelectItem>
+                    <SelectItem value="negative">Negative</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        );
+      case "instagram":
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Hash className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="keywords">Keywords / Hashtags</Label>
+                </div>
+                <Input
+                  id="keywords"
+                  placeholder="Enter keywords or hashtags"
+                  value={formData.platformSettings.instagram?.keywords || ""}
+                  onChange={(e) => handlePlatformSettingChange("keywords", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="accountsToMonitor">Accounts to Monitor</Label>
+                </div>
+                <Input
+                  id="accountsToMonitor"
+                  placeholder="Enter account handles"
+                  value={formData.platformSettings.instagram?.accountsToMonitor || ""}
+                  onChange={(e) => handlePlatformSettingChange("accountsToMonitor", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="timeRange">Time Range</Label>
+                </div>
+                <Select
+                  value={formData.platformSettings.instagram?.timeRange || ""}
+                  onValueChange={(value) => handlePlatformSettingChange("timeRange", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select time range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hour">Past Hour</SelectItem>
+                    <SelectItem value="day">Past Day</SelectItem>
+                    <SelectItem value="week">Past Week</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="minEngagement">Minimum Engagement</Label>
+                </div>
+                <Input
+                  id="minEngagement"
+                  type="number"
+                  min="0"
+                  placeholder="Min likes/comments"
+                  value={formData.platformSettings.instagram?.minEngagement || ""}
+                  onChange={(e) => handlePlatformSettingChange("minEngagement", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Image className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="contentType">Content Type</Label>
+                </div>
+                <Select
+                  value={formData.platformSettings.instagram?.contentType || ""}
+                  onValueChange={(value) => handlePlatformSettingChange("contentType", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select content type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="post">Post</SelectItem>
+                    <SelectItem value="story">Story</SelectItem>
+                    <SelectItem value="reel">Reel</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Smile className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="sentiment">Sentiment Filter</Label>
+                </div>
+                <Select
+                  value={formData.platformSettings.instagram?.sentiment || ""}
+                  onValueChange={(value) => handlePlatformSettingChange("sentiment", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select sentiment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="positive">Positive</SelectItem>
+                    <SelectItem value="neutral">Neutral</SelectItem>
+                    <SelectItem value="negative">Negative</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        );
+      case "linkedin":
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Hash className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="keywords">Keywords / Hashtags</Label>
+                </div>
+                <Input
+                  id="keywords"
+                  placeholder="Enter keywords or hashtags"
+                  value={formData.platformSettings.linkedin?.keywords || ""}
+                  onChange={(e) => handlePlatformSettingChange("keywords", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="accountsToMonitor">Accounts to Monitor</Label>
+                </div>
+                <Input
+                  id="accountsToMonitor"
+                  placeholder="Enter company or profile names"
+                  value={formData.platformSettings.linkedin?.accountsToMonitor || ""}
+                  onChange={(e) => handlePlatformSettingChange("accountsToMonitor", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="timeRange">Time Range</Label>
+                </div>
+                <Select
+                  value={formData.platformSettings.linkedin?.timeRange || ""}
+                  onValueChange={(value) => handlePlatformSettingChange("timeRange", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select time range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Past Day</SelectItem>
+                    <SelectItem value="week">Past Week</SelectItem>
+                    <SelectItem value="month">Past Month</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="minEngagement">Minimum Engagement</Label>
+                </div>
+                <Input
+                  id="minEngagement"
+                  type="number"
+                  min="0"
+                  placeholder="Min reactions/comments"
+                  value={formData.platformSettings.linkedin?.minEngagement || ""}
+                  onChange={(e) => handlePlatformSettingChange("minEngagement", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="contentType">Content Type</Label>
+                </div>
+                <Select
+                  value={formData.platformSettings.linkedin?.contentType || ""}
+                  onValueChange={(value) => handlePlatformSettingChange("contentType", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select content type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="post">Post</SelectItem>
+                    <SelectItem value="article">Article</SelectItem>
+                    <SelectItem value="comment">Comment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="industryFilter">Industry / Job Role Filter</Label>
+                </div>
+                <Input
+                  id="industryFilter"
+                  placeholder="Enter industries or job roles"
+                  value={formData.platformSettings.linkedin?.industryFilter || ""}
+                  onChange={(e) => handlePlatformSettingChange("industryFilter", e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      case "tiktok":
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Hash className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="keywords">Keywords / Hashtags</Label>
+                </div>
+                <Input
+                  id="keywords"
+                  placeholder="Enter keywords or hashtags"
+                  value={formData.platformSettings.tiktok?.keywords || ""}
+                  onChange={(e) => handlePlatformSettingChange("keywords", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="accountsToMonitor">Accounts to Monitor</Label>
+                </div>
+                <Input
+                  id="accountsToMonitor"
+                  placeholder="Enter creator handles"
+                  value={formData.platformSettings.tiktok?.accountsToMonitor || ""}
+                  onChange={(e) => handlePlatformSettingChange("accountsToMonitor", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="timeRange">Time Range</Label>
+                </div>
+                <Select
+                  value={formData.platformSettings.tiktok?.timeRange || ""}
+                  onValueChange={(value) => handlePlatformSettingChange("timeRange", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select time range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hour">Past Hour</SelectItem>
+                    <SelectItem value="day">Past Day</SelectItem>
+                    <SelectItem value="week">Past Week</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="minEngagement">Minimum Engagement</Label>
+                </div>
+                <Input
+                  id="minEngagement"
+                  type="number"
+                  min="0"
+                  placeholder="Min likes/views/comments"
+                  value={formData.platformSettings.tiktok?.minEngagement || ""}
+                  onChange={(e) => handlePlatformSettingChange("minEngagement", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Video className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="contentType">Content Type</Label>
+                </div>
+                <Select
+                  value={formData.platformSettings.tiktok?.contentType || ""}
+                  onValueChange={(value) => handlePlatformSettingChange("contentType", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select content type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="video">Video</SelectItem>
+                    <SelectItem value="live">Live</SelectItem>
+                    <SelectItem value="comment">Comment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Music className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="soundFilter">Sound / Trend Filter</Label>
+                </div>
+                <Input
+                  id="soundFilter"
+                  placeholder="Enter sound or trend names"
+                  value={formData.platformSettings.tiktok?.soundFilter || ""}
+                  onChange={(e) => handlePlatformSettingChange("soundFilter", e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <Layout>
@@ -815,7 +1402,7 @@ export default function AgentsPage() {
                 {[
                   { step: 1, label: "Goal & Details", icon: Target },
                   { step: 2, label: "Platform", icon: Layers },
-                  { step: 3, label: "Configure", icon: Settings },
+                  { step: 3, label: "Review", icon: CheckCircle },
                 ].map((item) => {
                   const Icon = item.icon
                   return (
@@ -850,7 +1437,7 @@ export default function AgentsPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-1">
+            <div className="flex-1 overflow-y-auto px-1 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 scrollbar-track-transparent hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-600">
               {/* Step 1: Goal & Details */}
               {currentStep === 1 && (
                 <div className="space-y-6 animate-in fade-in-50 duration-300">
@@ -946,56 +1533,79 @@ export default function AgentsPage() {
                 <div className="space-y-6 animate-in fade-in-50 duration-300">
                   <div className="space-y-3">
                     <Label className="text-base font-medium">Choose Your Platform</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-5 gap-4">
                       {platformOptions.map((platform) => (
                         <div
                           key={platform.value}
                           className={cn(
-                            "relative cursor-pointer rounded-xl border-2 p-6 transition-all duration-200",
+                            "relative cursor-pointer rounded-xl border-2 p-4 transition-all duration-200",
                             "hover:shadow-lg hover:border-cyan-400 hover:-translate-y-0.5",
+                            "group",
                             formData.platform === platform.value
                               ? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 shadow-lg"
                               : "border-zinc-200 dark:border-zinc-800",
                           )}
                           onClick={() => handleInputChange("platform", platform.value)}
                         >
-                          <div className="flex flex-col items-center gap-4">
+                          <div className="flex flex-col items-center gap-3">
                             <div
                               className={cn(
                                 "p-4 rounded-xl bg-gradient-to-br text-white shadow-lg",
                                 "ring-1 ring-black/10 dark:ring-white/5",
-                                "relative overflow-hidden group",
+                                "relative overflow-hidden group-hover:scale-105 transition-transform duration-200",
                                 getPlatformGradient(platform.value)
                               )}
                             >
                               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                               <div className="relative">
-                                <PlatformIcon platform={platform.value} className="h-8 w-8 drop-shadow-sm" />
+                                <PlatformIcon platform={platform.value} className="h-7 w-7 drop-shadow-sm" />
                               </div>
                             </div>
                             <div className="text-center">
-                              <span className="font-medium text-lg block mb-1">{platform.label}</span>
-                              <span className="text-sm text-muted-foreground">
-                                {platform.value === "reddit" && "Community engagement"}
-                                {platform.value === "linkedin" && "Professional networking"}
-                                {platform.value === "twitter" && "Real-time updates"}
-                                {platform.value === "instagram" && "Visual content"}
-                                {platform.value === "email" && "Direct communication"}
-                              </span>
+                              <span className="font-medium text-sm block">{platform.label}</span>
                             </div>
                           </div>
                           {formData.platform === platform.value && (
-                            <div className="absolute top-3 right-3">
-                              <div className="bg-cyan-600 text-white p-1 rounded-full">
-                                <Check className="h-4 w-4" />
+                            <div className="absolute top-2 right-2">
+                              <div className="bg-cyan-600 text-white p-1 rounded-full shadow-lg">
+                                <Check className="h-3 w-3" />
                               </div>
                             </div>
                           )}
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       ))}
                     </div>
                   </div>
+
+                  {/* Account Connection Section */}
+                  {formData.platform && (
+                    <div className="space-y-3">
+                      <Label className="text-base font-medium">Account Connection</Label>
+                      <div className="rounded-xl border-2 p-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div
+                              className={cn(
+                                "p-3 rounded-lg bg-gradient-to-br text-white shadow-lg",
+                                getPlatformGradient(formData.platform)
+                              )}
+                            >
+                              <PlatformIcon platform={formData.platform} className="h-6 w-6" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold">Login with {formData.platform.charAt(0).toUpperCase() + formData.platform.slice(1)}</h3>
+                              <p className="text-sm text-muted-foreground">Connect your account to post content</p>
+                            </div>
+                          </div>
+                          <Button className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white">
+                            Connect Account
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-3">
                     <Label className="text-base font-medium">Operation Mode</Label>
@@ -1050,37 +1660,26 @@ export default function AgentsPage() {
                         </Label>
                       </div>
                     </RadioGroup>
-                  </div>
-                </div>
-              )}
 
-              {/* Step 3: Configuration */}
-              {currentStep === 3 && (
-                <div className="space-y-6 animate-in fade-in-50 duration-300">
-                  <div className="space-y-3">
-                    <Label className="text-base font-medium">Review Period</Label>
-                    <RadioGroup
-                      value={formData.reviewPeriod}
-                      onValueChange={(value) => handleInputChange("reviewPeriod", value)}
-                      className="grid grid-cols-3 gap-3"
-                    >
-                      {["daily", "weekly", "monthly"].map((period) => (
-                        <div
-                          key={period}
-                          className={cn(
-                            "relative cursor-pointer rounded-lg border-2 p-4 text-center transition-all",
-                            formData.reviewPeriod === period
-                              ? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20"
-                              : "border-gray-200 dark:border-gray-700",
-                          )}
-                        >
-                          <RadioGroupItem value={period} id={period} className="sr-only" />
-                          <Label htmlFor={period} className="cursor-pointer">
-                            <span className="font-medium capitalize">{period}</span>
-                          </Label>
+                    {formData.mode === "autopilot" && (
+                      <div className="mt-4 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="review-minutes" className="text-sm font-medium">Review period (minutes)</Label>
+                          <Input
+                            id="review-minutes"
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={formData.reviewMinutes}
+                            onChange={(e) => handleInputChange("reviewMinutes", e.target.value)}
+                            className="w-20 h-8"
+                          />
                         </div>
-                      ))}
-                    </RadioGroup>
+                        <p className="text-xs text-muted-foreground">
+                          The agent will wait for you to review content before posting
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <Collapsible className="space-y-3">
@@ -1093,71 +1692,292 @@ export default function AgentsPage() {
                       </CollapsibleTrigger>
                     </div>
                     <CollapsibleContent className="space-y-4 pt-2">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="max-tokens">Max Tokens per Response</Label>
-                          <Input
-                            id="max-tokens"
-                            type="number"
-                            placeholder="2000"
-                            value={formData.advancedSettings.maxTokens || ""}
-                            onChange={(e) => handleAdvancedSettingChange("maxTokens", e.target.value)}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="temperature">Temperature (0-1)</Label>
-                          <Input
-                            id="temperature"
-                            type="number"
-                            min="0"
-                            max="1"
-                            step="0.1"
-                            placeholder="0.7"
-                            value={formData.advancedSettings.temperature || ""}
-                            onChange={(e) => handleAdvancedSettingChange("temperature", e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="learn-from-interactions"
-                          checked={formData.advancedSettings.learnFromInteractions || false}
-                          onCheckedChange={(checked) => handleAdvancedSettingChange("learnFromInteractions", checked)}
-                        />
-                        <Label htmlFor="learn-from-interactions" className="text-sm font-normal">
-                          Enable learning from interactions to improve over time
-                        </Label>
+                      <div className="rounded-lg border p-6">
+                        {formData.platform && renderPlatformSettings()}
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
+                </div>
+              )}
 
-                  {/* Summary Card */}
-                  <div className="rounded-xl bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-950/20 dark:to-blue-950/20 p-6 border border-slate-200 dark:border-slate-800">
-                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-cyan-600" />
-                      Agent Summary
-                    </h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Name:</span>
-                        <span className="font-medium">{formData.name || "Not set"}</span>
+              {/* Step 3: Review */}
+              {currentStep === 3 && (
+                <div className="space-y-6 animate-in fade-in-50 duration-300">
+                  {/* Main Info Card */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2">
+                      <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
+                        <div className="flex items-start gap-4">
+                          <div className={cn(
+                            "p-3 rounded-xl bg-gradient-to-br text-white shadow-lg",
+                            getPlatformGradient(formData.platform)
+                          )}>
+                            <PlatformIcon platform={formData.platform} className="h-8 w-8" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-xl font-semibold mb-1 text-slate-900 dark:text-slate-200">{formData.name || "Unnamed Agent"}</h3>
+                            <div className="flex items-center gap-3">
+                              <Badge variant="secondary" className="capitalize">
+                                {formData.goal.replace("_", " ") || "No goal set"}
+                              </Badge>
+                              <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
+                                {formData.mode === "copilot" ? (
+                                  <>
+                                    <Brain className="h-4 w-4 text-blue-500" />
+                                    <span>Copilot Mode</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Rocket className="h-4 w-4 text-emerald-500" />
+                                    <span>Autopilot Mode</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Goal:</span>
-                        <span className="font-medium capitalize">{formData.goal.replace("_", " ") || "Not set"}</span>
+                    </div>
+
+                    <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Clock className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                        <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">Review Settings</h4>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Platform:</span>
-                        <span className="font-medium capitalize">{formData.platform || "Not set"}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Mode:</span>
-                        <span className="font-medium capitalize">{formData.mode}</span>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-slate-600 dark:text-slate-400">Schedule</span>
+                          <span className="font-medium text-slate-900 dark:text-slate-300 capitalize">{formData.reviewPeriod}</span>
+                        </div>
+                        {formData.mode === "autopilot" && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-600 dark:text-slate-400">Wait Time</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-slate-900 dark:text-slate-300">{formData.reviewMinutes}</span>
+                              <span className="text-sm text-slate-600 dark:text-slate-400">minutes</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
+
+                  {/* Instructions Card */}
+                  <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <MessageSquare className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                          <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">Instructions & Personality</h4>
+                        </div>
+                        <div className="bg-white dark:bg-slate-900/40 rounded-lg p-4 border border-slate-200 dark:border-slate-700/30">
+                          <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
+                            {formData.instructions || "No instructions provided"}
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <Target className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                          <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">Expected Outcomes</h4>
+                        </div>
+                        <div className="bg-white dark:bg-slate-900/40 rounded-lg p-4 border border-slate-200 dark:border-slate-700/30">
+                          <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
+                            {formData.expectations || "No expectations defined"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Platform Settings Card */}
+                  {formData.platform && (
+                    <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Layers className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                        <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">Platform Settings</h4>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        {formData.platform === "reddit" && (
+                          <>
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <MessageSquare className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Subreddit</span>
+                              </div>
+                              <div className="text-xs">
+                                {formData.platformSettings.reddit?.subreddit ? (
+                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.reddit.subreddit}</span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
+                                    Not set
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <Clock className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Time Range</span>
+                              </div>
+                              <div className="text-xs">
+                                {formData.platformSettings.reddit?.timeRange ? (
+                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.reddit.timeRange}</span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
+                                    Not set
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <Target className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Relevance</span>
+                              </div>
+                              <div className="text-xs">
+                                {formData.platformSettings.reddit?.relevanceThreshold ? (
+                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.reddit.relevanceThreshold}</span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
+                                    Not set
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <TrendingUp className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Min Upvotes</span>
+                              </div>
+                              <div className="text-xs">
+                                {formData.platformSettings.reddit?.minUpvotes ? (
+                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.reddit.minUpvotes}</span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
+                                    Not set
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="col-span-2">
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <MessageSquare className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                                <span className="font-medium text-slate-700 dark:text-slate-300">Monitor Comments:</span>
+                                <span className={cn(
+                                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium",
+                                  formData.platformSettings.reddit?.monitorComments
+                                    ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                                )}>
+                                  <span className={cn(
+                                    "w-1 h-1 rounded-full",
+                                    formData.platformSettings.reddit?.monitorComments
+                                      ? "bg-emerald-500 dark:bg-emerald-400"
+                                      : "bg-slate-400 dark:bg-slate-500"
+                                  )}></span>
+                                  {formData.platformSettings.reddit?.monitorComments ? "Enabled" : "Disabled"}
+                                </span>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        {formData.platform === "twitter" && (
+                          <>
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <Hash className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Keywords</span>
+                              </div>
+                              <div className="text-xs">
+                                {formData.platformSettings.twitter?.keywords ? (
+                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.twitter.keywords}</span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
+                                    Not set
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <Users className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Accounts</span>
+                              </div>
+                              <div className="text-xs">
+                                {formData.platformSettings.twitter?.accountsToMonitor ? (
+                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.twitter.accountsToMonitor}</span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
+                                    Not set
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <Clock className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Time Range</span>
+                              </div>
+                              <div className="text-xs">
+                                {formData.platformSettings.twitter?.timeRange ? (
+                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.twitter.timeRange}</span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
+                                    Not set
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <TrendingUp className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Min Engagement</span>
+                              </div>
+                              <div className="text-xs">
+                                {formData.platformSettings.twitter?.minEngagement ? (
+                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.twitter.minEngagement}</span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
+                                    Not set
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="col-span-2">
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <Smile className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                                <span className="font-medium text-slate-700 dark:text-slate-300">Sentiment:</span>
+                                <span className={cn(
+                                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium",
+                                  formData.platformSettings.twitter?.sentiment
+                                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                                )}>
+                                  <span className={cn(
+                                    "w-1 h-1 rounded-full",
+                                    formData.platformSettings.twitter?.sentiment
+                                      ? "bg-blue-500 dark:bg-blue-400"
+                                      : "bg-slate-400 dark:bg-slate-500"
+                                  )}></span>
+                                  {formData.platformSettings.twitter?.sentiment || "Not set"}
+                                </span>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1183,9 +2003,9 @@ export default function AgentsPage() {
               ) : (
                 <Button
                   onClick={createAgent}
-                  className="gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-lg shadow-cyan-500/25 w-full sm:w-auto"
+                  className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 w-full sm:w-auto"
                 >
-                  <Rocket className="h-4 w-4" />
+                  <Rocket className="h-4 w-4 mr-2" />
                   Launch Agent
                 </Button>
               )}
@@ -1224,3 +2044,39 @@ const float = `@keyframes float {
     transform: translateY(0) translateX(0);
   }
 }`
+
+// Add this at the end of the file, after the animations
+const scrollbarStyles = `
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(203 213 225);
+    border-radius: 20px;
+    transition: background-color 0.2s ease;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(148 163 184);
+  }
+
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(51 65 85);
+  }
+
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(71 85 105);
+  }
+`
+
+// Add the styles to the document
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style')
+  style.textContent = scrollbarStyles
+  document.head.appendChild(style)
+}
