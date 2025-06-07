@@ -66,145 +66,6 @@ import { toast } from "@/components/ui/use-toast"
 import Cookies from 'js-cookie'
 
 // Mock data for agents
-const mockAgents = [
-  {
-    id: "1",
-    name: "Hexnode Reddit Lead Finder",
-    platform: "reddit",
-    status: "active",
-    goal: "lead_generation",
-    lastActive: "5 mins ago",
-    keyMetric: {
-      value: "25",
-      label: "Leads Today",
-      trend: "+12%",
-    },
-    secondaryMetric: {
-      value: "142",
-      label: "Posts Monitored",
-    },
-    description:
-      "Identifies potential leads by monitoring relevant subreddits and engaging with users showing interest in MDM solutions.",
-    performance: 85,
-    messages: 128,
-    engagement: 76,
-    conversions: 24,
-    rating: 4.8,
-  },
-  {
-    id: "2",
-    name: "LinkedIn Thought Leader",
-    platform: "linkedin",
-    status: "active",
-    goal: "brand_awareness",
-    lastActive: "1 hour ago",
-    keyMetric: {
-      value: "12",
-      label: "New Followers",
-      trend: "+8%",
-    },
-    secondaryMetric: {
-      value: "8",
-      label: "Posts Published",
-    },
-    description:
-      "Shares industry insights and engages with relevant content to establish brand authority in the MDM space.",
-    performance: 92,
-    messages: 256,
-    engagement: 64,
-    conversions: 18,
-    rating: 4.9,
-  },
-  {
-    id: "3",
-    name: "Twitter Support Bot",
-    platform: "twitter",
-    status: "paused",
-    goal: "support",
-    lastActive: "Yesterday",
-    keyMetric: {
-      value: "15",
-      label: "Tickets Resolved",
-      trend: "-5%",
-    },
-    secondaryMetric: {
-      value: "95%",
-      label: "Resolution Rate",
-    },
-    description:
-      "Monitors Twitter for customer support requests and provides initial responses and escalation when needed.",
-    performance: 78,
-    messages: 64,
-    engagement: 42,
-    conversions: 8,
-    rating: 4.5,
-  },
-  {
-    id: "4",
-    name: "Instagram Content Promoter",
-    platform: "instagram",
-    status: "active",
-    goal: "engagement",
-    lastActive: "3 hours ago",
-    keyMetric: {
-      value: "87%",
-      label: "Engagement Rate",
-      trend: "+15%",
-    },
-    secondaryMetric: {
-      value: "1.5K",
-      label: "Interactions",
-    },
-    description: "Promotes visual content and engages with followers to increase brand visibility and engagement.",
-    performance: 94,
-    messages: 312,
-    engagement: 89,
-    conversions: 32,
-    rating: 4.7,
-  },
-  {
-    id: "5",
-    name: "Email Campaign Manager",
-    platform: "email",
-    status: "error",
-    goal: "lead_generation",
-    lastActive: "2 days ago",
-    keyMetric: {
-      value: "3.2%",
-      label: "Conversion Rate",
-      trend: "-2%",
-    },
-    secondaryMetric: {
-      value: "15K",
-      label: "Emails Sent",
-    },
-    description: "Manages email campaigns, analyzes performance, and optimizes for better conversion rates.",
-    performance: 45,
-    messages: 96,
-    engagement: 38,
-    conversions: 12,
-    rating: 3.8,
-  },
-  {
-    id: "6",
-    name: "Reddit Community Manager",
-    platform: "reddit",
-    status: "pending",
-    goal: "engagement",
-    lastActive: "Not active yet",
-    keyMetric: {
-      value: "0",
-      label: "Interactions",
-      trend: "—",
-    },
-    description: "Will manage and grow our Reddit community by posting relevant content and engaging with members.",
-    performance: 0,
-    messages: 0,
-    engagement: 0,
-    conversions: 0,
-    rating: 0,
-  },
-]
 
 // Platform options for the form
 const platformOptions = [
@@ -475,6 +336,10 @@ export default function AgentsPage() {
   const router = useRouter()
   const params = useParams()
   const pathname = usePathname()
+  const queryClient = useQueryClient()
+  
+  // Add SSE connection state
+  const [sseConnection, setSseConnection] = useState<EventSource | null>(null)
   
   // Extract project ID from URL with better validation
   const projectId = (() => {
@@ -522,8 +387,63 @@ export default function AgentsPage() {
     }
   }, [projectId, router, pathname])
 
-  const queryClient = useQueryClient()
-  
+  // Setup SSE connection
+  useEffect(() => {
+    if (!projectId) return
+
+    const token = getAuthToken()
+    if (!token) return
+
+    // Create SSE connection
+    const eventSource = new EventSource(`http://localhost:8000/sse/projects/${projectId}/events?token=${token}`)
+
+    // Handle incoming messages
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        console.log('SSE Event:', data)
+        
+        // Handle different types of events
+        if (data.type === 'agent_status') {
+          const { agent_id, status } = data.data
+          
+          // Update agent status in Redux store
+          
+          // If status is completed, update the agent in React Query cache
+          if (status === 'completed') {
+            queryClient.setQueryData(['agents', projectId], (oldData: Agent[] | undefined) => {
+              if (!oldData) return oldData;
+              
+              return oldData.map(agent => {
+                if (agent.id === agent_id) {
+                  console.log('Matched agent:', agent);
+                  return { ...agent, agent_status: 'completed' }; // Update status
+                }
+                return agent;
+              });
+            });
+          }
+
+        }
+      } catch (error) {
+        console.error('Error processing SSE message:', error)
+      }
+    }
+
+    // Handle connection errors
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error)
+      eventSource.close()
+    }
+
+    setSseConnection(eventSource)
+
+    // Cleanup on unmount
+    return () => {
+      eventSource.close()
+    }
+  }, [projectId, queryClient])
+
   // Replace mock data with React Query
   const { data: agents = [], isLoading, error } = useQuery<Agent[], Error>({
     queryKey: ['agents', projectId],
@@ -1552,17 +1472,23 @@ export default function AgentsPage() {
                     "group relative overflow-hidden cursor-pointer transition-all duration-300",
                     "hover:shadow-xl hover:-translate-y-1",
                     "bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800",
+                    // Add disabled state for scheduled agents
+                    agent.agent_status === "scheduled" && "opacity-70 pointer-events-none"
                   )}
                   onClick={() => navigateToAgentDetail(agent.id)}
                 >
-                  {/* Gradient Background */}
-                  <div
-                    className={cn(
-                      "absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity",
-                      "bg-gradient-to-br",
-                      getPlatformGradient(agent.agent_platform),
-                    )}
-                  />
+                  {/* Add circular progress indicator for scheduled status without blur */}
+                  {agent.agent_status === "scheduled" && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/5 dark:bg-white/5 z-10">
+                      <div className="relative w-8 h-8">
+                        <div className="absolute inset-0 border-2 border-gray-200 dark:border-gray-700 rounded-full"></div>
+                        <div className="absolute inset-0 border-2 border-t-cyan-500 dark:border-t-cyan-400 rounded-full animate-spin"></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                        Processing...
+                      </span>
+                    </div>
+                  )}
 
                   <CardHeader className="relative pb-3 pt-4 px-4">
                     <div className="flex items-start justify-between mb-3">
