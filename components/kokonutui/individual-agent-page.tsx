@@ -1,9 +1,12 @@
 "use client"
 
 import { DialogTrigger } from "@/components/ui/dialog"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useDispatch, useSelector } from "react-redux"
+import { AppDispatch } from "@/store/store"
+import { fetchAgentData, selectContentItems, selectAgentData, selectAgentState, updateAgentStatus } from "@/store/features/agentSlice"
+import type { ContentItem } from "@/store/features/agentSlice"
 import {
   Users,
   Edit,
@@ -54,184 +57,6 @@ import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import React from "react"
 
-// Sample content data
-const contentItems = [
-  {
-    id: "1",
-    platform: "reddit",
-    subreddit: "sysadmin",
-    author: "tech1user",
-    time: "5 mins ago",
-    status: "pending",
-    title: "Looking for MDM solution recommendations for 500+ iOS devices",
-    content:
-      "Our company is looking to implement a new MDM solution for our 500+ iOS devices. Currently using AirWatch but looking for alternatives with better pricing. Any recommendations? We need something that can handle app distribution, security policies, and remote wipe. Budget is a concern, so looking for the best value. Has anyone tried Hexnode or similar solutions for enterprise-scale deployments?",
-    tag: "UEM_Inquiry",
-    relevance: 95,
-    sentiment: "neutral",
-    keywords: ["MDM", "iOS", "AirWatch", "pricing", "enterprise", "Hexnode"],
-    intent: "User is seeking MDM recommendations as an alternative to AirWatch, with pricing as a key factor.",
-    aiResponse:
-      "Hi there! Hexnode MDM would be a great fit for your iOS device management needs. It offers competitive pricing compared to AirWatch, especially for 500+ devices. \n\nHexnode provides all the features you mentioned - app distribution, security policies, and remote wipe - plus a user-friendly interface that makes deployment easier. \n\nMany of our enterprise customers have switched from AirWatch to Hexnode and seen significant cost savings while maintaining robust functionality. I'd be happy to share more specific details about how it scales for larger deployments if you're interested!",
-    aiConfidence: 92,
-    comments: 12,
-    upvotes: 8,
-    url: "https://reddit.com/r/sysadmin/comments/abc123",
-  },
-  {
-    id: "2",
-    platform: "reddit",
-    subreddit: "msp",
-    author: "ITconsultant42",
-    time: "1 hour ago",
-    status: "approved",
-    title: "Hexnode MDM for small business - does it scale well?",
-    content:
-      "Has anyone tried Hexnode MDM? We're considering it for our small business but not sure if it scales well. Currently managing about 50 devices but expecting to grow to 200+ in the next year.",
-    tag: "UEM_Inquiry",
-    relevance: 90,
-    sentiment: "neutral",
-    keywords: ["Hexnode", "MDM", "small business", "scaling"],
-    intent: "User is specifically asking about Hexnode's scalability for growing businesses.",
-    aiResponse:
-      "Yes, Hexnode MDM scales very well from small businesses to enterprises. We have many customers who started with ~50 devices and grew to 200+ without issues. The pricing model is flexible and the admin console is designed to handle growing device counts efficiently. Happy to connect you with a solution specialist if you'd like more specific information for your use case!",
-    aiConfidence: 95,
-    comments: 5,
-    upvotes: 3,
-    url: "https://reddit.com/r/msp/comments/def456",
-  },
-  {
-    id: "3",
-    platform: "reddit",
-    subreddit: "apple",
-    author: "macadmin99",
-    time: "3 hours ago",
-    status: "needs_review",
-    title: "Jamf vs Intune vs Hexnode for Apple device management",
-    content:
-      "I'm comparing MDM solutions and narrowed it down to Jamf, Intune, and Hexnode. Any recommendations? We're primarily an Apple shop with about 300 Macs and 150 iOS devices. Looking for something with good automation capabilities.",
-    tag: "Competitor_Mention",
-    relevance: 88,
-    sentiment: "neutral",
-    keywords: ["MDM", "Jamf", "Intune", "Hexnode", "Apple", "Mac", "iOS", "automation"],
-    intent: "User is comparing multiple MDM solutions including Hexnode and competitors.",
-    aiResponse:
-      "For an Apple-focused environment, all three options can work, but Hexnode offers some distinct advantages. While Jamf is Apple-specific and Intune is part of Microsoft's ecosystem, Hexnode provides excellent Apple device support with a more competitive price point.\n\nHexnode's automation capabilities for Apple devices include zero-touch enrollment, automated policy application, and scheduled actions. Many of our customers with similar device counts appreciate the balance of powerful features and intuitive interface.\n\nThe cross-platform capabilities might also be valuable if you ever add non-Apple devices to your fleet. Happy to elaborate on specific automation workflows if you're interested!",
-    aiConfidence: 85,
-    comments: 24,
-    upvotes: 15,
-    url: "https://reddit.com/r/apple/comments/ghi789",
-  },
-  {
-    id: "4",
-    platform: "reddit",
-    subreddit: "androiddev",
-    author: "devops_engineer",
-    time: "Yesterday",
-    status: "discarded",
-    title: "Frustrated with current MDM solution for Android Enterprise",
-    content:
-      "Frustrated with our current MDM solution. Looking for something with better support and easier deployment for Android Enterprise devices. Any recommendations?",
-    tag: "Negative_Sentiment",
-    relevance: 75,
-    sentiment: "negative",
-    keywords: ["MDM", "Android Enterprise", "support", "deployment"],
-    intent: "User is expressing frustration with current MDM and seeking alternatives for Android.",
-    aiResponse: "",
-    aiConfidence: 0,
-    comments: 8,
-    upvotes: 6,
-    url: "https://reddit.com/r/androiddev/comments/jkl012",
-  },
-  {
-    id: "5",
-    platform: "reddit",
-    subreddit: "sysadmin",
-    author: "enterprise_admin",
-    time: "2 days ago",
-    status: "escalated",
-    title: "Hexnode MDM API integration with ITSM systems",
-    content:
-      "Just deployed Hexnode MDM across our organization. Initial impressions are positive but have some questions about the API integration capabilities. We need to connect it with our ITSM system. Is there documentation or examples available?",
-    tag: "Lead_Identified",
-    relevance: 98,
-    sentiment: "positive",
-    keywords: ["Hexnode", "MDM", "API", "integration", "ITSM"],
-    intent: "Existing customer seeking technical information about API integrations.",
-    aiResponse: "",
-    aiConfidence: 0,
-    comments: 3,
-    upvotes: 10,
-    url: "https://reddit.com/r/sysadmin/comments/mno345",
-  },
-  {
-    id: "6",
-    platform: "reddit",
-    subreddit: "devops",
-    author: "cloud_architect",
-    time: "3 days ago",
-    status: "pending",
-    title: "MDM solutions with good API for automation",
-    content:
-      "Looking for MDM solutions with robust APIs for automation. We need to integrate with our CI/CD pipeline and automate device provisioning. Any recommendations?",
-    tag: "UEM_Inquiry",
-    relevance: 92,
-    sentiment: "neutral",
-    keywords: ["MDM", "API", "automation", "CI/CD", "provisioning"],
-    intent: "User is seeking MDM solutions with strong API capabilities for automation.",
-    aiResponse:
-      "Hexnode MDM would be an excellent choice for your automation needs. Our REST API is comprehensive and well-documented, allowing for seamless integration with CI/CD pipelines.\n\nYou can automate device provisioning, policy application, app distribution, and reporting through our API. Many of our enterprise customers use our API to integrate with their existing tools and automate their workflows.\n\nWe also provide webhooks for event-driven automation, which can trigger actions in your pipeline based on device events. I'd be happy to connect you with our API documentation or a solution specialist if you'd like more details!",
-    aiConfidence: 90,
-    comments: 7,
-    upvotes: 5,
-    url: "https://reddit.com/r/devops/comments/pqr789",
-  },
-  {
-    id: "7",
-    platform: "reddit",
-    subreddit: "cybersecurity",
-    author: "security_analyst",
-    time: "4 days ago",
-    status: "approved",
-    title: "MDM solutions with strong security features",
-    content:
-      "Our organization is looking for an MDM solution with strong security features. We need features like remote wipe, device encryption enforcement, and detailed compliance reporting. Any recommendations?",
-    tag: "UEM_Inquiry",
-    relevance: 94,
-    sentiment: "neutral",
-    keywords: ["MDM", "security", "remote wipe", "encryption", "compliance"],
-    intent: "User is seeking MDM solutions with strong security capabilities.",
-    aiResponse:
-      "Hexnode MDM offers robust security features that would meet your requirements. Our solution includes remote wipe capabilities, encryption enforcement, and comprehensive compliance reporting.\n\nIn addition, Hexnode provides features like geofencing, lost mode, and detailed security policy management. Our compliance dashboard gives you real-time visibility into your device fleet's security posture.\n\nMany organizations in regulated industries trust Hexnode for their security needs. I'd be happy to provide more specific information about how our security features can be tailored to your organization's requirements!",
-    aiConfidence: 93,
-    comments: 15,
-    upvotes: 12,
-    url: "https://reddit.com/r/cybersecurity/comments/stu012",
-  },
-  {
-    id: "8",
-    platform: "reddit",
-    subreddit: "sysadmin",
-    author: "it_manager",
-    time: "5 days ago",
-    status: "needs_review",
-    title: "Hexnode vs MobileIron for enterprise deployment",
-    content:
-      "We're comparing Hexnode and MobileIron for our enterprise deployment. We have about 1000 iOS and Android devices. Anyone have experience with both? Looking for insights on ease of deployment, user experience, and support quality.",
-    tag: "Competitor_Mention",
-    relevance: 96,
-    sentiment: "neutral",
-    keywords: ["Hexnode", "MobileIron", "enterprise", "deployment", "support"],
-    intent: "User is comparing Hexnode with MobileIron for enterprise deployment.",
-    aiResponse:
-      "I've worked with both Hexnode and MobileIron in enterprise environments, and there are some key differences to consider.\n\nFor deployment, Hexnode offers a more streamlined setup process with an intuitive admin console that requires less technical expertise. Many of our customers find they can deploy Hexnode in days rather than weeks.\n\nRegarding user experience, Hexnode's client apps are lightweight and less intrusive, which typically results in better user acceptance. MobileIron's solution can be more resource-intensive on devices.\n\nAs for support, Hexnode is known for responsive customer service with direct access to technical experts rather than tiered support. We offer 24/7 support via multiple channels.\n\nHexnode also typically comes at a more competitive price point while offering comparable or better features for most use cases. Happy to elaborate on any specific aspects you're most concerned about!",
-    aiConfidence: 88,
-    comments: 18,
-    upvotes: 14,
-    url: "https://reddit.com/r/sysadmin/comments/vwx345",
-  },
-]
-
 // Add this utility function to hide scrollbars
 const scrollbarHideClass = "scrollbar-hide"
 
@@ -271,13 +96,16 @@ const performanceData = {
 
 export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   const router = useRouter()
+  const dispatch = useDispatch<AppDispatch>()
+  const contentItems = useSelector(selectContentItems)
+  const agentData = useSelector(selectAgentData)
+  const agentState = useSelector(selectAgentState)
   const [isLoading, setIsLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
-  const [editedName, setEditedName] = useState("Hexnode Reddit Lead Finder")
+  const [editedName, setEditedName] = useState(agentData?.agent_name || "Hexnode Reddit Lead Finder")
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [agentStatus, setAgentStatus] = useState("active")
   const [showDetailPane, setShowDetailPane] = useState(true)
-  const [selectedContentId, setSelectedContentId] = useState("1")
+  const [selectedContentId, setSelectedContentId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all-types")
   const [timeFilter, setTimeFilter] = useState("24h")
@@ -292,6 +120,28 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [recentSearches, setRecentSearches] = useState<string[]>(["MDM solutions", "Hexnode", "competitor mention"])
   const searchInputRef = React.useRef<HTMLInputElement>(null)
+
+  // Update useEffect to handle loading state
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true)
+      try {
+        await dispatch(fetchAgentData(agentId))
+        // Set the first content item as selected if available
+        if (contentItems.length > 0) {
+          setSelectedContentId(contentItems[0].id)
+        }
+        console.log(contentItems)
+        
+      } catch (error) {
+        console.error('Failed to fetch agent data:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [dispatch, agentId])
 
   // Add this function for search suggestions
   const getSearchSuggestions = (query: string) => {
@@ -380,21 +230,27 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
     return () => window.removeEventListener("keypress", handleKeyPress)
   }, [searchQuery, isSearchFocused])
 
+  // Update the agent object to use data from Redux
   const agent = {
     id: agentId,
-    name: editedName,
-    platform: "reddit",
-    status: agentStatus,
+    name: agentData?.agent_name || editedName,
+    platform: agentData?.platform || "reddit",
+    status: agentState,
     lastActive: "5 mins ago",
-    keyMetric: { value: "25", label: "Leads Found Today" },
-    secondaryMetric: { value: "142", label: "Posts Monitored" },
+    keyMetric: { value: contentItems.length.toString(), label: "Posts Found" },
+    secondaryMetric: { value: agentData?.goals?.length?.toString() || "0", label: "Goals" },
     healthScore: 90,
-    weeklyActivity: 120,
-    description: "Identifies potential leads by monitoring relevant subreddits.",
+    weeklyActivity: contentItems.length,
+    description: agentData?.description || "Identifies potential leads by monitoring relevant subreddits.",
   }
 
-  const toggleAgentStatus = () => {
-    setAgentStatus(agentStatus === "active" ? "paused" : "active")
+  const toggleAgentStatus = async () => {
+    try {
+      const newStatus = agentState === 'active' ? 'paused' : 'active'
+      await dispatch(updateAgentStatus({ agentId, status: newStatus }))
+    } catch (error) {
+      console.error('Failed to update agent status:', error)
+    }
   }
 
   const saveAgentName = () => {
@@ -533,11 +389,11 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
               <div className="hidden md:flex items-center gap-3 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Users className="h-3 w-3" />
-                  <span>{agent.keyMetric.value} leads</span>
+                  <span>{agent.keyMetric.value} posts</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <MessageSquare className="h-3 w-3" />
-                  <span>{agent.secondaryMetric.value} posts</span>
+                  <span>{agent.secondaryMetric.value} goals</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <BarChart2 className="h-3 w-3" />
