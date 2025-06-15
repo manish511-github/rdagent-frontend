@@ -164,6 +164,8 @@ type PlatformSettings = {
     relevanceThreshold: number;
     minUpvotes: number;
     monitorComments: boolean;
+    targetAudience?: string;
+    keywords?: string;
   };
   twitter?: {
     keywords: string;
@@ -176,6 +178,7 @@ type PlatformSettings = {
     mode: string;
     reviewPeriod: string;
     action: string;
+    targetAudience?: string;
   };
   instagram?: {
     keywords: string;
@@ -188,6 +191,7 @@ type PlatformSettings = {
     mode: string;
     reviewPeriod: string;
     action: string;
+    targetAudience?: string;
   };
   linkedin?: {
     keywords: string;
@@ -201,6 +205,7 @@ type PlatformSettings = {
     mode: string;
     reviewPeriod: string;
     action: string;
+    targetAudience?: string;
   };
   tiktok?: {
     keywords: string;
@@ -214,6 +219,7 @@ type PlatformSettings = {
     mode: string;
     reviewPeriod: string;
     action: string;
+    targetAudience?: string;
   };
 };
 
@@ -330,6 +336,50 @@ async function createNewAgent(projectId: string, agentData: ApiAgent): Promise<A
   }
 
   return response.json()
+}
+
+// Add API call function
+async function generateAgentProfile(input: {
+  agent_name: string;
+  goals: string[];
+  project_id: string;
+  existing_context?: string;
+}) {
+  const response = await fetch('http://localhost:8000/agents/generate-instruction-personality', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to generate agent profile');
+  }
+  
+  return response.json();
+}
+
+// Add new API call function for expected outcomes
+async function generateExpectedOutcomes(input: {
+  agent_name: string;
+  goals: string[];
+  project_id: string;
+  instructions: string;
+}) {
+  const response = await fetch('http://localhost:8000/agents/generate-expected-outcomes', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to generate expected outcomes');
+  }
+  
+  return response.json();
 }
 
 export default function AgentsPage() {
@@ -530,6 +580,44 @@ export default function AgentsPage() {
       })
     },
   })
+
+  // Add mutation for generating agent profile
+  const generateProfileMutation = useMutation({
+    mutationFn: generateAgentProfile,
+    onSuccess: (data) => {
+      handleInputChange("instructions", data.context);
+      toast({
+        title: "Success",
+        description: "Agent profile generated successfully!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to generate agent profile. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Add mutation for generating expected outcomes
+  const generateOutcomesMutation = useMutation({
+    mutationFn: generateExpectedOutcomes,
+    onSuccess: (data) => {
+      handleInputChange("expectations", data.expected_outcomes);
+      toast({
+        title: "Success",
+        description: "Expected outcomes generated successfully!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to generate expected outcomes. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const [searchQuery, setSearchQuery] = useState("")
   const [filterPlatform, setFilterPlatform] = useState("all")
@@ -1729,9 +1817,36 @@ export default function AgentsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="agent-instructions" className="text-base font-medium">
-                      Instructions & Personality
-                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="agent-instructions" className="text-base font-medium">
+                        Instructions & Personality
+                      </Label>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          if (!projectId) {
+                            toast({
+                              title: "Error",
+                              description: "Project ID is required",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+
+                          generateProfileMutation.mutate({
+                            agent_name: formData.name,
+                            goals: [formData.goal],
+                            project_id: projectId as string,
+                            existing_context: formData.instructions
+                          });
+                        }}
+                        disabled={generateProfileMutation.isPending}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea
                       id="agent-instructions"
                       placeholder="Describe how your agent should behave, what tone to use, and any specific guidelines..."
@@ -1742,9 +1857,45 @@ export default function AgentsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="agent-expectations" className="text-base font-medium">
-                      Expected Outcomes
-                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="agent-expectations" className="text-base font-medium">
+                        Expected Outcomes
+                      </Label>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          if (!projectId) {
+                            toast({
+                              title: "Error",
+                              description: "Project ID is required",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+
+                          if (!formData.name || !formData.goal || !formData.instructions) {
+                            toast({
+                              title: "Missing Information",
+                              description: "Please provide agent name, goal, and instructions before generating expected outcomes.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+
+                          generateOutcomesMutation.mutate({
+                            agent_name: formData.name,
+                            goals: [formData.goal],
+                            project_id: projectId as string,
+                            instructions: formData.instructions
+                          });
+                        }}
+                        disabled={generateOutcomesMutation.isPending}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea
                       id="agent-expectations"
                       placeholder="Describe what you expect the agent to achieve, key metrics to track, and success criteria..."
