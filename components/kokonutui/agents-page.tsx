@@ -39,6 +39,7 @@ import {
   Video,
   Music,
   CheckCircle,
+  LoaderCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -1289,6 +1290,26 @@ export default function AgentsPage() {
     setCurrentStep((prev) => prev - 1)
   }
 
+  const [redditLoading, setRedditLoading] = useState(false);
+  const [redditConnected, setRedditConnected] = useState(false);
+
+  useEffect(() => {
+    function handleRedditAuthMessage(event: MessageEvent) {
+      if (event.data && event.data.type === "REDDIT_AUTH_SUCCESS") {
+        setRedditLoading(false);
+        setRedditConnected(true);
+        toast({
+          title: "Reddit Connected!",
+          description: "Your Reddit account has been connected successfully.",
+          variant: "default",
+        });
+        // Optionally refetch user/agent data here
+      }
+    }
+    window.addEventListener("message", handleRedditAuthMessage);
+    return () => window.removeEventListener("message", handleRedditAuthMessage);
+  }, []);
+
   const handleConnectPlatform = (platform: string) => {
     const accessToken = Cookies.get("access_token");
     if (!accessToken) {
@@ -1300,7 +1321,30 @@ export default function AgentsPage() {
       return;
     }
     if (platform === "reddit") {
-      window.location.href = "http://localhost:8000/auth/reddit";
+      setRedditLoading(true);
+      fetch("http://localhost:8000/auth/reddit/state", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to get Reddit state");
+          return res.json();
+        })
+        .then((data) => {
+          const state = data.state;
+          window.open(`http://localhost:8000/auth/reddit/login?state=${state}`, "_blank");
+        })
+        .catch((err) => {
+          setRedditLoading(false);
+          toast({
+            title: "Reddit Auth Error",
+            description: err.message,
+            variant: "destructive",
+          });
+        });
     } else {
       toast({
         title: "Coming Soon",
@@ -2009,8 +2053,24 @@ export default function AgentsPage() {
                             </div>
                           </div>
                           {formData.platform === "reddit" && (
-                            <Button className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white" onClick={() => handleConnectPlatform(formData.platform)}>
-                              Connect {formData.platform.charAt(0).toUpperCase() + formData.platform.slice(1)}
+                            <Button
+                              className={cn(
+                                "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white",
+                                redditConnected && !redditLoading && "opacity-100 cursor-default"
+                              )}
+                              onClick={() => handleConnectPlatform(formData.platform)}
+                              disabled={redditLoading || redditConnected}
+                              style={redditConnected && !redditLoading ? { pointerEvents: 'none', filter: 'none', opacity: 1 } : {}}
+                            >
+                              {redditLoading ? (
+                                <LoaderCircle className="animate-spin h-5 w-5 mr-2" />
+                              ) : redditConnected ? (
+                                <>
+                                  <span className="mr-2">✅</span>Reddit Connected
+                                </>
+                              ) : (
+                                <>Connect {formData.platform.charAt(0).toUpperCase() + formData.platform.slice(1)}</>
+                              )}
                             </Button>
                           )}
                         </div>
