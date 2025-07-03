@@ -691,7 +691,7 @@ export default function AgentsPage() {
       return
     }
 
-    const newAgent: ApiAgent = {
+    const newAgent: ApiAgent & { reddit_oauth_account_id?: string } = {
       agent_name: formData.name,
       agent_platform: formData.platform,
       agent_status: "active",
@@ -703,10 +703,13 @@ export default function AgentsPage() {
       review_period: formData.reviewPeriod,
       review_minutes: formData.reviewMinutes,
       advanced_settings: formData.advancedSettings,
-      platform_settings: formData.platformSettings
-    }
+      platform_settings: formData.platformSettings,
+      ...(formData.platform === "reddit" && redditOauthAccountId
+        ? { reddit_oauth_account_id: redditOauthAccountId }
+        : {}),
+    };
 
-    createAgentMutation.mutate(newAgent)
+    createAgentMutation.mutate(newAgent);
   }
 
   // Calculate total stats
@@ -1292,18 +1295,21 @@ export default function AgentsPage() {
 
   const [redditLoading, setRedditLoading] = useState(false);
   const [redditConnected, setRedditConnected] = useState(false);
+  const [redditOauthAccountId, setRedditOauthAccountId] = useState<string | null>(null);
 
   useEffect(() => {
     function handleRedditAuthMessage(event: MessageEvent) {
       if (event.data && event.data.type === "REDDIT_AUTH_SUCCESS") {
         setRedditLoading(false);
         setRedditConnected(true);
+        if (event.data.oauth_account_id) {
+          setRedditOauthAccountId(event.data.oauth_account_id);
+        }
         toast({
           title: "Reddit Connected!",
           description: "Your Reddit account has been connected successfully.",
           variant: "default",
         });
-        // Optionally refetch user/agent data here
       }
     }
     window.addEventListener("message", handleRedditAuthMessage);
