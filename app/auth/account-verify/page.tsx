@@ -1,11 +1,13 @@
 "use client"
+export const dynamic = "force-dynamic"
 
+import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoaderCircleIcon, CheckCircle2Icon, AlertCircleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function AccountVerifyPage() {
+function AccountVerifyInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
@@ -68,5 +70,13 @@ export default function AccountVerifyPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AccountVerifyPage() {
+  return (
+    <Suspense fallback={<div className="flex flex-col items-center justify-center min-h-[60vh] px-4"><LoaderCircleIcon className="h-8 w-8 animate-spin text-blue-600" /><span className="text-lg font-medium">Verifying your account...</span></div>}>
+      <AccountVerifyInner />
+    </Suspense>
   );
 } 

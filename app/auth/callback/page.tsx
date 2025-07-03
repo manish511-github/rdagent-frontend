@@ -1,12 +1,14 @@
 "use client"
+export const dynamic = "force-dynamic"
 
+import { Suspense } from "react";
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Cookies from "js-cookie";
 import { useToast } from "@/components/ui/use-toast";
 import { LoaderCircleIcon } from "lucide-react";
 
-export default function AuthCallback() {
+function AuthCallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -42,5 +44,13 @@ export default function AuthCallback() {
       <LoaderCircleIcon className="h-10 w-10 animate-spin text-blue-600" />
       <span>Signing you in...</span>
     </div>
+  );
+}
+
+export default function AuthCallback() {
+  return (
+    <Suspense fallback={<div className="flex flex-col items-center justify-center min-h-screen text-lg font-medium gap-4"><LoaderCircleIcon className="h-10 w-10 animate-spin text-blue-600" /><span>Signing you in...</span></div>}>
+      <AuthCallbackInner />
+    </Suspense>
   );
 } 
