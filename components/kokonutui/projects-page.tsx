@@ -83,6 +83,7 @@ import { AppDispatch, RootState } from '@/store/store';
 import { fetchProjects } from '@/store/slices/projectsSlice';
 import { LucideIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation'
+import { refreshAccessToken } from "@/lib/utils";
 
 interface Project {
   uuid: string;
@@ -776,9 +777,9 @@ export default function ProjectsPage() {
       };
 
       console.log("Creating new project:", projectData);
-      const token = Cookies.get("token");
+      let token = Cookies.get("access_token");
 
-      const response = await fetch('http://localhost:8000/projects', {
+      let response = await fetch('http://localhost:8000/projects', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -786,6 +787,21 @@ export default function ProjectsPage() {
         },
         body: JSON.stringify(projectData),
       });
+
+      // If unauthorized, try to refresh the token and retry once
+      if (response.status === 401) {
+        token = await refreshAccessToken();
+        if (token) {
+          response = await fetch('http://localhost:8000/projects', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(projectData),
+          });
+        }
+      }
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));

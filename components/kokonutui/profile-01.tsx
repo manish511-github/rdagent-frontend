@@ -2,6 +2,9 @@ import type React from "react"
 import { LogOut, MoveUpRight, Settings, CreditCard, HelpCircle, Sparkles } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import Cookies from "js-cookie"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ui/use-toast"
 
 interface MenuItem {
   label: string
@@ -58,6 +61,9 @@ export default function Profile01({
     },
   ]
 
+  const router = useRouter()
+  const { toast } = useToast()
+
   return (
     <div className="w-full max-w-sm mx-auto">
       <div className="relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0A0A0C]">
@@ -106,6 +112,24 @@ export default function Profile01({
               className="w-full flex items-center justify-between p-1.5 
                                 hover:bg-zinc-50 dark:hover:bg-zinc-800/70 
                                 rounded-lg transition-colors duration-200"
+              onClick={async () => {
+                try {
+                  await fetch("http://localhost:8000/auth/logout", {
+                    method: "POST",
+                    credentials: "include",
+                  });
+                } catch (e) {
+                  // Ignore errors, just clear tokens
+                }
+                Cookies.remove("access_token");
+                Cookies.remove("refresh_token");
+                toast({
+                  title: "Logged out",
+                  description: "You have been logged out successfully.",
+                  variant: "default",
+                });
+                router.push("/sign-in");
+              }}
             >
               <div className="flex items-center gap-2">
                 <LogOut className="w-4 h-4" />

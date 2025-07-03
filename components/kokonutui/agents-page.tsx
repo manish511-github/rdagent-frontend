@@ -64,6 +64,7 @@ import Layout from "./layout"
 import { cn } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
 import Cookies from 'js-cookie'
+import { refreshAccessToken } from "@/lib/utils"
 
 // Mock data for agents
 
@@ -264,17 +265,25 @@ function getAuthToken(): string | undefined {
 
 // Add this function to fetch agents
 async function fetchAgents(projectId: string): Promise<Agent[]> {
-  const token = getAuthToken()
-  if (!token) {
-    throw new Error('Authentication required')
-  }
-
-  const response = await fetch(`http://localhost:8000/agents/project/${projectId}`, {
+  let token = Cookies.get("access_token");
+  let response = await fetch(`http://localhost:8000/agents/project/${projectId}`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-  })
+  });
+  // If unauthorized, try to refresh the token and retry once
+  if (response.status === 401) {
+    token = await refreshAccessToken();
+    if (token) {
+      response = await fetch(`http://localhost:8000/agents/project/${projectId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+    }
+  }
   if (!response.ok) {
     if (response.status === 401) {
       throw new Error('Authentication failed')
@@ -1280,6 +1289,27 @@ export default function AgentsPage() {
     setCurrentStep((prev) => prev - 1)
   }
 
+  const handleConnectPlatform = (platform: string) => {
+    const accessToken = Cookies.get("access_token");
+    if (!accessToken) {
+      toast({
+        title: "Authentication Required",
+        description: `Please sign in to connect your ${platform.charAt(0).toUpperCase() + platform.slice(1)} account.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (platform === "reddit") {
+      window.location.href = "http://localhost:8000/auth/reddit";
+    } else {
+      toast({
+        title: "Coming Soon",
+        description: `OAuth for ${platform.charAt(0).toUpperCase() + platform.slice(1)} is not yet implemented.`,
+        variant: "default",
+      });
+    }
+  };
+
   // Update the agents grid to handle loading and error states
   return (
     <Layout>
@@ -1978,9 +2008,11 @@ export default function AgentsPage() {
                               <p className="text-sm text-muted-foreground">Connect your account to post content</p>
                             </div>
                           </div>
-                          <Button className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white">
-                            Connect Account
-                          </Button>
+                          {formData.platform === "reddit" && (
+                            <Button className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white" onClick={() => handleConnectPlatform(formData.platform)}>
+                              Connect {formData.platform.charAt(0).toUpperCase() + formData.platform.slice(1)}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -77,15 +77,13 @@ export default function SignUpForm() {
     setError(""); // Clear previous errors
 
     try {
-      const response = await fetch('http://localhost:8000/auth/register', {
+      const response = await fetch('http://localhost:8000/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // You might need to include an Authorization header here if your API is protected
-          // 'Authorization': `Bearer YOUR_AUTH_TOKEN`,
         },
         body: JSON.stringify({
-          username: formData.fullName, // Mapping fullName to username as per backend schema
+          name: formData.fullName, // Backend expects full_name
           email: formData.email,
           password: formData.password,
         }),
@@ -99,8 +97,8 @@ export default function SignUpForm() {
 
       toast({
         title: "Success!",
-        description: "Your account has been created. Please sign in.",
-        variant: "default", // Or "success" if you have a custom success variant
+        description: "Your account has been created. Please check your email to verify your account before signing in.",
+        variant: "default",
       });
       router.push("/sign-in"); // Redirect to sign-in page
 

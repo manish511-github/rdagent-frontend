@@ -44,6 +44,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import Cookies from 'js-cookie'
+import { refreshAccessToken } from "@/lib/utils"
 
 interface Project {
   uuid: string
@@ -104,14 +105,27 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
   
     const fetchProjectDetails = async () => {
       try {
-        const token = Cookies.get("token")
-        const response = await fetch(`http://localhost:8000/projects/${projectId}`, {
+        let token = Cookies.get("access_token");
+        let response = await fetch(`http://localhost:8000/projects/${projectId}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
-        })
+        });
+
+        // If unauthorized, try to refresh the token and retry once
+        if (response.status === 401) {
+          token = await refreshAccessToken();
+          if (token) {
+            response = await fetch(`http://localhost:8000/projects/${projectId}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+          }
+        }
 
         if (!response.ok) {
+          
           throw new Error('Failed to fetch project details')
         }
 
@@ -204,7 +218,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
 
   const handleSaveChanges = async () => {
     try {
-      const token = Cookies.get("token")
+      const token = Cookies.get("access_token")
       const response = await fetch(`http://localhost:8000/projects/${projectId}`, {
         method: 'PUT',
         headers: {

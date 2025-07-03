@@ -59,13 +59,13 @@ export default function SignInForm() {
     try {
       // Simulate API call to FastAPI backend
       await new Promise((resolve) => setTimeout(resolve, 1500))
-      const response = await fetch("http://localhost:8000/auth/token", {
+      const response = await fetch("http://localhost:8000/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
-          username: email,      
+          username: email,
           password: password,
         }),
       });
@@ -73,13 +73,15 @@ export default function SignInForm() {
       if (!response.ok) throw new Error("Invalid credentials");
       
       const data = await response.json();
-      // localStorage.setItem("token", data.access_token);  // Save token
-      Cookies.set("token", data.access_token, { expires: 7 }); 
+
+      // Save both tokens
+      Cookies.set("access_token", data.access_token, { expires: 1/24 }); // expires in 1 hour
+      Cookies.set("refresh_token", data.refresh_token, { expires: 7 }); // expires in 7 days
 
       toast({
         title: "Success!",
         description: "You have successfully signed in.",
-        variant: "default", // Or "success" if you have a custom success variant
+        variant: "default",
       });
 
       router.push("/projects");
@@ -91,8 +93,8 @@ export default function SignInForm() {
   }
 
   const handleGoogleSignIn = () => {
-    // Implement Google sign-in logic here
-    console.log("Google sign-in clicked")
+    // Redirect to FastAPI Google OAuth endpoint
+    window.location.href = "http://localhost:8000/auth/google";
   }
 
   const goBackToEmail = () => {
