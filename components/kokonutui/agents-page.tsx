@@ -320,32 +320,43 @@ async function updateAgentStatus(projectId: string, agentId: string, status: str
 
 // Add mutation function for creating new agent
 async function createNewAgent(projectId: string, agentData: ApiAgent): Promise<Agent> {
-  const token = getAuthToken()
-  if (!token) {
-    throw new Error('Authentication required')
-  }
-
-  const response = await fetch(`http://localhost:8000/agents`, {
+  let token = Cookies.get("access_token");
+  let response = await fetch(`http://localhost:8000/agents`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(agentData),
-  })
+  });
+
+  // If unauthorized, try to refresh the token and retry once
+  if (response.status === 401) {
+    token = await refreshAccessToken();
+    if (token) {
+      response = await fetch(`http://localhost:8000/agents`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(agentData),
+      });
+    }
+  }
 
   if (!response.ok) {
     if (response.status === 401) {
-      throw new Error('Authentication failed')
+      throw new Error('Authentication failed');
     }
     if (response.status === 404) {
-      throw new Error('Project not found or you don\'t have access to it')
+      throw new Error('Project not found or you don\'t have access to it');
     }
-    const errorData = await response.json()
-    throw new Error(errorData.detail || 'Failed to create agent')
+    const errorData = await response.json();
+    throw new Error(errorData.detail || 'Failed to create agent');
   }
 
-  return response.json()
+  return response.json();
 }
 
 // Add API call function
