@@ -66,6 +66,8 @@ import { cn } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
 import Cookies from 'js-cookie'
 import { refreshAccessToken } from "@/lib/utils"
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store/store";
 
 // Mock data for agents
 
@@ -257,6 +259,7 @@ type ApiAgent = {
   review_minutes: string
   advanced_settings: Record<string, any>
   platform_settings: PlatformSettings
+  agent_keywords?: string[]
 }
 
 // Add this function to get auth token
@@ -321,6 +324,7 @@ async function updateAgentStatus(projectId: string, agentId: string, status: str
 // Add mutation function for creating new agent
 async function createNewAgent(projectId: string, agentData: ApiAgent): Promise<Agent> {
   let token = Cookies.get("access_token");
+  debugger
   let response = await fetch(`http://localhost:8000/agents`, {
     method: 'POST',
     headers: {
@@ -403,14 +407,45 @@ async function generateExpectedOutcomes(input: {
   return response.json();
 }
 
+// Add this type definition
+type Project = {
+  uuid: string;
+  id: string;
+  keywords: string[];
+  title?: string;
+  description?: string;
+  status?: string;
+  progress?: number;
+  dueDate?: string;
+  startDate?: string;
+  lastUpdated?: string;
+  priority?: string;
+  category?: string;
+  budget?: number;
+  budgetSpent?: number;
+  team?: Array<{
+    name: string;
+    avatar: string;
+    initials: string;
+    role: string;
+  }>;
+  tags?: string[];
+  metrics?: {
+    tasks: number;
+    completed: number;
+    comments: number;
+    attachments: number;
+  };
+  health?: string;
+  starred?: boolean;
+  icon?: any;
+};
+
 export default function AgentsPage() {
   const router = useRouter()
   const params = useParams()
   const pathname = usePathname()
   const queryClient = useQueryClient()
-  
-  // Add SSE connection state
-  const [sseConnection, setSseConnection] = useState<EventSource | null>(null)
   
   // Extract project ID from URL with better validation
   const projectId = (() => {
@@ -433,6 +468,18 @@ export default function AgentsPage() {
     return id
   })()
 
+  // Get current project from Redux (after projectId is defined)
+  const project = useSelector((state: RootState) =>
+    state.projects.items.find((p: any) => p.uuid === projectId || p.id === projectId) as Project | undefined
+  );
+
+  // Add missing state for agent keywords
+  const [agentKeywords, setAgentKeywords] = useState<string[]>([]);
+  const [newKeyword, setNewKeyword] = useState<string>("");
+
+  // Add SSE connection state
+  const [sseConnection, setSseConnection] = useState<EventSource | null>(null)
+  
   // Add validation for project ID
   useEffect(() => {
     if (!projectId) {
@@ -702,7 +749,7 @@ export default function AgentsPage() {
       return
     }
 
-    const newAgent: ApiAgent & { reddit_oauth_account_id?: string } = {
+    const newAgent: ApiAgent & { oauth_account_id?: string } = {
       agent_name: formData.name,
       agent_platform: formData.platform,
       agent_status: "active",
@@ -715,8 +762,9 @@ export default function AgentsPage() {
       review_minutes: formData.reviewMinutes,
       advanced_settings: formData.advancedSettings,
       platform_settings: formData.platformSettings,
+      agent_keywords: agentKeywords,
       ...(formData.platform === "reddit" && redditOauthAccountId
-        ? { reddit_oauth_account_id: redditOauthAccountId }
+        ? { oauth_account_id: redditOauthAccountId }
         : {}),
     };
 
@@ -1242,7 +1290,7 @@ export default function AgentsPage() {
     router.push(`/projects/${projectId}/agents/${agentId}`)
   }
 
-  // Reset form data when modal is closed
+  // Reset form data when modal is closed or opened
   useEffect(() => {
     if (!isCreateModalOpen) {
       setFormData({
@@ -1258,8 +1306,16 @@ export default function AgentsPage() {
         platformSettings: {}
       })
       setCurrentStep(1)
+      setAgentKeywords([])
+      setNewKeyword("")
+    } else if (project && Array.isArray(project.keywords)) {
+      setAgentKeywords(project.keywords)
+      setNewKeyword("")
+    } else {
+      setAgentKeywords([])
+      setNewKeyword("")
     }
-  }, [isCreateModalOpen])
+  }, [isCreateModalOpen, project])
 
   // Handle form input changes
   const handleInputChange = (field: string, value: any) => {
@@ -1808,8 +1864,9 @@ export default function AgentsPage() {
               <div className="relative flex justify-between">
                 {[
                   { step: 1, label: "Goal & Details", icon: Target },
-                  { step: 2, label: "Platform", icon: Layers },
-                  { step: 3, label: "Review", icon: CheckCircle },
+                  { step: 2, label: "Agent Keywords", icon: Hash },
+                  { step: 3, label: "Platform", icon: Layers },
+                  { step: 4, label: "Review", icon: CheckCircle },
                 ].map((item) => {
                   const Icon = item.icon
                   return (
@@ -1860,7 +1917,7 @@ export default function AgentsPage() {
                       className="h-11"
                     />
                   </div>
-
+                  {/* Goal Selection UI */}
                   <div className="space-y-3">
                     <Label className="text-base font-medium">Select Your Goal</Label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1998,8 +2055,70 @@ export default function AgentsPage() {
                 </div>
               )}
 
-              {/* Step 2: Platform Selection */}
+              {/* Step 2: Agent Keywords */}
               {currentStep === 2 && (
+                <div className="space-y-6 animate-in fade-in-50 duration-300">
+                  <div className="space-y-2">
+                    <Label className="text-base font-medium">Agent Keywords</Label>
+                    <div className="flex flex-wrap gap-2 mb-2 min-h-[40px] p-2 border rounded-md bg-background/60 dark:bg-card/60">
+                      {agentKeywords.map((kw: string) => (
+                        <Badge
+                          key={kw}
+                          variant="secondary"
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-full"
+                        >
+                          {kw}
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-4 w-4 p-0 ml-1 text-muted-foreground hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive"
+                            onClick={() => setAgentKeywords(agentKeywords.filter((k) => k !== kw))}
+                            tabIndex={-1}
+                          >
+                            <span className="sr-only">Remove</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                          </Button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        value={newKeyword}
+                        onChange={(e) => setNewKeyword(e.target.value)}
+                        placeholder="Add keyword"
+                        className="w-40"
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && newKeyword.trim()) {
+                            e.preventDefault();
+                            if (!agentKeywords.includes(newKeyword.trim())) {
+                              setAgentKeywords([...agentKeywords, newKeyword.trim()]);
+                            }
+                            setNewKeyword("");
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (newKeyword.trim() && !agentKeywords.includes(newKeyword.trim())) {
+                            setAgentKeywords([...agentKeywords, newKeyword.trim()]);
+                          }
+                          setNewKeyword("");
+                        }}
+                        disabled={!newKeyword.trim()}
+                        size="sm"
+                        className="h-11 px-6 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold shadow-md shadow-cyan-500/10 rounded-md transition-all duration-200"
+                      >
+                        Add Keyword
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Platform Selection */}
+              {currentStep === 3 && (
                 <div className="space-y-6 animate-in fade-in-50 duration-300">
                   <div className="space-y-3">
                     <Label className="text-base font-medium">Choose Your Platform</Label>
@@ -2188,8 +2307,8 @@ export default function AgentsPage() {
                 </div>
               )}
 
-              {/* Step 3: Review */}
-              {currentStep === 3 && (
+              {/* Step 4: Review */}
+              {currentStep === 4 && (
                 <div className="space-y-6 animate-in fade-in-50 duration-300">
                   {/* Main Info Card */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2480,7 +2599,7 @@ export default function AgentsPage() {
                 <div />
               )}
 
-              {currentStep < 3 ? (
+              {currentStep < 4 ? (
                 <Button
                   onClick={goToNextStep}
                   className="gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white w-full sm:w-auto"
