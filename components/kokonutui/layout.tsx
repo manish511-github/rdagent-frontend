@@ -7,6 +7,7 @@ import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import Cookies from 'js-cookie'
+import { refreshAccessToken } from "@/lib/utils"
 
 interface LayoutProps {
   children: ReactNode
@@ -38,12 +39,24 @@ export default function Layout({ children }: LayoutProps) {
       }
 
       try {
-        const token = Cookies.get("token")
-        const response = await fetch(`http://localhost:8000/projects/${currentProjectId}`, {
+        let token = Cookies.get("access_token")
+        let response = await fetch(`http://localhost:8000/projects/${currentProjectId}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         })
+
+        // If unauthorized, try to refresh the token and retry once
+        if (response.status === 401) {
+          token = await refreshAccessToken();
+          if (token) {
+            response = await fetch(`http://localhost:8000/projects/${currentProjectId}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            })
+          }
+        }
 
         if (!response.ok) {
           throw new Error('Failed to fetch project details')

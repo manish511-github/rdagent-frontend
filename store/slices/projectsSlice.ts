@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import Cookies from 'js-cookie';
 import { LucideIcon } from 'lucide-react';
+import { refreshAccessToken } from "@/lib/utils";
 
 interface Project {
   uuid: string;
@@ -49,12 +50,25 @@ const initialState: ProjectsState = {
 export const fetchProjects = createAsyncThunk(
   'projects/fetchProjects',
   async () => {
-    const token = Cookies.get('token');
-    const response = await fetch('http://localhost:8000/projects', {
+    let token = Cookies.get('access_token');
+    let response = await fetch('http://localhost:8000/projects', {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
     });
+    debugger
+    
+    // If unauthorized, try to refresh the token and retry once
+    if (response.status === 401) {
+      token = await refreshAccessToken();
+      if (token) {
+        response = await fetch('http://localhost:8000/projects', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+      }
+    }
     
     if (!response.ok) {
       const error = await response.json();

@@ -39,6 +39,7 @@ import {
   Video,
   Music,
   CheckCircle,
+  LoaderCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -64,6 +65,7 @@ import Layout from "./layout"
 import { cn } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
 import Cookies from 'js-cookie'
+import { refreshAccessToken } from "@/lib/utils"
 
 // Mock data for agents
 
@@ -164,6 +166,8 @@ type PlatformSettings = {
     relevanceThreshold: number;
     minUpvotes: number;
     monitorComments: boolean;
+    targetAudience?: string;
+    keywords?: string;
   };
   twitter?: {
     keywords: string;
@@ -176,6 +180,7 @@ type PlatformSettings = {
     mode: string;
     reviewPeriod: string;
     action: string;
+    targetAudience?: string;
   };
   instagram?: {
     keywords: string;
@@ -188,6 +193,7 @@ type PlatformSettings = {
     mode: string;
     reviewPeriod: string;
     action: string;
+    targetAudience?: string;
   };
   linkedin?: {
     keywords: string;
@@ -201,6 +207,7 @@ type PlatformSettings = {
     mode: string;
     reviewPeriod: string;
     action: string;
+    targetAudience?: string;
   };
   tiktok?: {
     keywords: string;
@@ -214,6 +221,7 @@ type PlatformSettings = {
     mode: string;
     reviewPeriod: string;
     action: string;
+    targetAudience?: string;
   };
 };
 
@@ -258,17 +266,25 @@ function getAuthToken(): string | undefined {
 
 // Add this function to fetch agents
 async function fetchAgents(projectId: string): Promise<Agent[]> {
-  const token = getAuthToken()
-  if (!token) {
-    throw new Error('Authentication required')
-  }
-
-  const response = await fetch(`http://localhost:8000/agents/project/${projectId}`, {
+  let token = Cookies.get("access_token");
+  let response = await fetch(`http://localhost:8000/agents/project/${projectId}`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-  })
+  });
+  // If unauthorized, try to refresh the token and retry once
+  if (response.status === 401) {
+    token = await refreshAccessToken();
+    if (token) {
+      response = await fetch(`http://localhost:8000/agents/project/${projectId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+    }
+  }
   if (!response.ok) {
     if (response.status === 401) {
       throw new Error('Authentication failed')
@@ -330,6 +346,50 @@ async function createNewAgent(projectId: string, agentData: ApiAgent): Promise<A
   }
 
   return response.json()
+}
+
+// Add API call function
+async function generateAgentProfile(input: {
+  agent_name: string;
+  goals: string[];
+  project_id: string;
+  existing_context?: string;
+}) {
+  const response = await fetch('http://localhost:8000/agents/generate-instruction-personality', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to generate agent profile');
+  }
+  
+  return response.json();
+}
+
+// Add new API call function for expected outcomes
+async function generateExpectedOutcomes(input: {
+  agent_name: string;
+  goals: string[];
+  project_id: string;
+  instructions: string;
+}) {
+  const response = await fetch('http://localhost:8000/agents/generate-expected-outcomes', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to generate expected outcomes');
+  }
+  
+  return response.json();
 }
 
 export default function AgentsPage() {
@@ -531,6 +591,44 @@ export default function AgentsPage() {
     },
   })
 
+  // Add mutation for generating agent profile
+  const generateProfileMutation = useMutation({
+    mutationFn: generateAgentProfile,
+    onSuccess: (data) => {
+      handleInputChange("instructions", data.context);
+      toast({
+        title: "Success",
+        description: "Agent profile generated successfully!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to generate agent profile. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Add mutation for generating expected outcomes
+  const generateOutcomesMutation = useMutation({
+    mutationFn: generateExpectedOutcomes,
+    onSuccess: (data) => {
+      handleInputChange("expectations", data.expected_outcomes);
+      toast({
+        title: "Success",
+        description: "Expected outcomes generated successfully!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to generate expected outcomes. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const [searchQuery, setSearchQuery] = useState("")
   const [filterPlatform, setFilterPlatform] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
@@ -593,7 +691,7 @@ export default function AgentsPage() {
       return
     }
 
-    const newAgent: ApiAgent = {
+    const newAgent: ApiAgent & { reddit_oauth_account_id?: string } = {
       agent_name: formData.name,
       agent_platform: formData.platform,
       agent_status: "active",
@@ -605,10 +703,13 @@ export default function AgentsPage() {
       review_period: formData.reviewPeriod,
       review_minutes: formData.reviewMinutes,
       advanced_settings: formData.advancedSettings,
-      platform_settings: formData.platformSettings
-    }
+      platform_settings: formData.platformSettings,
+      ...(formData.platform === "reddit" && redditOauthAccountId
+        ? { reddit_oauth_account_id: redditOauthAccountId }
+        : {}),
+    };
 
-    createAgentMutation.mutate(newAgent)
+    createAgentMutation.mutate(newAgent);
   }
 
   // Calculate total stats
@@ -1192,6 +1293,73 @@ export default function AgentsPage() {
     setCurrentStep((prev) => prev - 1)
   }
 
+  const [redditLoading, setRedditLoading] = useState(false);
+  const [redditConnected, setRedditConnected] = useState(false);
+  const [redditOauthAccountId, setRedditOauthAccountId] = useState<string | null>(null);
+
+  useEffect(() => {
+    function handleRedditAuthMessage(event: MessageEvent) {
+      if (event.data && event.data.type === "REDDIT_AUTH_SUCCESS") {
+        setRedditLoading(false);
+        setRedditConnected(true);
+        if (event.data.oauth_account_id) {
+          setRedditOauthAccountId(event.data.oauth_account_id);
+        }
+        toast({
+          title: "Reddit Connected!",
+          description: "Your Reddit account has been connected successfully.",
+          variant: "default",
+        });
+      }
+    }
+    window.addEventListener("message", handleRedditAuthMessage);
+    return () => window.removeEventListener("message", handleRedditAuthMessage);
+  }, []);
+
+  const handleConnectPlatform = (platform: string) => {
+    const accessToken = Cookies.get("access_token");
+    if (!accessToken) {
+      toast({
+        title: "Authentication Required",
+        description: `Please sign in to connect your ${platform.charAt(0).toUpperCase() + platform.slice(1)} account.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (platform === "reddit") {
+      setRedditLoading(true);
+      fetch("http://localhost:8000/auth/reddit/state", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to get Reddit state");
+          return res.json();
+        })
+        .then((data) => {
+          const state = data.state;
+          window.open(`http://localhost:8000/auth/reddit/login?state=${state}`, "_blank");
+        })
+        .catch((err) => {
+          setRedditLoading(false);
+          toast({
+            title: "Reddit Auth Error",
+            description: err.message,
+            variant: "destructive",
+          });
+        });
+    } else {
+      toast({
+        title: "Coming Soon",
+        description: `OAuth for ${platform.charAt(0).toUpperCase() + platform.slice(1)} is not yet implemented.`,
+        variant: "default",
+      });
+    }
+  };
+
   // Update the agents grid to handle loading and error states
   return (
     <Layout>
@@ -1729,9 +1897,36 @@ export default function AgentsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="agent-instructions" className="text-base font-medium">
-                      Instructions & Personality
-                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="agent-instructions" className="text-base font-medium">
+                        Instructions & Personality
+                      </Label>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          if (!projectId) {
+                            toast({
+                              title: "Error",
+                              description: "Project ID is required",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+
+                          generateProfileMutation.mutate({
+                            agent_name: formData.name,
+                            goals: [formData.goal],
+                            project_id: projectId as string,
+                            existing_context: formData.instructions
+                          });
+                        }}
+                        disabled={generateProfileMutation.isPending}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea
                       id="agent-instructions"
                       placeholder="Describe how your agent should behave, what tone to use, and any specific guidelines..."
@@ -1742,9 +1937,45 @@ export default function AgentsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="agent-expectations" className="text-base font-medium">
-                      Expected Outcomes
-                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="agent-expectations" className="text-base font-medium">
+                        Expected Outcomes
+                      </Label>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          if (!projectId) {
+                            toast({
+                              title: "Error",
+                              description: "Project ID is required",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+
+                          if (!formData.name || !formData.goal || !formData.instructions) {
+                            toast({
+                              title: "Missing Information",
+                              description: "Please provide agent name, goal, and instructions before generating expected outcomes.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+
+                          generateOutcomesMutation.mutate({
+                            agent_name: formData.name,
+                            goals: [formData.goal],
+                            project_id: projectId as string,
+                            instructions: formData.instructions
+                          });
+                        }}
+                        disabled={generateOutcomesMutation.isPending}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea
                       id="agent-expectations"
                       placeholder="Describe what you expect the agent to achieve, key metrics to track, and success criteria..."
@@ -1827,9 +2058,27 @@ export default function AgentsPage() {
                               <p className="text-sm text-muted-foreground">Connect your account to post content</p>
                             </div>
                           </div>
-                          <Button className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white">
-                            Connect Account
-                          </Button>
+                          {formData.platform === "reddit" && (
+                            <Button
+                              className={cn(
+                                "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white",
+                                redditConnected && !redditLoading && "opacity-100 cursor-default"
+                              )}
+                              onClick={() => handleConnectPlatform(formData.platform)}
+                              disabled={redditLoading || redditConnected}
+                              style={redditConnected && !redditLoading ? { pointerEvents: 'none', filter: 'none', opacity: 1 } : {}}
+                            >
+                              {redditLoading ? (
+                                <LoaderCircle className="animate-spin h-5 w-5 mr-2" />
+                              ) : redditConnected ? (
+                                <>
+                                  <span className="mr-2">✅</span>Reddit Connected
+                                </>
+                              ) : (
+                                <>Connect {formData.platform.charAt(0).toUpperCase() + formData.platform.slice(1)}</>
+                              )}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

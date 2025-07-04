@@ -5,8 +5,16 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useDispatch, useSelector } from "react-redux"
 import { AppDispatch } from "@/store/store"
-import { fetchAgentData, selectContentItems, selectAgentData, selectAgentState, updateAgentStatus } from "@/store/features/agentSlice"
-import type { ContentItem } from "@/store/features/agentSlice"
+import { 
+  fetchAgentData, 
+  selectDisplayPosts,
+  selectAgentData, 
+  selectAgentState, 
+  selectAgentType,
+  updateAgentStatus,
+  type DisplayPost,
+  type PostStatus
+} from "@/store/features/agentSlice"
 import {
   Users,
   Edit,
@@ -56,6 +64,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import React from "react"
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import type { Components } from 'react-markdown';
 
 // Add this utility function to hide scrollbars
 const scrollbarHideClass = "scrollbar-hide"
@@ -94,10 +105,54 @@ const performanceData = {
   },
 }
 
+// Update the status badge rendering
+const getStatusBadgeClass = (status: PostStatus) => {
+  switch (status) {
+    case 'pending':
+      return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+    case 'approved':
+      return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+    case 'needs_review':
+      return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+    case 'discarded':
+      return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
+    case 'escalated':
+      return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+    case 'processed':
+      return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+    case 'failed':
+      return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+    default:
+      return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
+  }
+}
+
+const getStatusLabel = (status: PostStatus) => {
+  switch (status) {
+    case 'pending':
+      return "Pending Review"
+    case 'approved':
+      return "Approved"
+    case 'needs_review':
+      return "Needs Review"
+    case 'discarded':
+      return "Discarded"
+    case 'escalated':
+      return "Escalated to Sales"
+    case 'processed':
+      return "Processed"
+    case 'failed':
+      return "Failed"
+    default:
+      return "Unknown"
+  }
+}
+
 export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   const router = useRouter()
   const dispatch = useDispatch<AppDispatch>()
-  const contentItems = useSelector(selectContentItems)
+  const displayPosts = useSelector(selectDisplayPosts)
+  const agentType = useSelector(selectAgentType)
   const agentData = useSelector(selectAgentData)
   const agentState = useSelector(selectAgentState)
   const [isLoading, setIsLoading] = useState(false)
@@ -120,19 +175,17 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [recentSearches, setRecentSearches] = useState<string[]>(["MDM solutions", "Hexnode", "competitor mention"])
   const searchInputRef = React.useRef<HTMLInputElement>(null)
+  const [hasInitialData, setHasInitialData] = useState(false)
 
-  // Update useEffect to handle loading state
+  // Update useEffect to handle loading state and prevent repeated calls
   useEffect(() => {
     const fetchData = async () => {
+      if (hasInitialData) return // Don't fetch if we already have data
+      
       setIsLoading(true)
       try {
         await dispatch(fetchAgentData(agentId))
-        // Set the first content item as selected if available
-        if (contentItems.length > 0) {
-          setSelectedContentId(contentItems[0].id)
-        }
-        console.log(contentItems)
-        
+        setHasInitialData(true)
       } catch (error) {
         console.error('Failed to fetch agent data:', error)
       } finally {
@@ -141,14 +194,21 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
     }
 
     fetchData()
-  }, [dispatch, agentId])
+  }, [dispatch, agentId, hasInitialData]) // Add hasInitialData to dependencies
+
+  // Add a separate useEffect to handle selectedContentId updates
+  useEffect(() => {
+    if (displayPosts.length > 0 && !selectedContentId) {
+      setSelectedContentId(displayPosts[0].id)
+    }
+  }, [displayPosts, selectedContentId])
 
   // Add this function for search suggestions
   const getSearchSuggestions = (query: string) => {
     const suggestions = []
 
     // Author suggestions
-    const authors = [...new Set(contentItems.map((item) => item.author))]
+    const authors = [...new Set(displayPosts.map((item) => item.author))]
     const matchingAuthors = authors.filter((author) => author.toLowerCase().includes(query.toLowerCase())).slice(0, 2)
 
     matchingAuthors.forEach((author) => {
@@ -156,12 +216,12 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
         type: "author",
         label: `Author: ${author}`,
         query: `author:${author}`,
-        count: contentItems.filter((item) => item.author === author).length,
+        count: displayPosts.filter((item) => item.author === author).length,
       })
     })
 
     // Keyword suggestions
-    const allKeywords = contentItems.flatMap((item) => item.keywords)
+    const allKeywords = displayPosts.flatMap((item) => item.keywords)
     const uniqueKeywords = [...new Set(allKeywords)]
     const matchingKeywords = uniqueKeywords
       .filter((keyword) => keyword.toLowerCase().includes(query.toLowerCase()))
@@ -172,7 +232,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
         type: "keyword",
         label: keyword,
         query: keyword,
-        count: contentItems.filter((item) => item.keywords.includes(keyword)).length,
+        count: displayPosts.filter((item) => item.keywords.includes(keyword)).length,
       })
     })
 
@@ -182,7 +242,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
         type: "status",
         label: "Status: Pending",
         query: "status:pending",
-        count: contentItems.filter((item) => item.status === "pending").length,
+        count: displayPosts.filter((item) => item.status === "pending").length,
       })
     }
 
@@ -234,13 +294,13 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   const agent = {
     id: agentId,
     name: agentData?.agent_name || editedName,
-    platform: agentData?.platform || "reddit",
+    platform: agentType,
     status: agentState,
     lastActive: "5 mins ago",
-    keyMetric: { value: contentItems.length.toString(), label: "Posts Found" },
+    keyMetric: { value: displayPosts.length.toString(), label: "Posts Found" },
     secondaryMetric: { value: agentData?.goals?.length?.toString() || "0", label: "Goals" },
     healthScore: 90,
-    weeklyActivity: contentItems.length,
+    weeklyActivity: displayPosts.length,
     description: agentData?.description || "Identifies potential leads by monitoring relevant subreddits.",
   }
 
@@ -283,7 +343,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   }
 
   // Update the filteredContent function to handle advanced search queries
-  const filteredContent = contentItems.filter((item) => {
+  const filteredContent = displayPosts.filter((item) => {
     // Apply status filter
     if (statusFilter !== "all" && item.status !== statusFilter) return false
 
@@ -324,7 +384,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
     return true
   })
 
-  const selectedContent = contentItems.find((item) => item.id === selectedContentId) || contentItems[0]
+  const selectedContent = filteredContent.find((item) => item.id === selectedContentId) || filteredContent[0]
 
   if (isLoading) {
     return (
@@ -956,31 +1016,16 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
                             <div className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 p-0.5 rounded-full">
                               <div className="h-4 w-4 flex items-center justify-center font-bold text-xs">R</div>
                             </div>
-                            <span className="text-xs font-medium">r/{item.subreddit}</span>
+                            {item.platform === 'reddit' && (
+                              <span className="text-xs font-medium">r/{item.subreddit || item.tag}</span>
+                            )}
                             <div
                               className={cn(
                                 "ml-auto px-1.5 py-0.5 rounded-full text-xs",
-                                item.status === "pending" &&
-                                  "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-                                item.status === "approved" &&
-                                  "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-                                item.status === "needs_review" &&
-                                  "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-                                item.status === "discarded" &&
-                                  "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
-                                item.status === "escalated" &&
-                                  "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+                                getStatusBadgeClass(item.status)
                               )}
                             >
-                              {item.status === "pending"
-                                ? "Pending"
-                                : item.status === "approved"
-                                  ? "Approved"
-                                  : item.status === "needs_review"
-                                    ? "Review"
-                                    : item.status === "discarded"
-                                      ? "Discarded"
-                                      : "Escalated"}
+                              {getStatusLabel(item.status)}
                             </div>
                           </div>
 
@@ -1041,27 +1086,10 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
                                   variant="outline"
                                   className={cn(
                                     "text-xs px-1.5 py-0",
-                                    selectedContent.status === "pending" &&
-                                      "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50",
-                                    selectedContent.status === "approved" &&
-                                      "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50",
-                                    selectedContent.status === "needs_review" &&
-                                      "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50",
-                                    selectedContent.status === "discarded" &&
-                                      "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800/50",
-                                    selectedContent.status === "escalated" &&
-                                      "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800/50",
+                                    getStatusBadgeClass(selectedContent.status)
                                   )}
                                 >
-                                  {selectedContent.status === "pending"
-                                    ? "Pending Review"
-                                    : selectedContent.status === "approved"
-                                      ? "Approved"
-                                      : selectedContent.status === "needs_review"
-                                        ? "Needs Review"
-                                        : selectedContent.status === "discarded"
-                                          ? "Discarded"
-                                          : "Escalated to Sales"}
+                                  {getStatusLabel(selectedContent.status)}
                                 </Badge>
                                 <Badge
                                   variant="outline"
@@ -1079,7 +1107,9 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
                               <div className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 p-0.5 rounded-full">
                                 <div className="h-3.5 w-3.5 flex items-center justify-center font-bold text-xs">R</div>
                               </div>
-                              <span className="font-medium">r/{selectedContent.subreddit}</span>
+                              {selectedContent.platform === 'reddit' && (
+                                <span className="font-medium">r/{selectedContent.subreddit || selectedContent.tag}</span>
+                              )}
                               <Button
                                 variant="link"
                                 size="sm"
@@ -1100,29 +1130,70 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
                           <div className="p-3 space-y-4">
                             {/* Original Content */}
                             <div>
-                              <h4 className="text-sm font-medium mb-1.5 flex items-center">
-                                <MessageSquare className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                                Original Content
-                              </h4>
+                              <h4 className="text-sm font-medium mb-1.5">Original Content</h4>
                               <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium text-sm">u/{selectedContent.author}</span>
-                                    <span className="text-xs text-muted-foreground">{selectedContent.time}</span>
+                                <div className="flex items-center gap-2 mb-3">
+                                  <span className="font-semibold text-base">u/{selectedContent.author}</span>
+                                  <span className="text-sm text-muted-foreground">{selectedContent.time}</span>
                                   </div>
-                                  <div className="flex items-center gap-3">
-                                    <div className="flex items-center gap-1 text-xs">
-                                      <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
-                                      <span>{selectedContent.comments}</span>
+                                <h3 className="text-lg font-semibold mb-3">{selectedContent.title}</h3>
+                                <div className="prose dark:prose-invert max-w-none">
+                                  <ReactMarkdown 
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                      p: ({node, ...props}: any) => <p className="text-sm leading-relaxed mb-4" {...props} />,
+                                      h1: ({node, ...props}: any) => <h1 className="text-2xl font-bold mb-4" {...props} />,
+                                      h2: ({node, ...props}: any) => <h2 className="text-xl font-bold mb-3" {...props} />,
+                                      h3: ({node, ...props}: any) => <h3 className="text-lg font-bold mb-2" {...props} />,
+                                      ul: ({node, ...props}: any) => <ul className="list-disc pl-5 mb-4 space-y-1" {...props} />,
+                                      ol: ({node, ...props}: any) => <ol className="list-decimal pl-5 mb-4 space-y-1" {...props} />,
+                                      li: ({node, ...props}: any) => <li className="text-sm" {...props} />,
+                                      code: ({node, ...props}: any) => <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-sm font-mono" {...props} />,
+                                      pre: ({node, ...props}: any) => <pre className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg mb-4 overflow-x-auto" {...props} />,
+                                      blockquote: ({node, ...props}: any) => <blockquote className="border-l-4 border-gray-600 pl-4 italic my-4" {...props} />,
+                                      a: ({node, ...props}: any) => {
+                                        // Check if the link is an image URL
+                                        const href = props.href || '';
+                                        if (href.match(/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i)) {
+                                          return (
+                                            <img 
+                                              src={href}
+                                              alt={props.children?.[0] || 'Image'}
+                                              className="max-w-full h-auto rounded-lg my-4"
+                                              loading="lazy"
+                                            />
+                                          );
+                                        }
+                                        // Regular link
+                                        return (
+                                          <a 
+                                            {...props} 
+                                            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200 underline" 
+                                          />
+                                        );
+                                      },
+                                      img: ({node, ...props}: any) => {
+                                        const [isLoading, setIsLoading] = React.useState(true);
+                                        const [hasError, setHasError] = React.useState(false);
+
+                                        return (
+                                          <img 
+                                            {...props} 
+                                            className={`max-w-full h-auto rounded-lg my-4 transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+                                            loading="lazy"
+                                            onLoad={() => setIsLoading(false)}
+                                            onError={() => {
+                                              setIsLoading(false);
+                                              setHasError(true);
+                                            }}
+                                          />
+                                        );
+                                      }
+                                    } as Components}
+                                  >
+                                    {selectedContent.content}
+                                  </ReactMarkdown>
                                     </div>
-                                    <div className="flex items-center gap-1 text-xs">
-                                      <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" />
-                                      <span>{selectedContent.upvotes}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <h3 className="text-sm font-medium mb-2">{selectedContent.title}</h3>
-                                <p className="text-sm whitespace-pre-line">{selectedContent.content}</p>
                               </div>
                             </div>
 
@@ -1251,7 +1322,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
                                   <AlertCircle className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                                   No Response Draft
                                 </h4>
-                                <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 text-center">
+                                <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
                                   <p className="text-sm text-muted-foreground mb-3">
                                     No response has been drafted for this content yet.
                                   </p>
@@ -1346,12 +1417,68 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
                       <div>
                         <h4 className="text-sm font-medium mb-1.5">Original Content</h4>
                         <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-medium text-sm">u/{selectedContent.author}</span>
-                            <span className="text-xs text-muted-foreground">{selectedContent.time}</span>
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="font-semibold text-base">u/{selectedContent.author}</span>
+                            <span className="text-sm text-muted-foreground">{selectedContent.time}</span>
                           </div>
-                          <h3 className="text-sm font-medium mb-2">{selectedContent.title}</h3>
-                          <p className="text-sm whitespace-pre-line">{selectedContent.content}</p>
+                          <h3 className="text-lg font-semibold mb-3">{selectedContent.title}</h3>
+                          <div className="prose dark:prose-invert max-w-none">
+                            <ReactMarkdown 
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                p: ({node, ...props}: any) => <p className="text-sm leading-relaxed mb-4" {...props} />,
+                                h1: ({node, ...props}: any) => <h1 className="text-2xl font-bold mb-4" {...props} />,
+                                h2: ({node, ...props}: any) => <h2 className="text-xl font-bold mb-3" {...props} />,
+                                h3: ({node, ...props}: any) => <h3 className="text-lg font-bold mb-2" {...props} />,
+                                ul: ({node, ...props}: any) => <ul className="list-disc pl-5 mb-4 space-y-1" {...props} />,
+                                ol: ({node, ...props}: any) => <ol className="list-decimal pl-5 mb-4 space-y-1" {...props} />,
+                                li: ({node, ...props}: any) => <li className="text-sm" {...props} />,
+                                code: ({node, ...props}: any) => <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-sm font-mono" {...props} />,
+                                pre: ({node, ...props}: any) => <pre className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg mb-4 overflow-x-auto" {...props} />,
+                                blockquote: ({node, ...props}: any) => <blockquote className="border-l-4 border-gray-600 pl-4 italic my-4" {...props} />,
+                                a: ({node, ...props}: any) => {
+                                  // Check if the link is an image URL
+                                  const href = props.href || '';
+                                  if (href.match(/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i)) {
+                                    return (
+                                      <img 
+                                        src={href}
+                                        alt={props.children?.[0] || 'Image'}
+                                        className="max-w-full h-auto rounded-lg my-4"
+                                        loading="lazy"
+                                      />
+                                    );
+                                  }
+                                  // Regular link
+                                  return (
+                                    <a 
+                                      {...props} 
+                                      className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200 underline" 
+                                    />
+                                  );
+                                },
+                                img: ({node, ...props}: any) => {
+                                  const [isLoading, setIsLoading] = React.useState(true);
+                                  const [hasError, setHasError] = React.useState(false);
+
+                                  return (
+                                    <img 
+                                      {...props} 
+                                      className={`max-w-full h-auto rounded-lg my-4 transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+                                      loading="lazy"
+                                      onLoad={() => setIsLoading(false)}
+                                      onError={() => {
+                                        setIsLoading(false);
+                                        setHasError(true);
+                                      }}
+                                    />
+                                  );
+                                }
+                              } as Components}
+                            >
+                              {selectedContent.content}
+                            </ReactMarkdown>
+                          </div>
                         </div>
                       </div>
 
