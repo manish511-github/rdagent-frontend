@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { useRouter, useParams, usePathname } from "next/navigation"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
@@ -170,6 +168,9 @@ type PlatformSettings = {
     monitorComments: boolean;
     targetAudience?: string;
     keywords?: string;
+    schedule?: {
+      type: string;
+    };
   };
   twitter?: {
     keywords: string;
@@ -260,6 +261,9 @@ type ApiAgent = {
   advanced_settings: Record<string, any>
   platform_settings: PlatformSettings
   agent_keywords?: string[]
+  schedule?: {
+    schedule_type: string;
+  }
 }
 
 // Add this function to get auth token
@@ -476,6 +480,9 @@ export default function AgentsPage() {
   // Add missing state for agent keywords
   const [agentKeywords, setAgentKeywords] = useState<string[]>([]);
   const [newKeyword, setNewKeyword] = useState<string>("");
+
+  // Add missing state for schedule type in Agent Settings step
+  const [scheduleType, setScheduleType] = useState<string>("daily");
 
   // Add SSE connection state
   const [sseConnection, setSseConnection] = useState<EventSource | null>(null)
@@ -749,6 +756,23 @@ export default function AgentsPage() {
       return
     }
 
+    // Prepare platform_settings as before, but do not add schedule inside reddit
+    let platform_settings = { ...formData.platformSettings };
+    if (formData.platform === "reddit") {
+      const redditSettings: Partial<PlatformSettings['reddit']> = platform_settings.reddit || {};
+      platform_settings = {
+        ...platform_settings,
+        reddit: {
+          subreddit: redditSettings.subreddit || "",
+          timeRange: redditSettings.timeRange || "",
+          relevanceThreshold: redditSettings.relevanceThreshold ?? 0,
+          minUpvotes: redditSettings.minUpvotes ?? 0,
+          monitorComments: redditSettings.monitorComments ?? false,
+          targetAudience: redditSettings.targetAudience,
+          keywords: redditSettings.keywords,
+        },
+      };
+    }
     const newAgent: ApiAgent & { oauth_account_id?: string } = {
       agent_name: formData.name,
       agent_platform: formData.platform,
@@ -761,8 +785,9 @@ export default function AgentsPage() {
       review_period: formData.reviewPeriod,
       review_minutes: formData.reviewMinutes,
       advanced_settings: formData.advancedSettings,
-      platform_settings: formData.platformSettings,
+      platform_settings,
       agent_keywords: agentKeywords,
+      schedule: { schedule_type: scheduleType },
       ...(formData.platform === "reddit" && redditOauthAccountId
         ? { oauth_account_id: redditOauthAccountId }
         : {}),
@@ -1864,7 +1889,7 @@ export default function AgentsPage() {
               <div className="relative flex justify-between">
                 {[
                   { step: 1, label: "Goal & Details", icon: Target },
-                  { step: 2, label: "Agent Keywords", icon: Hash },
+                  { step: 2, label: "Agent Settings", icon: Hash },
                   { step: 3, label: "Platform", icon: Layers },
                   { step: 4, label: "Review", icon: CheckCircle },
                 ].map((item) => {
@@ -2055,7 +2080,7 @@ export default function AgentsPage() {
                 </div>
               )}
 
-              {/* Step 2: Agent Keywords */}
+              {/* Step 2: Agent Settings */}
               {currentStep === 2 && (
                 <div className="space-y-6 animate-in fade-in-50 duration-300">
                   <div className="space-y-2">
@@ -2112,6 +2137,28 @@ export default function AgentsPage() {
                       >
                         Add Keyword
                       </Button>
+                    </div>
+                  </div>
+                  {/* Schedule Section */}
+                  <div className="space-y-2 mt-6">
+                    <Label className="text-base font-medium">Schedule</Label>
+                    <div className="flex flex-col md:flex-row gap-4 items-center">
+                      <div className="w-full md:w-60">
+                        <Label htmlFor="schedule-type" className="text-sm font-medium">Type</Label>
+                        <Select
+                          value={scheduleType}
+                          onValueChange={setScheduleType}
+                        >
+                          <SelectTrigger id="schedule-type" className="w-full h-11 mt-1">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
                 </div>
