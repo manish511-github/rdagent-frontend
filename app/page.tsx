@@ -9,14 +9,15 @@ import Pricing from "@/components/marketing/pricing"
 import Faq from "@/components/marketing/faq"
 import Cta from "@/components/marketing/cta"
 import Footer from "@/components/marketing/footer"
+import HeroSection from "@/components/hero-section"
 
 export default function Home() {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark">
       <div className="min-h-screen bg-background">
-        <Navbar />
         <main>
-          <Hero />
+        <HeroSection />
+
           <TrustedBy />
           <Features />
           <HowItWorks />
