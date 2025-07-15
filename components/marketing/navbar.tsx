@@ -52,150 +52,148 @@ export default function Navbar() {
             : "bg-background border-b border-transparent"
         }`}
       >
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            {/* Logo */}
-            <div className="flex-shrink-0">
-              <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="28"
-                  height="28"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-7 w-7"
-                >
-                  <path d="M12 2L2 7l10 5 10-5-10-5Z" />
-                  <path d="M2 17l10 5 10-5" />
-                  <path d="M2 12l10 5 10-5" />
-                </svg>
-                <span className="text-lg sm:text-xl font-semibold tracking-tight">MarketingAI</span>
+        <div className="container mx-auto flex h-16 items-center justify-between">
+          {/* Logo */}
+          <div className="flex-shrink-0">
+            <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-7 w-7"
+              >
+                <path d="M12 2L2 7l10 5 10-5-10-5Z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+              </svg>
+              <span className="text-lg sm:text-xl font-semibold tracking-tight">MarketingAI</span>
+            </Link>
+          </div>
+
+          {/* Desktop Navigation - Centered */}
+          <nav className="hidden lg:flex items-center justify-center">
+            <div className="flex items-center gap-1 xl:gap-2">
+              <Link
+                href="#features"
+                className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
+              >
+                Features
+                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-foreground scale-x-0 transition-transform duration-300 group-hover:scale-x-100"></span>
               </Link>
-            </div>
+              <Link
+                href="#how-it-works"
+                className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
+              >
+                How It Works
+                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-foreground scale-x-0 transition-transform duration-300 group-hover:scale-x-100"></span>
+              </Link>
 
-            {/* Desktop Navigation - Centered */}
-            <nav className="hidden lg:flex items-center justify-center flex-1 px-8">
-              <div className="flex items-center gap-1 xl:gap-2">
-                <Link
-                  href="#features"
-                  className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
+              {/* Resources Dropdown */}
+              <div className="relative">
+                <button
+                  onMouseEnter={() => setIsResourcesOpen(true)}
+                  onMouseLeave={() => setIsResourcesOpen(false)}
+                  className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
                 >
-                  Features
-                  <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-foreground scale-x-0 transition-transform duration-300 group-hover:scale-x-100"></span>
-                </Link>
-                <Link
-                  href="#how-it-works"
-                  className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
+                  Resources
+                  <ChevronDown className="h-4 w-4 transition-transform duration-200 group-hover:rotate-180" />
+                </button>
+
+                <div
+                  onMouseEnter={() => setIsResourcesOpen(true)}
+                  onMouseLeave={() => setIsResourcesOpen(false)}
+                  className={`absolute top-full left-1/2 -translate-x-1/2 mt-1 w-56 rounded-lg shadow-lg bg-background border border-border overflow-hidden transition-all duration-200 origin-top ${
+                    isResourcesOpen ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none"
+                  }`}
                 >
-                  How It Works
-                  <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-foreground scale-x-0 transition-transform duration-300 group-hover:scale-x-100"></span>
-                </Link>
-
-                {/* Resources Dropdown */}
-                <div className="relative">
-                  <button
-                    onMouseEnter={() => setIsResourcesOpen(true)}
-                    onMouseLeave={() => setIsResourcesOpen(false)}
-                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
-                  >
-                    Resources
-                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-hover:rotate-180" />
-                  </button>
-
-                  <div
-                    onMouseEnter={() => setIsResourcesOpen(true)}
-                    onMouseLeave={() => setIsResourcesOpen(false)}
-                    className={`absolute top-full left-1/2 -translate-x-1/2 mt-1 w-56 rounded-lg shadow-lg bg-background border border-border overflow-hidden transition-all duration-200 origin-top ${
-                      isResourcesOpen ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none"
-                    }`}
-                  >
-                    <div className="py-2">
-                      <Link
-                        href="#"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                      >
-                        <Layers className="h-4 w-4 text-muted-foreground" />
-                        <span>Documentation</span>
-                      </Link>
-                      <Link
-                        href="#"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                      >
-                        <BarChart2 className="h-4 w-4 text-muted-foreground" />
-                        <span>Case Studies</span>
-                      </Link>
-                      <Link
-                        href="#"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                      >
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span>Community</span>
-                      </Link>
-                      <Link
-                        href="#"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                      >
-                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                        <span>Blog</span>
-                      </Link>
-                    </div>
+                  <div className="py-2">
+                    <Link
+                      href="#"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                    >
+                      <Layers className="h-4 w-4 text-muted-foreground" />
+                      <span>Documentation</span>
+                    </Link>
+                    <Link
+                      href="#"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                    >
+                      <BarChart2 className="h-4 w-4 text-muted-foreground" />
+                      <span>Case Studies</span>
+                    </Link>
+                    <Link
+                      href="#"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                    >
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span>Community</span>
+                    </Link>
+                    <Link
+                      href="#"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                    >
+                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                      <span>Blog</span>
+                    </Link>
                   </div>
                 </div>
-
-                <Link
-                  href="#testimonials"
-                  className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
-                >
-                  Testimonials
-                  <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-foreground scale-x-0 transition-transform duration-300 group-hover:scale-x-100"></span>
-                </Link>
-                <Link
-                  href="#pricing"
-                  className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
-                >
-                  Pricing
-                  <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-foreground scale-x-0 transition-transform duration-300 group-hover:scale-x-100"></span>
-                </Link>
-              </div>
-            </nav>
-
-            {/* Right side actions */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              <button className="hidden md:flex items-center justify-center rounded-full w-9 h-9 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                <Search className="h-4 w-4" />
-                <span className="sr-only">Search</span>
-              </button>
-
-              <ThemeToggle />
-
-              <div className="hidden md:flex items-center gap-3">
-                <Link
-                  href="/sign-in"
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Sign in
-                </Link>
-                <Button
-                  size="sm"
-                  className="bg-black hover:bg-gray-800 text-white dark:bg-white dark:hover:bg-gray-200 dark:text-black font-medium"
-                >
-                  Get Started
-                </Button>
               </div>
 
-              {/* Mobile menu button */}
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="lg:hidden flex items-center justify-center rounded-full w-10 h-10 hover:bg-muted transition-colors"
-                aria-label="Toggle menu"
+              <Link
+                href="#testimonials"
+                className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
               >
-                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
+                Testimonials
+                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-foreground scale-x-0 transition-transform duration-300 group-hover:scale-x-100"></span>
+              </Link>
+              <Link
+                href="#pricing"
+                className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
+              >
+                Pricing
+                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-foreground scale-x-0 transition-transform duration-300 group-hover:scale-x-100"></span>
+              </Link>
             </div>
+          </nav>
+
+          {/* Right side actions */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button className="hidden md:flex items-center justify-center rounded-full w-9 h-9 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+              <Search className="h-4 w-4" />
+              <span className="sr-only">Search</span>
+            </button>
+
+            <ThemeToggle />
+
+            <div className="hidden md:flex items-center gap-3">
+              <Link
+                href="/sign-in"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Sign in
+              </Link>
+              <Button
+                size="sm"
+                className="bg-black hover:bg-gray-800 text-white dark:bg-white dark:hover:bg-gray-200 dark:text-black font-medium"
+              >
+                Get Started
+              </Button>
+            </div>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="lg:hidden flex items-center justify-center rounded-full w-10 h-10 hover:bg-muted transition-colors"
+              aria-label="Toggle menu"
+            >
+              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
       </header>

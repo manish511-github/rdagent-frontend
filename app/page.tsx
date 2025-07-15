@@ -1,32 +1,31 @@
-import { ThemeProvider } from "@/components/theme-provider"
-import Navbar from "@/components/marketing/navbar"
-import Hero from "@/components/marketing/hero"
-import TrustedBy from "@/components/marketing/trusted-by"
-import Features from "@/components/marketing/features"
-import HowItWorks from "@/components/marketing/how-it-works"
-import Testimonials from "@/components/marketing/testimonials"
-import Pricing from "@/components/marketing/pricing"
-import Faq from "@/components/marketing/faq"
-import Cta from "@/components/marketing/cta"
-import Footer from "@/components/marketing/footer"
+import { Header } from "@/components/landing-page/header"
+import { HeroSection } from "@/components/landing-page/hero-section"
+// import { PartnersSection } from "@/components/partners-section"
+import { FeaturesSection } from "@/components/landing-page/features-section"
+import { AdaptiveWorkflowsSection } from "@/components/landing-page/adaptive-workflows-section"
+import { OptimizedSchedulingSection } from "@/components/landing-page/optimized-scheduling-section"
+import { AcceleratePlanningSection } from "@/components/landing-page/accelerate-planning-section"
+// import { TestimonialsSection } from "@/components/testimonials-section"
+import { SimplifiedPricingSection } from "@/components/landing-page/simplified-pricing-section"
+import { FAQSection } from "@/components/landing-page/faq-section" // This import is still here
+import { Footer } from "@/components/landing-page/footer"
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark">
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main>
-          <Hero />
-          <TrustedBy />
-          <Features />
-          <HowItWorks />
-          <Testimonials />
-          <Pricing />
-          <Faq />
-          <Cta />
-        </main>
-        <Footer />
-      </div>
-    </ThemeProvider>
+    <div className="container mx-auto">
+      <Header />
+      <main>
+        <HeroSection />
+        {/* <PartnersSection /> */}
+        <FeaturesSection />
+        <AdaptiveWorkflowsSection />
+        <OptimizedSchedulingSection />
+        <AcceleratePlanningSection />
+        {/* <TestimonialsSection /> */}
+        <SimplifiedPricingSection />
+        <FAQSection /> {/* This component is still rendered here */}
+      </main>
+      <Footer />
+    </div>
   )
 }

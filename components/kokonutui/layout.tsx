@@ -1,7 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
-import Sidebar from "./sidebar"
+import Sidebar from "./project-sidebar/sidebar"
 import TopNav from "./top-nav"
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
@@ -92,7 +92,7 @@ export default function Layout({ children }: LayoutProps) {
         <header className="h-10 border-b border-gray-200 dark:border-[#1F1F23]">
           <TopNav currentProject={currentProject} />
         </header>
-        <main className={`flex-1 ${isAgentPage ? "overflow-hidden" : "overflow-auto"} p-6 bg-white dark:bg-[#09090B]`}>
+        <main className={`flex-1 ${isAgentPage ? "overflow-hidden" : "overflow-auto"} bg-white dark:bg-[#09090B]`}>
           {mounted ? children : (
             <div className="flex items-center justify-center h-full">
               <div className="animate-pulse">Loading...</div>
