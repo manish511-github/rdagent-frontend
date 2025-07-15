@@ -56,15 +56,7 @@ export default function TopNav({ currentProject }: TopNavProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4 ml-auto">
-        {isProjectsPage && (
-          <Button
-            size="sm"
-            className="mr-2 bg-gray-800 hover:bg-gray-700 text-white dark:bg-gray-700 dark:hover:bg-gray-600"
-          >
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            New Project
-          </Button>
-        )}
+
 
         <button
           type="button"

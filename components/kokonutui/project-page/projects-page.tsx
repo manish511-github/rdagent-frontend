@@ -88,47 +88,9 @@ import { ProjectCard } from "./ProjectCard";
 import { ProjectStats } from "./ProjectStats";
 import { Project } from "./projectTypes";
 import { getStatusColor, getPriorityColor, getHealthColor, formatCurrency, getDaysUntilDue, formatRelativeDate } from "./projectUtils";
+import { projectCategories, projectStatuses, priorityLevels, healthStatuses } from "./projectConstants";
+import { CreateProjectDialog } from "./CreateProjectDialog";
 
-
-// Enhanced project data with more fields
-
-
-// Project categories with enhanced metadata
-const projectCategories = [
-  { value: "all", label: "All Categories", icon: <Layers className="h-4 w-4" />, color: "gray" },
-  { value: "marketing", label: "Marketing", icon: <Megaphone className="h-4 w-4" />, color: "blue" },
-  { value: "design", label: "Design", icon: <Palette className="h-4 w-4" />, color: "purple" },
-  { value: "development", label: "Development", icon: <Code className="h-4 w-4" />, color: "indigo" },
-  { value: "product", label: "Product", icon: <Package className="h-4 w-4" />, color: "green" },
-  { value: "content", label: "Content", icon: <FileText className="h-4 w-4" />, color: "teal" },
-  { value: "research", label: "Research", icon: <Target className="h-4 w-4" />, color: "cyan" },
-]
-
-// Project status options
-const projectStatuses = [
-  { value: "all", label: "All Status", icon: <Activity className="h-4 w-4" /> },
-  { value: "planning", label: "Planning", icon: <Lightbulb className="h-4 w-4" />, color: "purple" },
-  { value: "in-progress", label: "In Progress", icon: <Clock className="h-4 w-4" />, color: "blue" },
-  { value: "review", label: "Review", icon: <AlertCircle className="h-4 w-4" />, color: "amber" },
-  { value: "completed", label: "Completed", icon: <CheckCircle2 className="h-4 w-4" />, color: "green" },
-]
-
-// Priority levels
-const priorityLevels = [
-  { value: "all", label: "All Priorities", icon: <Flag className="h-4 w-4" /> },
-  { value: "low", label: "Low", icon: <ArrowDown className="h-4 w-4" />, color: "green" },
-  { value: "medium", label: "Medium", icon: <ArrowUpDown className="h-4 w-4" />, color: "amber" },
-  { value: "high", label: "High", icon: <ArrowUp className="h-4 w-4" />, color: "red" },
-]
-
-// Health status
-const healthStatuses = [
-  { value: "all", label: "All Health", icon: <Activity className="h-4 w-4" /> },
-  { value: "on-track", label: "On Track", icon: <TrendingUp className="h-4 w-4" />, color: "green" },
-  { value: "at-risk", label: "At Risk", icon: <AlertCircle className="h-4 w-4" />, color: "amber" },
-  { value: "off-track", label: "Off Track", icon: <TrendingDown className="h-4 w-4" />, color: "red" },
-  { value: "completed", label: "Completed", icon: <CheckCircle2 className="h-4 w-4" />, color: "blue" },
-]
 
 interface WebsiteAnalysisResult {
   url: string;
@@ -623,64 +585,10 @@ export default function ProjectsPage() {
               <p className="text-muted-foreground mt-1">Manage and track all your projects in one place</p>
             </div>
             <div className="flex items-center gap-2">
-              {isSelectionMode ? (
-                <>
-                  <Button variant="outline" size="sm" onClick={selectAllProjects}>
-                    {selectedProjects.length === filteredProjects.length ? "Deselect All" : "Select All"}
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        Actions ({selectedProjects.length})
-                        <ChevronDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleBulkAction("archive")}>
-                        <Archive className="mr-2 h-4 w-4" />
-                        Archive
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleBulkAction("export")}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Export
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handleBulkAction("delete")} className="text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setIsSelectionMode(false)
-                      setSelectedProjects([])
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="select-mode"
-                      checked={isSelectionMode}
-                      onCheckedChange={() => setIsSelectionMode(true)}
-                      className="mr-2 h-4 w-4"
-                    />
-                    <Button variant="outline" size="sm" onClick={() => setIsSelectionMode(true)}>
-                      Select
-                    </Button>
-                  </div>
-                  <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    New Project
-                  </Button>
-                </>
-              )}
+              <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                New Project
+              </Button>
             </div>
           </div>
 
@@ -729,14 +637,17 @@ export default function ProjectsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {projectCategories.map((category) => (
-                        <SelectItem key={category.value} value={category.value}>
-                          <div className="flex items-center gap-2">
-                            {category.icon}
-                            {category.label}
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {projectCategories.map((category) => {
+                        const Icon = category.icon;
+                        return (
+                          <SelectItem key={category.value} value={category.value}>
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-4 w-4" />
+                              {category.label}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -749,14 +660,17 @@ export default function ProjectsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {projectStatuses.map((status) => (
-                        <SelectItem key={status.value} value={status.value}>
-                          <div className="flex items-center gap-2">
-                            {status.icon}
-                            {status.label}
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {projectStatuses.map((status) => {
+                        const Icon = status.icon;
+                        return (
+                          <SelectItem key={status.value} value={status.value}>
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-4 w-4" />
+                              {status.label}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -769,14 +683,17 @@ export default function ProjectsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {priorityLevels.map((priority) => (
-                        <SelectItem key={priority.value} value={priority.value}>
-                          <div className="flex items-center gap-2">
-                            {priority.icon}
-                            {priority.label}
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {priorityLevels.map((priority) => {
+                        const Icon = priority.icon;
+                        return (
+                          <SelectItem key={priority.value} value={priority.value}>
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-4 w-4" />
+                              {priority.label}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -789,14 +706,17 @@ export default function ProjectsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {healthStatuses.map((health) => (
-                        <SelectItem key={health.value} value={health.value}>
-                          <div className="flex items-center gap-2">
-                            {health.icon}
-                            {health.label}
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {healthStatuses.map((health) => {
+                        const Icon = health.icon;
+                        return (
+                          <SelectItem key={health.value} value={health.value}>
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-4 w-4" />
+                              {health.label}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -901,7 +821,7 @@ export default function ProjectsPage() {
           </div>
         </div>
 
-        {/* Projects Grid */}
+        {/* Projects Grid/List */}
         {filteredProjects.length === 0 ? (
           <Card className="p-12">
             <div className="text-center">
@@ -926,14 +846,11 @@ export default function ProjectsPage() {
             </div>
           </Card>
         ) : (
-          <div
-            className={cn(
-              "grid gap-4",
-              view === "grid" && "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3",
-              view === "list" && "grid-cols-1",
-              view === "kanban" && "grid-cols-1",
-            )}
-          >
+          <div className={cn(
+            view === "grid" && "grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3",
+            view === "list" && "flex flex-col w-full",
+            view === "kanban" && "grid-cols-1",
+          )}>
             {view === "kanban" ? (
               <Card className="p-6">
                 <div className="text-center text-muted-foreground">
@@ -942,434 +859,67 @@ export default function ProjectsPage() {
                 </div>
               </Card>
             ) : (
-              filteredProjects.map((project, index) => (
-                <ProjectCard
-                  key={project.uuid}
-                  project={project}
-                  index={index}
-                  isSelected={selectedProjects.includes(project.uuid)}
-                  isSelectionMode={isSelectionMode}
-                  loadingProjectId={loadingProjectId}
-                  selectedProjects={selectedProjects}
-                  animateIn={animateIn}
-                  toggleProjectSelection={toggleProjectSelection}
-                  handleProjectClick={handleProjectClick}
-                />
-              ))
+              <>
+                {view === "list" && (
+                  <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 text-xs font-semibold text-muted-foreground border-b bg-background/80 sticky top-0 z-10">
+                    <div className="col-span-3 flex items-center gap-1">Name</div>
+                    <div className="col-span-1">Status</div>
+                    <div className="col-span-3">About</div>
+                    <div className="col-span-2">Members</div>
+                    <div className="col-span-2">Progress</div>
+                    <div className="col-span-1 text-right">Actions</div>
+                  </div>
+                )}
+                {filteredProjects.map((project, index) => (
+                  <ProjectCard
+                    key={project.uuid}
+                    project={project}
+                    index={index}
+                    isSelected={selectedProjects.includes(project.uuid)}
+                    isSelectionMode={isSelectionMode}
+                    loadingProjectId={loadingProjectId}
+                    selectedProjects={selectedProjects}
+                    animateIn={animateIn}
+                    toggleProjectSelection={toggleProjectSelection}
+                    handleProjectClick={handleProjectClick}
+                    view={view}
+                  />
+                ))}
+              </>
             )}
           </div>
         )}
 
         {/* Create Project Dialog */}
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create New Project</DialogTitle>
-              <DialogDescription>
-                Fill in the details below to create a new project. You can always edit these later.
-              </DialogDescription>
-            </DialogHeader>
-
-            <Tabs defaultValue="url" value={activeTab} onValueChange={setActiveTab} className="mt-2">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="url" className="flex items-center gap-2">
-                  <Globe className="h-4 w-4" />
-                  From Website URL
-                </TabsTrigger>
-                <TabsTrigger value="manual" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Manual Entry
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="url" className="space-y-3 mt-3">
-                <div className="space-y-2">
-                  <Label htmlFor="website-url">Website URL</Label>
-                  <div className="flex gap-1.5">
-                    <Input
-                      id="website-url"
-                      placeholder="https://example.com"
-                      value={websiteUrl}
-                      onChange={(e) => setWebsiteUrl(e.target.value)}
-                      disabled={isAnalyzing}
-                      className="flex-1"
-                    />
-                    <Button onClick={handleAnalyzeWebsite} disabled={isAnalyzing || !websiteUrl} className="gap-2">
-                      {isAnalyzing ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Analyzing...
-                        </>
-                      ) : (
-                        "Analyze"
-                      )}
-                    </Button>
-                  </div>
-                  {analysisError && <p className="text-sm text-destructive mt-1">{analysisError}</p>}
-                  <p className="text-xs text-muted-foreground">
-                    Enter a website URL to automatically extract project information. You can edit the details before
-                    saving.
-                  </p>
-                </div>
-
-                {isAnalyzing ? (
-                  <div className="py-6 flex flex-col items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary mb-3" />
-                    <p className="text-sm text-muted-foreground">Analyzing website content...</p>
-                    <p className="text-xs text-muted-foreground mt-1">This may take a few moments</p>
-                  </div>
-                ) : (
-                  newProject.title && (
-                    <div className="space-y-3 border rounded-md p-3 bg-muted/20">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="project-title">Project Name (Required)</Label>
-                          <Input
-                            id="project-title"
-                            value={newProject.title}
-                            onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
-                            placeholder="Enter project name"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="website-link">Website URL (Optional)</Label>
-                          <Input
-                            id="website-link"
-                            value={newProject.websiteUrl}
-                            onChange={(e) => setNewProject({ ...newProject, websiteUrl: e.target.value })}
-                            placeholder="https://example.com"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="project-description">Description (Required)</Label>
-                        <Textarea
-                          id="project-description"
-                          value={newProject.description}
-                          onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                          placeholder="Describe your project"
-                          rows={10}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="target-audience">Target Audience (Required)</Label>
-                        <Textarea
-                          id="target-audience"
-                          value={newProject.targetAudience}
-                          onChange={(e) => setNewProject({ ...newProject, targetAudience: e.target.value })}
-                          placeholder="Define your target audience"
-                          rows={4}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="competitors">Competitors (Optional)</Label>
-                        <div className="flex flex-wrap gap-1.5 mb-2 min-h-[36px] p-2 border rounded-md bg-background/60">
-                          {newProject.competitors.map((competitor, index) => (
-                            <Badge
-                              key={index}
-                              variant="outline"
-                              className="text-sm flex items-center gap-1 px-2.5 py-1 bg-muted/30 text-foreground/80 border-border/40 hover:bg-muted/50 transition-colors"
-                            >
-                              {competitor}
-                              <button
-                                onClick={() => removeCompetitor(competitor)}
-                                className="ml-1.5 rounded-full hover:bg-muted/80 transition-colors p-0.5"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
-                        <div className="flex gap-1.5">
-                          <Input
-                            id="competitors"
-                            value={competitorInput}
-                            onChange={(e) => setCompetitorInput(e.target.value)}
-                            placeholder="Add a competitor"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault()
-                                addCompetitor()
-                              }
-                            }}
-                          />
-                          <Button type="button" onClick={addCompetitor} variant="outline" size="sm" className="h-9">
-                            Add
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="keywords">Keywords (Required)</Label>
-                          <div className="flex flex-wrap gap-1.5 mb-2 min-h-[36px] p-2 border rounded-md bg-background/60">
-                            {newProject.keywords.map((keyword, index) => (
-                              <Badge
-                                key={index}
-                                variant="secondary"
-                                className="text-sm font-normal flex items-center gap-1 px-2.5 py-1 bg-secondary/20 text-foreground/60 hover:bg-secondary/40 transition-colors"
-                                >
-                                {keyword}
-                                <button
-                                  onClick={() => removeKeyword(keyword)}
-                                  className="ml-1.5 rounded-full hover:bg-secondary/70 transition-colors p-0.5"
-                                  >
-                                <X className="h-3 w-3 text-foreground/60" />
-                                </button>
-                              </Badge>
-                            ))}
-                          </div>
-                          <div className="flex gap-1.5">
-                            <Input
-                              id="keywords"
-                              value={keywordInput}
-                              onChange={(e) => setKeywordInput(e.target.value)}
-                              placeholder="Add a keyword"
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault()
-                                  addKeyword()
-                                }
-                              }}
-                            />
-                            <Button type="button" onClick={addKeyword} variant="outline" size="sm" className="h-9">
-                              Add
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="excluded-keywords">Excluded Keywords (Optional)</Label>
-                          <div className="flex flex-wrap gap-1.5 mb-2 min-h-[36px] p-2 border rounded-md bg-background/60">
-                            {newProject.excludedKeywords.map((keyword, index) => (
-                              <Badge
-                                key={index}
-                                variant="outline"
-                                className="text-sm text-muted-foreground flex items-center gap-1 px-2.5 py-1 bg-muted/20 hover:bg-muted/40 transition-colors"
-                              >
-                                {keyword}
-                                <button
-                                  onClick={() => removeExcludedKeyword(keyword)}
-                                  className="ml-1.5 rounded-full hover:bg-muted/80 transition-colors p-0.5"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </Badge>
-                            ))}
-                          </div>
-                          <div className="flex gap-1.5">
-                            <Input
-                              id="excluded-keywords"
-                              value={excludedKeywordInput}
-                              onChange={(e) => setExcludedKeywordInput(e.target.value)}
-                              placeholder="Add an excluded keyword"
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault()
-                                  addExcludedKeyword()
-                                }
-                              }}
-                            />
-                            <Button
-                              type="button"
-                              onClick={addExcludedKeyword}
-                              variant="outline"
-                              size="sm"
-                              className="h-9"
-                            >
-                              Add
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                )}
-              </TabsContent>
-
-              <TabsContent value="manual" className="space-y-3 mt-3">
-                <div className="grid grid-cols-1 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="manual-project-title">Project Name (Required)</Label>
-                    <Input
-                      id="manual-project-title"
-                      value={newProject.title}
-                      onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
-                      placeholder="Enter project name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="manual-website-link">Website URL (Optional)</Label>
-                    <Input
-                      id="manual-website-link"
-                      value={newProject.websiteUrl}
-                      onChange={(e) => setNewProject({ ...newProject, websiteUrl: e.target.value })}
-                      placeholder="https://example.com"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="manual-project-description">Description (Required)</Label>
-                  <Textarea
-                    id="manual-project-description"
-                    value={newProject.description}
-                    onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                    placeholder="Describe your project"
-                    rows={2}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="manual-target-audience">Target Audience (Required)</Label>
-                  <Textarea
-                    id="manual-target-audience"
-                    value={newProject.targetAudience}
-                    onChange={(e) => setNewProject({ ...newProject, targetAudience: e.target.value })}
-                    placeholder="Define your target audience"
-                    rows={2}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="manual-competitors">Competitors (Optional)</Label>
-                  <div className="flex flex-wrap gap-1.5 mb-2 min-h-[36px] p-2 border rounded-md bg-background/60">
-                    {newProject.competitors.map((competitor, index) => (
-                      <Badge
-                        key={index}
-                        variant="outline"
-                        className="text-sm flex items-center gap-1 px-2.5 py-1 bg-muted/30 text-foreground/80 border-border/40 hover:bg-muted/50 transition-colors"
-                      >
-                        {competitor}
-                        <button
-                          onClick={() => removeCompetitor(competitor)}
-                          className="ml-1.5 rounded-full hover:bg-muted/80 transition-colors p-0.5"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="flex gap-1.5">
-                    <Input
-                      id="manual-competitors"
-                      value={competitorInput}
-                      onChange={(e) => setCompetitorInput(e.target.value)}
-                      placeholder="Add a competitor"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault()
-                          addCompetitor()
-                        }
-                      }}
-                    />
-                    <Button type="button" onClick={addCompetitor} variant="outline" size="sm" className="h-9">
-                      Add
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="manual-keywords">Keywords (Required)</Label>
-                    <div className="flex flex-wrap gap-1.5 mb-2 min-h-[36px] p-2 border rounded-md bg-background/60">
-                      {newProject.keywords.map((keyword, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="text-sm flex items-center gap-1 px-2.5 py-1 bg-secondary/30 text-foreground/80 hover:bg-secondary/50 transition-colors"
-                        >
-                          {keyword}
-                          <button
-                            onClick={() => removeKeyword(keyword)}
-                            className="ml-1.5 rounded-full hover:bg-secondary/80 transition-colors p-0.5"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="flex gap-1.5">
-                      <Input
-                        id="manual-keywords"
-                        value={keywordInput}
-                        onChange={(e) => setKeywordInput(e.target.value)}
-                        placeholder="Add a keyword"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault()
-                            addKeyword()
-                          }
-                        }}
-                      />
-                      <Button type="button" onClick={addKeyword} variant="outline" size="sm" className="h-9">
-                        Add
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="manual-excluded-keywords">Excluded Keywords (Optional)</Label>
-                    <div className="flex flex-wrap gap-1.5 mb-2 min-h-[36px] p-2 border rounded-md bg-background/60">
-                      {newProject.excludedKeywords.map((keyword, index) => (
-                        <Badge
-                          key={index}
-                          variant="outline"
-                          className="text-sm text-muted-foreground flex items-center gap-1 px-2.5 py-1 bg-muted/20 hover:bg-muted/40 transition-colors"
-                        >
-                          {keyword}
-                          <button
-                            onClick={() => removeExcludedKeyword(keyword)}
-                            className="ml-1.5 rounded-full hover:bg-muted/80 transition-colors p-0.5"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="flex gap-1.5">
-                      <Input
-                        id="manual-excluded-keywords"
-                        value={excludedKeywordInput}
-                        onChange={(e) => setExcludedKeywordInput(e.target.value)}
-                        placeholder="Add an excluded keyword"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault()
-                            addExcludedKeyword()
-                          }
-                        }}
-                      />
-                      <Button type="button" onClick={addExcludedKeyword} variant="outline" size="sm" className="h-9">
-                        Add
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-
-            <DialogFooter className="mt-4">
-              <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCreateProject}
-                disabled={
-                  !newProject.title ||
-                  !newProject.description ||
-                  !newProject.targetAudience ||
-                  newProject.keywords.length === 0
-                }
-              >
-                Create Project
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <CreateProjectDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          newProject={newProject}
+          setNewProject={setNewProject}
+          websiteUrl={websiteUrl}
+          setWebsiteUrl={setWebsiteUrl}
+          isAnalyzing={isAnalyzing}
+          setIsAnalyzing={setIsAnalyzing}
+          analysisError={analysisError}
+          setAnalysisError={setAnalysisError}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          competitorInput={competitorInput}
+          setCompetitorInput={setCompetitorInput}
+          keywordInput={keywordInput}
+          setKeywordInput={setKeywordInput}
+          excludedKeywordInput={excludedKeywordInput}
+          setExcludedKeywordInput={setExcludedKeywordInput}
+          addCompetitor={addCompetitor}
+          removeCompetitor={removeCompetitor}
+          addKeyword={addKeyword}
+          removeKeyword={removeKeyword}
+          addExcludedKeyword={addExcludedKeyword}
+          removeExcludedKeyword={removeExcludedKeyword}
+          handleAnalyzeWebsite={handleAnalyzeWebsite}
+          handleCreateProject={handleCreateProject}
+          canCreate={!!newProject.title && !!newProject.description && !!newProject.targetAudience && newProject.keywords.length > 0}
+        />
       </div>
     </div>
   )

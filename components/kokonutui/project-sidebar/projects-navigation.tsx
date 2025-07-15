@@ -16,7 +16,7 @@ export const ProjectsNavigation: FC<ProjectsNavigationProps> = ({ isCollapsed, i
           Projects
         </div>
       )}
-      <div className="space-y-1">
+      <div className="space-y-2">
         <NavItem href="/projects" icon={Home} isActive={pathname === "/projects"} isCollapsed={isCollapsed} isMounted={isMounted}>
           All Projects
         </NavItem>
@@ -32,7 +32,7 @@ export const ProjectsNavigation: FC<ProjectsNavigationProps> = ({ isCollapsed, i
       </div>
     </div>
 
-    <div className="stagger-2">
+    {/* <div className="stagger-2">
       {!isCollapsed && (
         <div className="px-2 mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 animate-fade-in">
           Categories
@@ -52,9 +52,9 @@ export const ProjectsNavigation: FC<ProjectsNavigationProps> = ({ isCollapsed, i
           Content
         </NavItem>
       </div>
-    </div>
+    </div> */}
 
-    <div className="stagger-3">
+    {/* <div className="stagger-3">
       {!isCollapsed && (
         <div className="px-2 mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 animate-fade-in">
           Tools
@@ -71,6 +71,6 @@ export const ProjectsNavigation: FC<ProjectsNavigationProps> = ({ isCollapsed, i
           Tags & Labels
         </NavItem>
       </div>
-    </div>
+    </div> */}
   </>
 ); 
