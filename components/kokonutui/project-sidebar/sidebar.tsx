@@ -39,7 +39,7 @@ export default function Sidebar({ currentProject }: SidebarProps) {
   const isSettingsPage = pathname.startsWith("/settings")
 
   // Check if user should see upgrade box
-  const shouldShowUpgrade = userInfo?.subscription?.tier === "trial"
+  const shouldShowUpgrade=true
 
   useEffect(() => {
     setIsMounted(true)
