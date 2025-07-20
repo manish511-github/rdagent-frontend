@@ -1,63 +1,63 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import UpgradePlan from "@/components/upgrade_plan/upgrade_plan"
-import { useToast } from "@/components/ui/use-toast"
-import Cookies from "js-cookie"
-import { Loader2, AlertCircle } from "lucide-react"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { UpgradePlan } from "@/components/upgrade_plan";
+import { useToast } from "@/components/ui/use-toast";
+import Cookies from "js-cookie";
+import { Loader2, AlertCircle } from "lucide-react";
 
 export default function UpgradePage() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [showRedirectMessage, setShowRedirectMessage] = useState(false)
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showRedirectMessage, setShowRedirectMessage] = useState(false);
 
   useEffect(() => {
     // Check authentication status
     const checkAuth = () => {
-      const accessToken = Cookies.get("access_token")
-      const isAuth = !!accessToken
-
-      setIsAuthenticated(isAuth)
-      setIsLoading(false)
-
+      const accessToken = Cookies.get("access_token");
+      const isAuth = !!accessToken;
+      
+      setIsAuthenticated(isAuth);
+      setIsLoading(false);
+      
       if (!isAuth) {
         // Show redirect message first
-        setShowRedirectMessage(true)
-
+        setShowRedirectMessage(true);
+        
         // Show toast after a brief delay to ensure component is mounted
         setTimeout(() => {
           toast({
             title: "Authentication Required",
             description: "Please sign in to access the upgrade page.",
             variant: "destructive",
-          })
-        }, 100)
-
+          });
+        }, 100);
+        
         // Redirect after showing the message
         setTimeout(() => {
-          router.push("/login")
-        }, 3000) // 3 second delay
+          router.push("/login");
+        }, 3000); // 3 second delay
       }
-    }
+    };
 
-    checkAuth()
-  }, [router, toast])
+    checkAuth();
+  }, [router, toast]);
 
   const handlePlanSelect = (planId: number) => {
-    const planNames = ["", "Starter", "Professional", "Enterprise"]
-    const selectedPlan = planNames[planId]
-
+    const planNames = ["", "Starter", "Professional", "Enterprise"];
+    const selectedPlan = planNames[planId];
+    
     toast({
       title: "Plan Selected",
       description: `You selected the ${selectedPlan} plan.`,
       variant: "default",
-    })
-
-    console.log("Selected plan ID:", planId)
-  }
+    });
+    
+    console.log("Selected plan ID:", planId);
+  };
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -68,7 +68,7 @@ export default function UpgradePage() {
           <p className="text-muted-foreground">Checking authentication...</p>
         </div>
       </div>
-    )
+    );
   }
 
   // Show redirect message if not authenticated
@@ -78,20 +78,25 @@ export default function UpgradePage() {
         <div className="text-center max-w-md mx-auto p-6">
           <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
-          <p className="text-muted-foreground mb-4">You need to be signed in to access the upgrade page.</p>
+          <p className="text-muted-foreground mb-4">
+            You need to be signed in to access the upgrade page.
+          </p>
           <div className="flex items-center justify-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
             <p className="text-sm text-muted-foreground">Redirecting to sign-in...</p>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // Show upgrade page only if authenticated
   return (
     <div className="min-h-screen bg-background">
-      <UpgradePlan currentPlan="Starter" showCurrentPlan={true} />
+      <UpgradePlan 
+        currentPlan="Starter"
+        showCurrentPlan={true}
+      />
     </div>
-  )
+  );
 }

@@ -1,7 +1,9 @@
 "use client"
 
-import { User, CreditCard, Shield } from "lucide-react"
+import { User, Settings, CreditCard } from "lucide-react"
 import { NavItem } from "./nav-item"
+import type { FC } from "react"
+import { useSearchParams } from "next/navigation" // Import useSearchParams
 
 interface SettingsNavigationProps {
   isCollapsed: boolean
@@ -9,42 +11,48 @@ interface SettingsNavigationProps {
   pathname: string
 }
 
-export function SettingsNavigation({ isCollapsed, isMounted, pathname }: SettingsNavigationProps) {
+export const SettingsNavigation: FC<SettingsNavigationProps> = ({ isCollapsed, isMounted, pathname }) => {
+  const searchParams = useSearchParams() // Use the hook
+  const currentSection = searchParams?.get("section") || "personal"
+
   return (
-    <div className="space-y-1">
-      <div className={`${isCollapsed ? "hidden" : "block"} px-2 py-1`}>
-        <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Settings</h3>
+    <>
+      <div className="stagger-1">
+        {!isCollapsed && (
+          <div className="px-2 mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 animate-fade-in">
+            Settings
+          </div>
+        )}
+        <div className="space-y-2">
+          <NavItem
+            href="/settings?section=personal"
+            icon={User}
+            isActive={currentSection === "personal"}
+            isCollapsed={isCollapsed}
+            isMounted={isMounted}
+          >
+            Personal
+          </NavItem>
+          <NavItem
+            href="/settings?section=account"
+            icon={Settings}
+            isActive={currentSection === "account"}
+            isCollapsed={isCollapsed}
+            isMounted={isMounted}
+          >
+            Account
+          </NavItem>
+          <NavItem
+            href="/settings?section=billing"
+            icon={CreditCard}
+            isActive={currentSection === "billing"}
+            isCollapsed={isCollapsed}
+            isMounted={isMounted}
+          >
+            Billing
+          </NavItem>
+        </div>
       </div>
-
-      <NavItem
-        href="/settings"
-        icon={User}
-        isCollapsed={isCollapsed}
-        isMounted={isMounted}
-        isActive={pathname === "/settings"}
-      >
-        Personal
-      </NavItem>
-
-      <NavItem
-        href="/settings/account"
-        icon={Shield}
-        isCollapsed={isCollapsed}
-        isMounted={isMounted}
-        isActive={pathname === "/settings/account"}
-      >
-        Account
-      </NavItem>
-
-      <NavItem
-        href="/settings/billing"
-        icon={CreditCard}
-        isCollapsed={isCollapsed}
-        isMounted={isMounted}
-        isActive={pathname === "/settings/billing"}
-      >
-        Billing
-      </NavItem>
-    </div>
+    </>
   )
 }

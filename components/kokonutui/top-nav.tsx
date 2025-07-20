@@ -25,29 +25,21 @@ interface BreadcrumbItem {
 export default function TopNav({ currentProject }: TopNavProps) {
   const pathname = usePathname()
   const isProjectsPage = pathname === "/projects"
+  const isSettingsPage = pathname.startsWith("/settings")
 
-  // Define breadcrumbs based on current route
-  const breadcrumbs: BreadcrumbItem[] = (() => {
-    if (pathname.startsWith("/settings")) {
-      const settingsPath = pathname.split("/").slice(2) // Remove empty string and "settings"
-      const baseBreadcrumbs = [{ label: "Settings", href: "/settings" }]
+  // Define breadcrumbs based on current page
+  let breadcrumbs: BreadcrumbItem[] = []
 
-      if (settingsPath.length > 0) {
-        const pageName = settingsPath[0]
-        const pageLabel = pageName.charAt(0).toUpperCase() + pageName.slice(1)
-        baseBreadcrumbs.push({ label: pageLabel, href: pathname })
-      }
-
-      return baseBreadcrumbs
-    }
-
-    return currentProject
-      ? [
-          { label: "Projects", href: "/projects" },
-          { label: currentProject.name, href: `/projects/${currentProject.uuid}` },
-        ]
-      : [{ label: "Projects", href: "/projects" }]
-  })()
+  if (isSettingsPage) {
+    breadcrumbs = [{ label: "Settings" }]
+  } else if (currentProject) {
+    breadcrumbs = [
+      { label: "Projects", href: "/projects" },
+      { label: currentProject.name, href: `/projects/${currentProject.uuid}` },
+    ]
+  } else {
+    breadcrumbs = [{ label: "Projects", href: "/projects" }]
+  }
 
   return (
     <nav className="px-2 sm:px-4 flex items-center justify-between bg-white dark:bg-[#0F0F12] border-b border-gray-200 dark:border-[#1F1F23] h-full">

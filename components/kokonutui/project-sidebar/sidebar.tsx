@@ -14,7 +14,6 @@ import { SettingsNavigation } from "./settings-navigation"
 import { NavItem } from "./nav-item"
 import { UpgradeBox } from "./upgrade-box"
 
-// Project type definition
 interface Project {
   uuid: string
   name: string
