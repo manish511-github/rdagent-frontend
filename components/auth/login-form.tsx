@@ -99,13 +99,18 @@ export function LoginForm() {
       Cookies.set("access_token", data.access_token, { expires: 1/24 });
       Cookies.set("refresh_token", data.refresh_token, { expires: 7 });
 
+      // Dispatch fetchUser to update Redux store immediately after login
+      const { fetchUser } = await import("@/store/slices/userSlice");
+      const { store } = await import("@/store/store");
+      store.dispatch(fetchUser());
+
       toast({
         title: "Success!",
         description: "You have successfully signed in.",
         variant: "default",
       });
 
-      setIsSubmitted(true);
+      // setIsSubmitted(true);
 
       setTimeout(() => {
         window.location.href = "/projects";

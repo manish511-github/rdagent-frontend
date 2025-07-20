@@ -17,69 +17,69 @@ interface ProjectStatsProps {
 
 export const ProjectStats: React.FC<ProjectStatsProps> = ({ projectStats }) => (
   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-    <Card className="bg-gradient-to-br from-card to-muted/20 dark:from-slate-900 dark:to-slate-950/80 border border-blue-200/30 dark:border-blue-400/20">
-      <CardContent className="p-4">
+    <Card className="bg-white/70 dark:bg-slate-900/70 border border-muted shadow-sm backdrop-blur-sm">
+      <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-muted-foreground">Total Projects</p>
-            <p className="text-2xl font-bold">{projectStats.total}</p>
+            <p className="text-2xl font-semibold text-foreground">{projectStats.total}</p>
           </div>
-          <Briefcase className="h-8 w-8 text-muted-foreground/20" />
+          <Briefcase className="h-7 w-7 text-muted-foreground/40" />
         </div>
       </CardContent>
     </Card>
-    <Card className="bg-gradient-to-br from-blue-800/10 to-blue-900/5 dark:from-blue-900/30 dark:to-blue-950/20 border border-blue-200/30 dark:border-blue-400/20">
-      <CardContent className="p-4">
+    <Card className="bg-white/70 dark:bg-slate-900/70 border border-muted shadow-sm backdrop-blur-sm">
+      <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-muted-foreground">Active Projects</p>
-            <p className="text-2xl font-bold text-blue-800 dark:text-blue-400">{projectStats.active}</p>
+            <p className="text-2xl font-semibold text-foreground">{projectStats.active}</p>
           </div>
-          <Activity className="h-8 w-8 text-blue-800/20" />
+          <Activity className="h-7 w-7 text-muted-foreground/40" />
         </div>
       </CardContent>
     </Card>
-    <Card className="bg-gradient-to-br from-blue-100/10 to-blue-200/5 dark:from-blue-900/30 dark:to-blue-950/20 border border-blue-200/30 dark:border-blue-400/20">
-      <CardContent className="p-4">
+    <Card className="bg-white/70 dark:bg-slate-900/70 border border-muted shadow-sm backdrop-blur-sm">
+      <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-muted-foreground">Total Posts</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">1,248</p>
+            <p className="text-2xl font-semibold text-foreground">1,248</p>
           </div>
-          <FileText className="h-8 w-8 text-blue-600/20" />
+          <FileText className="h-7 w-7 text-muted-foreground/40" />
         </div>
       </CardContent>
     </Card>
-    <Card className="bg-gradient-to-br from-amber-100/10 to-amber-200/5 dark:from-amber-900/30 dark:to-amber-950/20 border border-amber-200/30 dark:border-amber-400/20">
-      <CardContent className="p-4">
+    <Card className="bg-white/70 dark:bg-slate-900/70 border border-muted shadow-sm backdrop-blur-sm">
+      <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-muted-foreground">Content</p>
-            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">45</p>
+            <p className="text-2xl font-semibold text-foreground">45</p>
           </div>
-          <MessageSquare className="h-8 w-8 text-amber-600/20" />
+          <MessageSquare className="h-7 w-7 text-muted-foreground/40" />
         </div>
       </CardContent>
     </Card>
-    <Card className="bg-gradient-to-br from-green-100/10 to-green-200/5 dark:from-green-900/30 dark:to-green-950/20 border border-green-200/30 dark:border-green-400/20">
-      <CardContent className="p-4">
+    <Card className="bg-white/70 dark:bg-slate-900/70 border border-muted shadow-sm backdrop-blur-sm">
+      <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-muted-foreground">New Leads</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">342</p>
+            <p className="text-2xl font-semibold text-foreground">342</p>
           </div>
-          <UserCheck className="h-8 w-8 text-green-600/20" />
+          <UserCheck className="h-7 w-7 text-muted-foreground/40" />
         </div>
       </CardContent>
     </Card>
-    <Card className="bg-gradient-to-br from-indigo-100/10 to-indigo-200/5 dark:from-indigo-900/30 dark:to-indigo-950/20 border border-indigo-200/30 dark:border-indigo-400/20">
-      <CardContent className="p-4">
+    <Card className="bg-white/70 dark:bg-slate-900/70 border border-muted shadow-sm backdrop-blur-sm">
+      <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-muted-foreground">Agents</p>
-            <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">23</p>
+            <p className="text-2xl font-semibold text-foreground">23</p>
           </div>
-          <Users className="h-8 w-8 text-indigo-600/20" />
+          <Users className="h-7 w-7 text-muted-foreground/40" />
         </div>
       </CardContent>
     </Card>

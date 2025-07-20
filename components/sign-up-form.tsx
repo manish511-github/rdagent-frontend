@@ -100,7 +100,7 @@ export default function SignUpForm() {
         description: "Your account has been created. Please check your email to verify your account before signing in.",
         variant: "default",
       });
-      router.push("/sign-in"); // Redirect to sign-in page
+      router.push("/login"); // Redirect to sign-in page
 
     } catch (err: any) {
       console.error("Sign up failed:", err);
@@ -111,8 +111,8 @@ export default function SignUpForm() {
   }
 
   const handleGoogleSignUp = () => {
-    // Implement Google sign-up logic here
-    console.log("Google sign-up clicked")
+    // Redirect to FastAPI Google OAuth endpoint for signup
+    window.location.href = "http://localhost:8000/auth/google";
   }
 
   return (

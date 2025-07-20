@@ -23,6 +23,14 @@ function AuthCallbackInner() {
       const expiresDays = Number(expiresIn) / 3600 / 24;
       Cookies.set("access_token", accessToken, { expires: expiresDays });
       Cookies.set("refresh_token", refreshToken, { expires: 7 });
+
+      // Dispatch fetchUser to update Redux store immediately after Google login
+      import("@/store/slices/userSlice").then(({ fetchUser }) => {
+        import("@/store/store").then(({ store }) => {
+          store.dispatch(fetchUser());
+        });
+      });
+
       toast({
         title: "Sign-in successful",
         description: "You have been signed in with Google.",
@@ -35,7 +43,7 @@ function AuthCallbackInner() {
         description: "Could not sign you in. Please try again.",
         variant: "destructive",
       });
-      router.push("/sign-in");
+      router.push("/login");
     }
   }, [router, searchParams, toast]);
 
