@@ -73,4 +73,4 @@ export const ProjectsNavigation: FC<ProjectsNavigationProps> = ({ isCollapsed, i
       </div>
     </div> */}
   </>
-); 
+);

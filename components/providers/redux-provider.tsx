@@ -9,4 +9,4 @@ export function ReduxProvider({ children }: { children: React.ReactNode }) {
     store.dispatch(fetchUser());
   }, []);
   return <Provider store={store}>{children}</Provider>;
-} 
+}

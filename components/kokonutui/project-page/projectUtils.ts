@@ -80,4 +80,4 @@ export const formatRelativeDate = (dateString: string) => {
   if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
   if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}; 
+};

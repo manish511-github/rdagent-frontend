@@ -35,4 +35,4 @@ export const healthStatuses = [
   { value: "at-risk", label: "At Risk", icon: AlertCircle, color: "amber" },
   { value: "off-track", label: "Off Track", icon: TrendingDown, color: "red" },
   { value: "completed", label: "Completed", icon: CheckCircle2, color: "blue" },
-]; 
+];

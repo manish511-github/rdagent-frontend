@@ -456,4 +456,4 @@ export const CreateProjectDialog: React.FC<CreateProjectDialogProps> = ({
       </DialogFooter>
     </DialogContent>
   </Dialog>
-); 
+);

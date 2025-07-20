@@ -1,1 +1,1 @@
-export { default as UpgradePlan } from './upgrade_plan';
+export { default as UpgradePlan } from "./upgrade_plan.tsx"

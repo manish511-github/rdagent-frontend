@@ -39,4 +39,4 @@ export interface WebsiteAnalysisResult {
   target_audience: string;
   keywords: string[];
   main_category: string;
-} 
+}

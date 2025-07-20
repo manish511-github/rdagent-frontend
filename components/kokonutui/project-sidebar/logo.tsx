@@ -31,4 +31,4 @@ export const Logo: FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => (
       )}
     </div>
   </Link>
-); 
+);

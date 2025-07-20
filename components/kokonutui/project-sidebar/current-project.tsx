@@ -44,4 +44,4 @@ export const CurrentProject: FC<CurrentProjectProps> = ({ currentProject, isColl
       </div>
     </div>
   );
-}; 
+};

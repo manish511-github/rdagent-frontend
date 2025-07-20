@@ -149,4 +149,4 @@ export const ProjectNavigation: FC<ProjectNavigationProps> = ({ currentProject, 
       </div>
     </div>
   </>
-); 
+);

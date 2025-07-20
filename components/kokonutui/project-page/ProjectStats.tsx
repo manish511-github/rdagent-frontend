@@ -84,4 +84,4 @@ export const ProjectStats: React.FC<ProjectStatsProps> = ({ projectStats }) => (
       </CardContent>
     </Card>
   </div>
-); 
+);

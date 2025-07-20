@@ -99,4 +99,4 @@ const projectsSlice = createSlice({
   },
 });
 
-export default projectsSlice.reducer; 
+export default projectsSlice.reducer;

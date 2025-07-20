@@ -41,4 +41,4 @@ export function NavItem({ href, icon: Icon, children, isActive = false, isCollap
   }
 
   return content;
-} 
+}

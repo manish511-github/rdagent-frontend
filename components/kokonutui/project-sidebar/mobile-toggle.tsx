@@ -14,4 +14,4 @@ export const MobileToggle: FC<MobileToggleProps> = ({ isMobileMenuOpen, setIsMob
   >
     <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
   </button>
-); 
+);
