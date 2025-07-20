@@ -32,9 +32,9 @@ export function UpgradeBox({ isCollapsed }: UpgradeBoxProps) {
           onClick={handleUpgrade}
           variant="outline"
           size="sm"
-          className="w-full h-10 p-0 border-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50 hover:from-orange-100 hover:to-yellow-100 dark:from-orange-950 dark:to-yellow-950 dark:border-orange-800"
+          className="w-full h-10 p-0 border-border bg-background hover:bg-accent hover:text-accent-foreground"
         >
-          <Crown className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+          <Crown className="h-4 w-4 text-foreground" />
         </Button>
       </div>
     )
@@ -42,28 +42,28 @@ export function UpgradeBox({ isCollapsed }: UpgradeBoxProps) {
 
   return (
     <div className="px-1">
-      <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-950 dark:to-yellow-950 dark:border-orange-800">
+      <Card className="border-border bg-card">
         <CardContent className="p-3 relative">
           <button
             onClick={handleDismiss}
-            className="absolute top-1 right-1 p-1 rounded-full hover:bg-orange-100 dark:hover:bg-orange-900 transition-colors"
+            className="absolute top-1 right-1 p-1 rounded-full hover:bg-accent transition-colors"
           >
-            <X className="h-3 w-3 text-orange-600 dark:text-orange-400" />
+            <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
           </button>
 
           <div className="flex items-center gap-2 mb-2">
-            <Crown className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-            <span className="text-sm font-semibold text-orange-800 dark:text-orange-200">Trial Plan</span>
+            <Crown className="h-4 w-4 text-foreground" />
+            <span className="text-sm font-semibold text-foreground">Trial Plan</span>
           </div>
 
-          <p className="text-xs text-orange-700 dark:text-orange-300 mb-3 leading-relaxed">
+          <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
             Unlock unlimited projects and advanced features
           </p>
 
           <Button
             onClick={handleUpgrade}
             size="sm"
-            className="w-full bg-orange-600 hover:bg-orange-700 text-white text-xs h-7"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-7"
           >
             Upgrade Now
           </Button>
