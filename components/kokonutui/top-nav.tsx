@@ -2,11 +2,10 @@
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Image from "next/image"
-import { Bell, ChevronRight, Plus } from "lucide-react"
+import { Bell, ChevronRight } from "lucide-react"
 import Profile01 from "./profile-01"
 import Link from "next/link"
 import ThemeToggle from "../theme-toggle"
-import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 
 interface Project {
@@ -26,14 +25,21 @@ interface BreadcrumbItem {
 export default function TopNav({ currentProject }: TopNavProps) {
   const pathname = usePathname()
   const isProjectsPage = pathname === "/projects"
+  const isSettingsPage = pathname.startsWith("/settings")
 
-  // Define breadcrumbs based on current project
-  const breadcrumbs: BreadcrumbItem[] = currentProject
-    ? [
-        { label: "Projects", href: "/projects" },
-        { label: currentProject.name, href: `/projects/${currentProject.uuid}` },
-      ]
-    : [{ label: "Projects", href: "/projects" }]
+  // Define breadcrumbs based on current page
+  let breadcrumbs: BreadcrumbItem[] = []
+
+  if (isSettingsPage) {
+    breadcrumbs = [{ label: "Settings" }]
+  } else if (currentProject) {
+    breadcrumbs = [
+      { label: "Projects", href: "/projects" },
+      { label: currentProject.name, href: `/projects/${currentProject.uuid}` },
+    ]
+  } else {
+    breadcrumbs = [{ label: "Projects", href: "/projects" }]
+  }
 
   return (
     <nav className="px-2 sm:px-4 flex items-center justify-between bg-white dark:bg-[#0F0F12] border-b border-gray-200 dark:border-[#1F1F23] h-full">
@@ -56,8 +62,6 @@ export default function TopNav({ currentProject }: TopNavProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4 ml-auto">
-
-
         <button
           type="button"
           className="p-1 sm:p-1.5 hover:bg-gray-100 dark:hover:bg-[#1F1F23] rounded-full transition-colors"
