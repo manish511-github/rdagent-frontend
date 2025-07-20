@@ -32,9 +32,6 @@ import {
   FilterIcon,
   SlidersHorizontal,
   ArrowUpRight,
-  ThumbsUp,
-  ThumbsDown,
-  AlertCircle,
   Clock,
   ExternalLink,
   BarChart2,
@@ -75,9 +72,6 @@ import {
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import React from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import type { Components } from "react-markdown";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { selectPostById } from "@/store/features/agentSlice";
 import MarkdownRender from "../markdown-render";
@@ -162,6 +156,518 @@ const getStatusLabel = (status: PostStatus) => {
   }
 };
 
+// Performance Metrics Component
+const PerformanceMetrics = React.memo(function PerformanceMetrics({
+  setActiveView,
+}: {
+  setActiveView: (view: string) => void;
+}) {
+  return (
+    <div className="p-3 space-y-4 overflow-y-auto">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold">Performance Metrics</h2>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => setActiveView("content")}
+        >
+          <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+          Back to Content
+        </Button>
+      </div>
+
+      {/* Performance Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Response Rate</p>
+                <p className="text-xl font-bold">
+                  {performanceData.responseRate}%
+                </p>
+              </div>
+              <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-full">
+                <MessageSquare className="h-4 w-4 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Conversion Rate</p>
+                <p className="text-xl font-bold">
+                  {performanceData.conversionRate}%
+                </p>
+              </div>
+              <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-full">
+                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Response Time</p>
+                <p className="text-xl font-bold">
+                  {performanceData.averageResponseTime}
+                </p>
+              </div>
+              <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-full">
+                <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Engagement Trends */}
+      <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+        <CardContent className="p-3">
+          <h3 className="text-sm font-medium mb-3">Weekly Engagement Trends</h3>
+          <div className="h-40 flex items-end justify-between gap-1">
+            {performanceData.weeklyEngagement.map((value, index) => (
+              <div key={index} className="relative flex flex-col items-center">
+                <div
+                  className="w-8 bg-blue-500 dark:bg-blue-600 rounded-t-sm"
+                  style={{ height: `${value}%` }}
+                ></div>
+                <span className="text-xs mt-1">D{index + 1}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Platform & Sentiment Analysis */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+          <CardContent className="p-3">
+            <h3 className="text-sm font-medium mb-3">Platform Breakdown</h3>
+            <div className="space-y-2">
+              {Object.entries(performanceData.platformBreakdown).map(
+                ([platform, percentage]) => (
+                  <div key={platform} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="capitalize">{platform}</span>
+                      <span>{percentage}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full",
+                          platform === "reddit"
+                            ? "bg-orange-500"
+                            : platform === "twitter"
+                            ? "bg-blue-400"
+                            : "bg-blue-700"
+                        )}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+          <CardContent className="p-3">
+            <h3 className="text-sm font-medium mb-3">Sentiment Analysis</h3>
+            <div className="space-y-2">
+              {Object.entries(performanceData.sentimentAnalysis).map(
+                ([sentiment, percentage]) => (
+                  <div key={sentiment} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="capitalize">{sentiment}</span>
+                      <span>{percentage}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full",
+                          sentiment === "positive"
+                            ? "bg-green-500"
+                            : sentiment === "neutral"
+                            ? "bg-gray-400"
+                            : "bg-red-500"
+                        )}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Top Keywords */}
+      <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+        <CardContent className="p-3">
+          <h3 className="text-sm font-medium mb-3">Top Keywords</h3>
+          <div className="flex flex-wrap gap-2">
+            {performanceData.topKeywords.map((keyword, index) => (
+              <Badge
+                key={index}
+                variant="secondary"
+                className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800"
+              >
+                {keyword}
+              </Badge>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+});
+
+// Configuration Component
+const ConfigurationSection = React.memo(function ConfigurationSection({
+  agent,
+  setActiveView,
+}: {
+  agent: any;
+  setActiveView: (view: string) => void;
+}) {
+  return (
+    <div className="p-3 space-y-4 overflow-y-auto">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold">Agent Configuration</h2>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => setActiveView("content")}
+        >
+          <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+          Back to Content
+        </Button>
+      </div>
+
+      <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+        <CardContent className="p-4 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="agent-name" className="text-sm">
+              Agent Name
+            </Label>
+            <Input id="agent-name" defaultValue={agent.name} className="h-9" />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="agent-description" className="text-sm">
+              Description
+            </Label>
+            <Textarea
+              id="agent-description"
+              defaultValue={agent.description}
+              className="min-h-[100px]"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm">Platform</Label>
+            <Select defaultValue={agent.platform}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select platform" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="reddit">Reddit</SelectItem>
+                <SelectItem value="twitter">Twitter</SelectItem>
+                <SelectItem value="linkedin">LinkedIn</SelectItem>
+                <SelectItem value="facebook">Facebook</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm">Agent Mode</Label>
+            <Select defaultValue="assisted">
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select mode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="assisted">
+                  Assisted (Requires Approval)
+                </SelectItem>
+                <SelectItem value="autonomous">Autonomous</SelectItem>
+                <SelectItem value="learning">Learning Mode</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="auto-respond" className="text-sm cursor-pointer">
+              Auto-Respond to Mentions
+            </Label>
+            <Switch id="auto-respond" defaultChecked={true} />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="notifications" className="text-sm cursor-pointer">
+              Email Notifications
+            </Label>
+            <Switch id="notifications" defaultChecked={true} />
+          </div>
+
+          <div className="pt-2">
+            <Button className="w-full">Save Changes</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+        <CardContent className="p-4 space-y-4">
+          <h3 className="text-sm font-medium">Advanced Settings</h3>
+
+          <div className="space-y-2">
+            <Label htmlFor="max-responses" className="text-sm">
+              Maximum Daily Responses
+            </Label>
+            <Input
+              id="max-responses"
+              type="number"
+              defaultValue="50"
+              className="h-9"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confidence-threshold" className="text-sm">
+              Confidence Threshold (%)
+            </Label>
+            <Input
+              id="confidence-threshold"
+              type="number"
+              defaultValue="75"
+              className="h-9"
+            />
+            <p className="text-xs text-muted-foreground">
+              Minimum confidence score required for auto-approval
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm">Response Tone</Label>
+            <Select defaultValue="professional">
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select tone" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="professional">Professional</SelectItem>
+                <SelectItem value="friendly">Friendly</SelectItem>
+                <SelectItem value="casual">Casual</SelectItem>
+                <SelectItem value="technical">Technical</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800 border-red-200 dark:border-red-800/30">
+        <CardContent className="p-4">
+          <h3 className="text-sm font-medium text-red-600 dark:text-red-400">
+            Danger Zone
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1 mb-3">
+            These actions cannot be undone. Please be certain.
+          </p>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              className="border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
+            >
+              Reset Agent
+            </Button>
+            <Button
+              variant="outline"
+              className="border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
+            >
+              Delete Agent
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+});
+
+// Content Management Component
+const ContentManagement = React.memo(function ContentManagement({
+  filteredContent,
+  selectedContentId,
+  setSelectedContentId,
+  showDetailPane,
+  toggleDetailPane,
+  isMobile,
+  getStatusBadgeClass,
+  getStatusLabel,
+  isFilterExpanded,
+  toggleFilterExpanded,
+  searchQuery,
+  setSearchQuery,
+  sortBy,
+  setSortBy,
+  statusFilter,
+  setStatusFilter,
+}: {
+  filteredContent: DisplayPost[];
+  selectedContentId: string | null;
+  setSelectedContentId: (id: string) => void;
+  showDetailPane: boolean;
+  toggleDetailPane: () => void;
+  isMobile: boolean;
+  getStatusBadgeClass: (status: PostStatus) => string;
+  getStatusLabel: (status: PostStatus) => string;
+  isFilterExpanded: boolean;
+  toggleFilterExpanded: () => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  sortBy: string;
+  setSortBy: (sort: string) => void;
+  statusFilter: string;
+  setStatusFilter: (filter: string) => void;
+}) {
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header with Search and Filters */}
+      <div className="flex-shrink-0 p-3 border-b border-gray-200 dark:border-gray-800">
+        <div className="flex flex-col md:flex-row items-center gap-2">
+          {/* Search Bar */}
+          <div className="relative flex-grow w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search posts..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 h-9 text-sm w-full"
+            />
+          </div>
+
+          {/* Filters and Sort */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-9 text-xs flex-1 md:flex-none md:w-[140px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="needs_review">Needs Review</SelectItem>
+                <SelectItem value="discarded">Discarded</SelectItem>
+                <SelectItem value="escalated">Escalated</SelectItem>
+                <SelectItem value="processed">Processed</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Sort By */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="h-9 text-xs flex-1 md:flex-none md:w-[140px]">
+                <div className="flex items-center gap-1.5">
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  <SelectValue placeholder="Sort by" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="relevance">Most Relevant</SelectItem>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+                <SelectItem value="most_comments">Most Comments</SelectItem>
+                <SelectItem value="least_comments">Least Comments</SelectItem>
+                <SelectItem value="most_upvotes">Most Upvotes</SelectItem>
+                <SelectItem value="least_upvotes">Least Upvotes</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* Flexbox Layout */}
+      <div className="flex flex-1 min-h-0 mx-3 overflow-hidden">
+        {/* Left Pane - Content Feed */}
+        <div
+          className={cn(
+            "flex flex-col min-h-0 min-w-0 overflow-hidden border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/60",
+            isMobile
+              ? "w-full"
+              : showDetailPane
+              ? "flex-[2] max-w-[500px]"
+              : "flex-1"
+          )}
+          id="content-list-container"
+        >
+          {/* Content List - Scrollable */}
+          <div
+            className="flex-1 overflow-y-auto min-h-0"
+            id="content-list-scroll-area"
+          >
+            {filteredContent.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full mb-3">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <h3 className="text-sm font-medium mb-1">No content found</h3>
+                <p className="text-xs text-muted-foreground">
+                  Try adjusting your filters or search query
+                </p>
+              </div>
+            ) : (
+              <div className="w-full min-w-0">
+                {filteredContent.map((item) => (
+                  <ContentListItem
+                    key={item.id}
+                    item={item}
+                    isSelected={item.id === selectedContentId}
+                    onSelect={setSelectedContentId}
+                    showDetailPane={showDetailPane}
+                    getStatusBadgeClass={getStatusBadgeClass}
+                    getStatusLabel={getStatusLabel}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Pane - Content Details (Desktop) */}
+        {showDetailPane && !isMobile && selectedContentId && (
+          <div className="flex flex-col min-w-0 min-h-0 ml-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/60 overflow-hidden flex-[3]">
+            <ContentDetails
+              selectedContentId={selectedContentId}
+              toggleDetailPane={toggleDetailPane}
+              getStatusBadgeClass={getStatusBadgeClass}
+              getStatusLabel={getStatusLabel}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Detail View - Only shown on mobile devices */}
+      {showDetailPane && selectedContentId && isMobile && (
+        <div className="mt-2 mx-3 mb-3 bg-white dark:bg-gray-900/60 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+          <ContentDetails
+            selectedContentId={selectedContentId}
+            toggleDetailPane={toggleDetailPane}
+            getStatusBadgeClass={getStatusBadgeClass}
+            getStatusLabel={getStatusLabel}
+          />
+        </div>
+      )}
+    </div>
+  );
+});
+
 export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
@@ -184,6 +690,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   const [typeFilter, setTypeFilter] = useState("all-types");
   const [timeFilter, setTimeFilter] = useState("24h");
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("relevance");
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
   const [showAgentStats, setShowAgentStats] = useState(false);
   const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(false);
@@ -234,14 +741,6 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
-  // Add a separate useEffect to handle selectedContentId updates with better logic
-  useEffect(() => {
-    if (displayPosts.length > 0 && !selectedContentId) {
-      // Select the first item only if we don't have a selection
-      setSelectedContentId(displayPosts[0].id);
-    }
-  }, [displayPosts.length]); // Only depend on length to avoid unnecessary updates
 
   // Memoize the search suggestions function
   const getSearchSuggestions = React.useCallback(
@@ -344,49 +843,73 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
 
   // Memoize the filtered content calculation
   const filteredContent = React.useMemo(() => {
-    return displayPosts.filter((item) => {
+    let filtered = displayPosts.filter((item) => {
       // Apply status filter
       if (statusFilter !== "all" && item.status !== statusFilter) return false;
 
-      // Apply search filter with advanced syntax support
+      // Apply search filter - simple text search in title and content
       if (debouncedSearchQuery) {
         const query = debouncedSearchQuery.toLowerCase();
-
-        // Handle special search syntax
-        if (query.startsWith("status:")) {
-          const status = query.replace("status:", "").trim();
-          return item.status === status;
-        }
-
-        if (query.startsWith("author:")) {
-          const author = query.replace("author:", "").trim();
-          return item.author.toLowerCase().includes(author);
-        }
-
-        if (query.startsWith("relevance:>")) {
-          const threshold = Number.parseInt(
-            query.replace("relevance:>", "").trim()
-          );
-          return item.relevance > threshold;
-        }
-
-        if (query === "time:today") {
-          return item.time.includes("min") || item.time.includes("hour");
-        }
-
-        // Regular search
         return (
-          item.content.toLowerCase().includes(query) ||
-          item.author.toLowerCase().includes(query) ||
-          item.tag.toLowerCase().includes(query) ||
           item.title.toLowerCase().includes(query) ||
-          item.keywords.some((keyword) => keyword.toLowerCase().includes(query))
+          item.content.toLowerCase().includes(query)
         );
       }
 
       return true;
     });
-  }, [displayPosts, statusFilter, debouncedSearchQuery]);
+
+    // Apply sorting
+    // Parse time strings for comparison (assuming format like "2 hours ago", "5 mins ago")
+    const getTimeValue = (timeStr: string) => {
+      if (timeStr.includes("min")) {
+        return parseInt(timeStr);
+      } else if (timeStr.includes("hour")) {
+        return parseInt(timeStr) * 60;
+      } else if (timeStr.includes("day")) {
+        return parseInt(timeStr) * 60 * 24;
+      }
+      return 0;
+    };
+
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "relevance":
+          return (b.relevance || 0) - (a.relevance || 0);
+
+        case "newest":
+          return getTimeValue(a.time) - getTimeValue(b.time);
+
+        case "oldest":
+          return getTimeValue(b.time) - getTimeValue(a.time);
+
+        case "most_comments":
+          return (
+            parseInt(b.comments.toString()) - parseInt(a.comments.toString())
+          );
+
+        case "least_comments":
+          return (
+            parseInt(a.comments.toString()) - parseInt(b.comments.toString())
+          );
+
+        case "most_upvotes":
+          return (
+            parseInt(b.upvotes.toString()) - parseInt(a.upvotes.toString())
+          );
+
+        case "least_upvotes":
+          return (
+            parseInt(a.upvotes.toString()) - parseInt(b.upvotes.toString())
+          );
+
+        default:
+          return (b.relevance || 0) - (a.relevance || 0);
+      }
+    });
+
+    return filtered;
+  }, [displayPosts, statusFilter, debouncedSearchQuery, sortBy]);
 
   // Memoize the selected content
   const selectedContent = React.useMemo(() => {
@@ -459,12 +982,6 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
     setIsConfigExpanded(!isConfigExpanded);
   }, [isConfigExpanded]);
 
-  // Update the filteredContent function to handle advanced search queries
-  // This function is now memoized, so it's not directly used here.
-  // The memoized filteredContent is used instead.
-
-  // The selectedContent is now memoized.
-
   if (isLoading) {
     return (
       <Layout>
@@ -479,1156 +996,114 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   }
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col">
-      <Layout>
-        <div className="flex flex-col h-full overflow-hidden">
-          {/* Ultra Compact Header with Agent Info & Controls */}
-          <div className="bg-white dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-800 py-1.5 px-3 flex items-center justify-between gap-2 flex-shrink-0">
-            <div className="flex items-center gap-3">
-              {/* Agent Name */}
-              <div className="flex items-center gap-2">
-                {isEditing ? (
-                  <>
-                    <Input
-                      value={editedName}
-                      onChange={(e) => setEditedName(e.target.value)}
-                      className="text-base font-semibold h-7 max-w-xs"
-                      autoFocus
-                    />
-                    <Button
-                      size="sm"
-                      className="h-6 text-xs"
-                      onClick={saveAgentName}
-                    >
-                      Save
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <h1 className="text-base font-semibold">{agent.name}</h1>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 w-6 p-0"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                  </>
-                )}
-              </div>
-
-              {/* Status Badges */}
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "text-xs px-1.5 py-0",
-                    agent.status === "active"
-                      ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50"
-                      : "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800/50"
-                  )}
-                >
-                  {agent.status === "active" ? "Active" : "Paused"}
-                </Badge>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="hidden md:flex items-center gap-3 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Users className="h-3 w-3" />
-                  <span>{agent.keyMetric.value} posts</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <MessageSquare className="h-3 w-3" />
-                  <span>{agent.secondaryMetric.value} goals</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <BarChart2 className="h-3 w-3" />
-                  <span>{agent.healthScore}% health</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Controls */}
+    <Layout>
+      <div className="flex flex-col h-full">
+        {/* Navigation Header */}
+        <div className="border-b border-gray-200 dark:border-gray-800 px-3 py-2 flex-shrink-0">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <Switch
-                  id="status"
-                  checked={agent.status === "active"}
-                  onCheckedChange={toggleAgentStatus}
-                  className="scale-75"
-                />
-                <Label
-                  htmlFor="status"
-                  className="text-xs cursor-pointer hidden md:block"
-                >
-                  {agent.status === "active" ? "Active" : "Paused"}
-                </Label>
-              </div>
-
-              {/* View Selector Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-7 text-xs">
-                    <Menu className="h-3.5 w-3.5 mr-1.5" />
-                    <span className="hidden sm:inline">View</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    className={cn(
-                      "text-xs cursor-pointer",
-                      activeView === "content" && "bg-gray-100 dark:bg-gray-800"
-                    )}
-                    onClick={() => {
-                      setActiveView("content");
-                      setIsPerformanceExpanded(false);
-                      setIsConfigExpanded(false);
-                    }}
-                  >
-                    <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-                    Content Management
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className={cn(
-                      "text-xs cursor-pointer",
-                      activeView === "performance" &&
-                        "bg-gray-100 dark:bg-gray-800"
-                    )}
-                    onClick={() => {
-                      setActiveView("performance");
-                      setIsPerformanceExpanded(true);
-                      setIsConfigExpanded(false);
-                    }}
-                  >
-                    <BarChart2 className="h-3.5 w-3.5 mr-1.5" />
-                    Performance Metrics
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className={cn(
-                      "text-xs cursor-pointer",
-                      activeView === "config" && "bg-gray-100 dark:bg-gray-800"
-                    )}
-                    onClick={() => {
-                      setActiveView("config");
-                      setIsPerformanceExpanded(false);
-                      setIsConfigExpanded(true);
-                    }}
-                  >
-                    <Settings className="h-3.5 w-3.5 mr-1.5" />
-                    Configuration
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Dialog
-                open={isDeleteDialogOpen}
-                onOpenChange={setIsDeleteDialogOpen}
-              >
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-7 text-xs">
-                    <Trash2 className="h-3 w-3" />
-                    <span className="hidden md:inline ml-1">Delete</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Delete Agent</DialogTitle>
-                    <DialogDescription>
-                      Are you sure you want to delete this agent? This action
-                      cannot be undone.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsDeleteDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button variant="destructive" onClick={handleDeleteAgent}>
-                      Delete
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-
-          {/* Main Content Area */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            {/* Content Management Section */}
-            <div
-              className={cn(
-                "flex-1 flex flex-col min-h-0 overflow-hidden transition-all duration-300",
-                activeView !== "content" && "hidden"
-              )}
-            >
-              <div className="flex justify-between items-center mb-2 px-3 flex-shrink-0">
-                <h2 className="text-sm font-semibold">Content Management</h2>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={toggleFilterExpanded}
-                    className="hidden md:flex h-7 text-xs"
-                  >
-                    <FilterIcon className="h-3.5 w-3.5 mr-1.5" />
-                    {isFilterExpanded ? "Hide Filters" : "Show Filters"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={toggleDetailPane}
-                    className="h-7 text-xs"
-                  >
-                    {showDetailPane ? (
-                      <>
-                        <ChevronRightIcon className="h-3.5 w-3.5 mr-1.5" />
-                        Hide Details
-                      </>
-                    ) : (
-                      <>
-                        <ChevronLeftIcon className="h-3.5 w-3.5 mr-1.5" />
-                        Show Details
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div
+              <h1 className="text-lg font-semibold">{agent.name}</h1>
+              <Badge
+                variant="outline"
                 className={cn(
-                  "flex flex-1 min-h-0 transition-all duration-300 ease-in-out",
-                  "border border-gray-200 dark:border-gray-800 rounded-lg mx-3 overflow-hidden",
-                  "bg-white dark:bg-gray-900/60"
+                  "text-xs px-2 py-0.5",
+                  agent.status === "active"
+                    ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50"
+                    : "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800/50"
                 )}
               >
-                {/* Left Pane - Content Feed */}
-                <div
-                  className={cn(
-                    "flex flex-col transition-all duration-300 ease-in-out min-h-0",
-                    showDetailPane ? "w-full lg:w-2/5" : "w-full"
-                  )}
-                >
-                  {/* Filter Header - Fixed */}
-                  <div className="border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
-                    <div className="p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-semibold">
-                          Agent Content Feed
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          {/* Advanced Search Toggle */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                              "h-7 w-7 p-0 transition-all duration-200",
-                              searchQuery && "text-blue-600 dark:text-blue-400"
-                            )}
-                            onClick={() =>
-                              setIsSearchExpanded(!isSearchExpanded)
-                            }
-                          >
-                            <Search className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 md:hidden"
-                            onClick={toggleFilterExpanded}
-                          >
-                            <SlidersHorizontal className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
+                {agent.status === "active" ? "Active" : "Paused"}
+              </Badge>
+            </div>
 
-                      {/* Unified Search and Filter Experience */}
-                      {(isFilterExpanded || isSearchExpanded) && (
-                        <div className="space-y-2">
-                          {/* Search Bar - Enhanced Design */}
-                          {isSearchExpanded && (
-                            <div className="relative">
-                              <div
-                                className={cn(
-                                  "relative transition-all duration-300 ease-out",
-                                  isSearchFocused &&
-                                    "ring-2 ring-blue-500/20 dark:ring-blue-400/20 rounded-md"
-                                )}
-                              >
-                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors duration-200" />
-                                <Input
-                                  ref={searchInputRef}
-                                  placeholder="Search posts, authors, keywords..."
-                                  className={cn(
-                                    "pl-10 pr-24 h-9 text-sm transition-all duration-200",
-                                    "border-gray-200 dark:border-gray-700",
-                                    "focus:border-blue-500 dark:focus:border-blue-400",
-                                    "placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                                  )}
-                                  value={searchQuery}
-                                  onChange={(e) => {
-                                    setSearchQuery(e.target.value);
-                                    setShowSuggestions(true);
-                                  }}
-                                  onFocus={() => {
-                                    setIsSearchFocused(true);
-                                    setShowSuggestions(true);
-                                  }}
-                                  onBlur={() => {
-                                    setIsSearchFocused(false);
-                                    // Delay to allow clicking on suggestions
-                                    setTimeout(
-                                      () => setShowSuggestions(false),
-                                      200
-                                    );
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Escape") {
-                                      setSearchQuery("");
-                                      setShowSuggestions(false);
-                                      searchInputRef.current?.blur();
-                                    }
-                                  }}
-                                />
-
-                                {/* Search Actions */}
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                                  {searchQuery && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                      onClick={() => {
-                                        setSearchQuery("");
-                                        searchInputRef.current?.focus();
-                                      }}
-                                    >
-                                      <XIcon className="h-3 w-3" />
-                                    </Button>
-                                  )}
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs px-1.5 py-0 h-5 bg-gray-100 dark:bg-gray-800"
-                                  >
-                                    {filteredContent.length}
-                                  </Badge>
-                                </div>
-                              </div>
-
-                              {/* Search Suggestions Dropdown */}
-                              {showSuggestions && searchQuery && (
-                                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg overflow-hidden">
-                                  {/* Recent Searches */}
-                                  {recentSearches.length > 0 && (
-                                    <div className="p-2 border-b border-gray-200 dark:border-gray-800">
-                                      <div className="flex items-center justify-between mb-1">
-                                        <span className="text-xs font-medium text-muted-foreground">
-                                          Recent
-                                        </span>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-5 text-xs px-1 hover:bg-transparent"
-                                          onClick={() => setRecentSearches([])}
-                                        >
-                                          Clear
-                                        </Button>
-                                      </div>
-                                      {recentSearches
-                                        .slice(0, 3)
-                                        .map((search, idx) => (
-                                          <button
-                                            key={idx}
-                                            className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 rounded flex items-center gap-2"
-                                            onClick={() => {
-                                              setSearchQuery(search);
-                                              setShowSuggestions(false);
-                                            }}
-                                          >
-                                            <Clock className="h-3 w-3 text-muted-foreground" />
-                                            <span className="truncate">
-                                              {search}
-                                            </span>
-                                          </button>
-                                        ))}
-                                    </div>
-                                  )}
-
-                                  {/* Smart Suggestions */}
-                                  <div className="p-2">
-                                    <span className="text-xs font-medium text-muted-foreground px-2">
-                                      Suggestions
-                                    </span>
-                                    <div className="mt-1 space-y-0.5">
-                                      {getSearchSuggestions(searchQuery).map(
-                                        (suggestion, idx) => (
-                                          <button
-                                            key={idx}
-                                            className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 rounded"
-                                            onClick={() => {
-                                              setSearchQuery(suggestion.query);
-                                              setShowSuggestions(false);
-                                            }}
-                                          >
-                                            <div className="flex items-center justify-between">
-                                              <div className="flex items-center gap-2">
-                                                {suggestion.type ===
-                                                  "author" && (
-                                                  <Users className="h-3 w-3 text-muted-foreground" />
-                                                )}
-                                                {suggestion.type ===
-                                                  "keyword" && (
-                                                  <Hash className="h-3 w-3 text-muted-foreground" />
-                                                )}
-                                                {suggestion.type ===
-                                                  "status" && (
-                                                  <Flag className="h-3 w-3 text-muted-foreground" />
-                                                )}
-                                                <span className="truncate">
-                                                  {suggestion.label}
-                                                </span>
-                                              </div>
-                                              <span className="text-xs text-muted-foreground">
-                                                {suggestion.count}
-                                              </span>
-                                            </div>
-                                          </button>
-                                        )
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {/* Quick Filters */}
-                                  <div className="p-2 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-                                    <span className="text-xs font-medium text-muted-foreground px-2">
-                                      Quick Filters
-                                    </span>
-                                    <div className="mt-1 flex flex-wrap gap-1 px-2">
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs px-2 py-0.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                                        onClick={() => {
-                                          setSearchQuery("status:pending");
-                                          setShowSuggestions(false);
-                                        }}
-                                      >
-                                        Pending Only
-                                      </Badge>
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs px-2 py-0.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                                        onClick={() => {
-                                          setSearchQuery("relevance:>90");
-                                          setShowSuggestions(false);
-                                        }}
-                                      >
-                                        High Relevance
-                                      </Badge>
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs px-2 py-0.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                                        onClick={() => {
-                                          setSearchQuery("time:today");
-                                          setShowSuggestions(false);
-                                        }}
-                                      >
-                                        Today
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Compact Filter Pills */}
-                          {isFilterExpanded && (
-                            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-                              {/* Active Filters Display */}
-                              {(statusFilter !== "all" ||
-                                typeFilter !== "all-types" ||
-                                timeFilter !== "24h") && (
-                                <div className="flex items-center gap-1 mr-2">
-                                  {statusFilter !== "all" && (
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-xs px-2 py-0.5 pr-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
-                                    >
-                                      {statusFilter}
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-3 w-3 p-0 ml-1 hover:bg-transparent"
-                                        onClick={() => setStatusFilter("all")}
-                                      >
-                                        <XIcon className="h-2.5 w-2.5" />
-                                      </Button>
-                                    </Badge>
-                                  )}
-                                  {typeFilter !== "all-types" && (
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-xs px-2 py-0.5 pr-1 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400"
-                                    >
-                                      {typeFilter}
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-3 w-3 p-0 ml-1 hover:bg-transparent"
-                                        onClick={() =>
-                                          setTypeFilter("all-types")
-                                        }
-                                      >
-                                        <XIcon className="h-2.5 w-2.5" />
-                                      </Button>
-                                    </Badge>
-                                  )}
-                                  {timeFilter !== "24h" && (
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-xs px-2 py-0.5 pr-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
-                                    >
-                                      {timeFilter}
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-3 w-3 p-0 ml-1 hover:bg-transparent"
-                                        onClick={() => setTimeFilter("24h")}
-                                      >
-                                        <XIcon className="h-2.5 w-2.5" />
-                                      </Button>
-                                    </Badge>
-                                  )}
-                                  <div className="w-px h-4 bg-gray-300 dark:bg-gray-700 mx-1" />
-                                </div>
-                              )}
-
-                              {/* Filter Options */}
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 text-xs px-2"
-                                  >
-                                    <FilterIcon className="h-3 w-3 mr-1" />
-                                    Filters
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                  align="start"
-                                  className="w-56"
-                                >
-                                  <div className="p-2 space-y-3">
-                                    {/* Status Filter */}
-                                    <div>
-                                      <Label className="text-xs font-medium mb-1">
-                                        Status
-                                      </Label>
-                                      <Select
-                                        value={statusFilter}
-                                        onValueChange={setStatusFilter}
-                                      >
-                                        <SelectTrigger className="h-8 text-xs">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="all">
-                                            All Status
-                                          </SelectItem>
-                                          <SelectItem value="pending">
-                                            Pending
-                                          </SelectItem>
-                                          <SelectItem value="approved">
-                                            Approved
-                                          </SelectItem>
-                                          <SelectItem value="needs_review">
-                                            Needs Review
-                                          </SelectItem>
-                                          <SelectItem value="escalated">
-                                            Escalated
-                                          </SelectItem>
-                                          <SelectItem value="discarded">
-                                            Discarded
-                                          </SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-
-                                    {/* Type Filter */}
-                                    <div>
-                                      <Label className="text-xs font-medium mb-1">
-                                        Type
-                                      </Label>
-                                      <Select
-                                        value={typeFilter}
-                                        onValueChange={setTypeFilter}
-                                      >
-                                        <SelectTrigger className="h-8 text-xs">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="all-types">
-                                            All Types
-                                          </SelectItem>
-                                          <SelectItem value="uem-inquiry">
-                                            UEM Inquiry
-                                          </SelectItem>
-                                          <SelectItem value="competitor">
-                                            Competitor Mention
-                                          </SelectItem>
-                                          <SelectItem value="negative">
-                                            Negative Sentiment
-                                          </SelectItem>
-                                          <SelectItem value="lead">
-                                            Lead Identified
-                                          </SelectItem>
-                                          <SelectItem value="agent-response">
-                                            Agent Response
-                                          </SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-
-                                    {/* Time Filter */}
-                                    <div>
-                                      <Label className="text-xs font-medium mb-1">
-                                        Time Period
-                                      </Label>
-                                      <Select
-                                        value={timeFilter}
-                                        onValueChange={setTimeFilter}
-                                      >
-                                        <SelectTrigger className="h-8 text-xs">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="1h">
-                                            Past Hour
-                                          </SelectItem>
-                                          <SelectItem value="24h">
-                                            Past 24 Hours
-                                          </SelectItem>
-                                          <SelectItem value="7d">
-                                            Past Week
-                                          </SelectItem>
-                                          <SelectItem value="30d">
-                                            Past Month
-                                          </SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-
-                                    {/* Clear All */}
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="w-full h-7 text-xs"
-                                      onClick={() => {
-                                        setStatusFilter("all");
-                                        setTypeFilter("all-types");
-                                        setTimeFilter("24h");
-                                      }}
-                                    >
-                                      Clear All Filters
-                                    </Button>
-                                  </div>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-
-                              {/* Preset Filters */}
-                              <div className="flex items-center gap-1">
-                                <Badge
-                                  variant={
-                                    statusFilter === "pending"
-                                      ? "default"
-                                      : "outline"
-                                  }
-                                  className="px-2 h-7 text-xs cursor-pointer hover:bg-muted whitespace-nowrap"
-                                  onClick={() =>
-                                    setStatusFilter(
-                                      statusFilter === "pending"
-                                        ? "all"
-                                        : "pending"
-                                    )
-                                  }
-                                >
-                                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1" />
-                                  Pending
-                                </Badge>
-                                <Badge
-                                  variant={
-                                    statusFilter === "needs_review"
-                                      ? "default"
-                                      : "outline"
-                                  }
-                                  className="px-2 h-7 text-xs cursor-pointer hover:bg-muted whitespace-nowrap"
-                                  onClick={() =>
-                                    setStatusFilter(
-                                      statusFilter === "needs_review"
-                                        ? "all"
-                                        : "needs_review"
-                                    )
-                                  }
-                                >
-                                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1" />
-                                  Review
-                                </Badge>
-                                <Badge
-                                  variant="outline"
-                                  className="px-2 h-7 text-xs cursor-pointer hover:bg-muted whitespace-nowrap"
-                                  onClick={() => {
-                                    setTimeFilter("1h");
-                                  }}
-                                >
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  Recent
-                                </Badge>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Content List - Scrollable with Virtualization */}
-                  <ScrollArea className="flex-1 overflow-y-auto min-h-0">
-                    {filteredContent.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full mb-3">
-                          <Search className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <h3 className="text-sm font-medium mb-1">
-                          No content found
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          Try adjusting your filters or search query
-                        </p>
-                      </div>
-                    ) : (
-                      <div>
-                        {filteredContent.map((item) => (
-                          <ContentListItem
-                            key={item.id}
-                            item={item}
-                            isSelected={item.id === selectedContentId}
-                            onSelect={setSelectedContentId}
-                            showDetailPane={showDetailPane}
-                            getStatusBadgeClass={getStatusBadgeClass}
-                            getStatusLabel={getStatusLabel}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </ScrollArea>
-                </div>
-
-                {/* Right Pane - Content Details (Desktop) */}
-                {showDetailPane && !isMobile && (
-                  <div className="flex flex-col w-3/5 border-l border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out min-h-0">
-                    <ContentDetails
-                      selectedContentId={selectedContentId || ""}
-                      toggleDetailPane={toggleDetailPane}
-                      getStatusBadgeClass={getStatusBadgeClass}
-                      getStatusLabel={getStatusLabel}
-                    />
-                  </div>
+            {/* View Selector */}
+            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+              <Button
+                variant={activeView === "content" ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "h-8 px-3 text-xs",
+                  activeView !== "content" &&
+                    "hover:bg-gray-200 dark:hover:bg-gray-700"
                 )}
-              </div>
-
-              {/* Mobile Detail View - Only shown on mobile devices */}
-              {showDetailPane && selectedContentId && isMobile && (
-                <div className="mt-2 mx-3 mb-3 bg-white dark:bg-gray-900/60 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
-                  <ContentDetails
-                    selectedContentId={selectedContentId || ""}
-                    toggleDetailPane={toggleDetailPane}
-                    getStatusBadgeClass={getStatusBadgeClass}
-                    getStatusLabel={getStatusLabel}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Performance Section */}
-            <div
-              className={cn(
-                "flex-1 flex flex-col min-h-0 overflow-hidden transition-all duration-300",
-                activeView !== "performance" && "hidden"
-              )}
-            >
-              <div className="p-3 space-y-4 overflow-y-auto">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-semibold">
-                    Performance Metrics
-                  </h2>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => setActiveView("content")}
-                  >
-                    <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-                    Back to Content
-                  </Button>
-                </div>
-
-                {/* Performance Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            Response Rate
-                          </p>
-                          <p className="text-xl font-bold">
-                            {performanceData.responseRate}%
-                          </p>
-                        </div>
-                        <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-full">
-                          <MessageSquare className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            Conversion Rate
-                          </p>
-                          <p className="text-xl font-bold">
-                            {performanceData.conversionRate}%
-                          </p>
-                        </div>
-                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-full">
-                          <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            Response Time
-                          </p>
-                          <p className="text-xl font-bold">
-                            {performanceData.averageResponseTime}
-                          </p>
-                        </div>
-                        <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-full">
-                          <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Engagement Trends */}
-                <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
-                  <CardContent className="p-3">
-                    <h3 className="text-sm font-medium mb-3">
-                      Weekly Engagement Trends
-                    </h3>
-                    <div className="h-40 flex items-end justify-between gap-1">
-                      {performanceData.weeklyEngagement.map((value, index) => (
-                        <div
-                          key={index}
-                          className="relative flex flex-col items-center"
-                        >
-                          <div
-                            className="w-8 bg-blue-500 dark:bg-blue-600 rounded-t-sm"
-                            style={{ height: `${value}%` }}
-                          ></div>
-                          <span className="text-xs mt-1">D{index + 1}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Platform & Sentiment Analysis */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
-                    <CardContent className="p-3">
-                      <h3 className="text-sm font-medium mb-3">
-                        Platform Breakdown
-                      </h3>
-                      <div className="space-y-2">
-                        {Object.entries(performanceData.platformBreakdown).map(
-                          ([platform, percentage]) => (
-                            <div key={platform} className="space-y-1">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="capitalize">{platform}</span>
-                                <span>{percentage}%</span>
-                              </div>
-                              <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                <div
-                                  className={cn(
-                                    "h-full rounded-full",
-                                    platform === "reddit"
-                                      ? "bg-orange-500"
-                                      : platform === "twitter"
-                                      ? "bg-blue-400"
-                                      : "bg-blue-700"
-                                  )}
-                                  style={{ width: `${percentage}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
-                    <CardContent className="p-3">
-                      <h3 className="text-sm font-medium mb-3">
-                        Sentiment Analysis
-                      </h3>
-                      <div className="space-y-2">
-                        {Object.entries(performanceData.sentimentAnalysis).map(
-                          ([sentiment, percentage]) => (
-                            <div key={sentiment} className="space-y-1">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="capitalize">{sentiment}</span>
-                                <span>{percentage}%</span>
-                              </div>
-                              <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                <div
-                                  className={cn(
-                                    "h-full rounded-full",
-                                    sentiment === "positive"
-                                      ? "bg-green-500"
-                                      : sentiment === "neutral"
-                                      ? "bg-gray-400"
-                                      : "bg-red-500"
-                                  )}
-                                  style={{ width: `${percentage}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Top Keywords */}
-                <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
-                  <CardContent className="p-3">
-                    <h3 className="text-sm font-medium mb-3">Top Keywords</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {performanceData.topKeywords.map((keyword, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800"
-                        >
-                          {keyword}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-
-            {/* Configuration Section */}
-            <div
-              className={cn(
-                "flex-1 flex flex-col min-h-0 overflow-hidden transition-all duration-300",
-                activeView !== "config" && "hidden"
-              )}
-            >
-              <div className="p-3 space-y-4 overflow-y-auto">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-semibold">
-                    Agent Configuration
-                  </h2>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => setActiveView("content")}
-                  >
-                    <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-                    Back to Content
-                  </Button>
-                </div>
-
-                <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
-                  <CardContent className="p-4 space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="agent-name" className="text-sm">
-                        Agent Name
-                      </Label>
-                      <Input
-                        id="agent-name"
-                        defaultValue={agent.name}
-                        className="h-9"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="agent-description" className="text-sm">
-                        Description
-                      </Label>
-                      <Textarea
-                        id="agent-description"
-                        defaultValue={agent.description}
-                        className="min-h-[100px]"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">Platform</Label>
-                      <Select defaultValue={agent.platform}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Select platform" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="reddit">Reddit</SelectItem>
-                          <SelectItem value="twitter">Twitter</SelectItem>
-                          <SelectItem value="linkedin">LinkedIn</SelectItem>
-                          <SelectItem value="facebook">Facebook</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">Agent Mode</Label>
-                      <Select defaultValue="assisted">
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Select mode" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="assisted">
-                            Assisted (Requires Approval)
-                          </SelectItem>
-                          <SelectItem value="autonomous">Autonomous</SelectItem>
-                          <SelectItem value="learning">
-                            Learning Mode
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <Label
-                        htmlFor="auto-respond"
-                        className="text-sm cursor-pointer"
-                      >
-                        Auto-Respond to Mentions
-                      </Label>
-                      <Switch id="auto-respond" defaultChecked={true} />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <Label
-                        htmlFor="notifications"
-                        className="text-sm cursor-pointer"
-                      >
-                        Email Notifications
-                      </Label>
-                      <Switch id="notifications" defaultChecked={true} />
-                    </div>
-
-                    <div className="pt-2">
-                      <Button className="w-full">Save Changes</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
-                  <CardContent className="p-4 space-y-4">
-                    <h3 className="text-sm font-medium">Advanced Settings</h3>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="max-responses" className="text-sm">
-                        Maximum Daily Responses
-                      </Label>
-                      <Input
-                        id="max-responses"
-                        type="number"
-                        defaultValue="50"
-                        className="h-9"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="confidence-threshold" className="text-sm">
-                        Confidence Threshold (%)
-                      </Label>
-                      <Input
-                        id="confidence-threshold"
-                        type="number"
-                        defaultValue="75"
-                        className="h-9"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Minimum confidence score required for auto-approval
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">Response Tone</Label>
-                      <Select defaultValue="professional">
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Select tone" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="professional">
-                            Professional
-                          </SelectItem>
-                          <SelectItem value="friendly">Friendly</SelectItem>
-                          <SelectItem value="casual">Casual</SelectItem>
-                          <SelectItem value="technical">Technical</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800 border-red-200 dark:border-red-800/30">
-                  <CardContent className="p-4">
-                    <h3 className="text-sm font-medium text-red-600 dark:text-red-400">
-                      Danger Zone
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1 mb-3">
-                      These actions cannot be undone. Please be certain.
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        variant="outline"
-                        className="border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
-                      >
-                        Reset Agent
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
-                      >
-                        Delete Agent
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+                onClick={() => setActiveView("content")}
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+                Content
+              </Button>
+              <Button
+                variant={activeView === "performance" ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "h-8 px-3 text-xs",
+                  activeView !== "performance" &&
+                    "hover:bg-gray-200 dark:hover:bg-gray-700"
+                )}
+                onClick={() => setActiveView("performance")}
+              >
+                <BarChart2 className="h-3.5 w-3.5" />
+                Performance
+              </Button>
+              <Button
+                variant={activeView === "config" ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "h-8 px-3 text-xs",
+                  activeView !== "config" &&
+                    "hover:bg-gray-200 dark:hover:bg-gray-700"
+                )}
+                onClick={() => setActiveView("config")}
+              >
+                <Settings className="h-3.5 w-3.5" />
+                Config
+              </Button>
             </div>
           </div>
         </div>
-      </Layout>
-    </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-h-0 max-w-full overflow-hidden">
+          {/* Content Management Section */}
+          {activeView === "content" && (
+            <ContentManagement
+              filteredContent={filteredContent}
+              selectedContentId={selectedContentId}
+              setSelectedContentId={setSelectedContentId}
+              showDetailPane={showDetailPane}
+              toggleDetailPane={toggleDetailPane}
+              isMobile={isMobile}
+              getStatusBadgeClass={getStatusBadgeClass}
+              getStatusLabel={getStatusLabel}
+              isFilterExpanded={isFilterExpanded}
+              toggleFilterExpanded={toggleFilterExpanded}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+            />
+          )}
+
+          {/* Performance Section */}
+          {activeView === "performance" && (
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <PerformanceMetrics setActiveView={setActiveView} />
+            </div>
+          )}
+
+          {/* Configuration Section */}
+          {activeView === "config" && (
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <ConfigurationSection
+                agent={agent}
+                setActiveView={setActiveView}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </Layout>
   );
 }
 
@@ -1647,6 +1122,39 @@ const ContentDetails = React.memo(function ContentDetails({
   getStatusLabel,
 }: ContentDetailsProps) {
   const isMobile = useIsMobile();
+  const detailContainerRef = React.useRef<HTMLDivElement>(null);
+  const [parentWidth, setParentWidth] = React.useState(0);
+
+  // Measure parent width and update markdown max-width
+  React.useEffect(() => {
+    const measureParentWidth = () => {
+      if (detailContainerRef.current) {
+        const width = detailContainerRef.current.offsetWidth;
+        setParentWidth(width);
+      }
+    };
+
+    // Initial measurement
+    measureParentWidth();
+
+    // Measure on resize
+    const resizeObserver = new ResizeObserver(measureParentWidth);
+    if (detailContainerRef.current) {
+      resizeObserver.observe(detailContainerRef.current);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  // Calculate max-width for markdown content
+  const markdownMaxWidth = React.useMemo(() => {
+    if (parentWidth === 0) return "100%";
+    // Set markdown max-width to 90% of parent width with some padding
+    const calculatedWidth = parentWidth - 48; // Account for padding
+    return `${Math.max(calculatedWidth, 200)}px`; // Minimum 200px
+  }, [parentWidth]);
 
   // Memoize the selector to prevent recreation on every render
   const selectPostByIdMemoized = React.useMemo(
@@ -1658,19 +1166,7 @@ const ContentDetails = React.memo(function ContentDetails({
 
   // Early return for loading state
   if (!selectedContentId) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center p-4">
-          <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded-full mx-auto mb-2 w-fit">
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <h3 className="text-sm font-medium mb-1">No content selected</h3>
-          <p className="text-xs text-muted-foreground">
-            Select an item from the list to view details
-          </p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   // Show loading state while content is being fetched
@@ -1689,11 +1185,11 @@ const ContentDetails = React.memo(function ContentDetails({
   }
 
   return (
-    <>
+    <div ref={detailContainerRef} className="flex flex-col h-full">
       {/* Detail Header - Fixed */}
       <div className="border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
-        <div className="p-3">
-          <div className="flex items-center justify-between mb-1">
+        <div className="p-3 space-y-3">
+          <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold">Content Details</h3>
             <div className="flex items-center gap-1">
               <Badge
@@ -1709,7 +1205,7 @@ const ContentDetails = React.memo(function ContentDetails({
                 variant="outline"
                 className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800/50 text-xs px-1.5 py-0"
               >
-                #{content.subreddit}
+                #{(content as any).subreddit || "reddit"}
               </Badge>
               <Button
                 variant="ghost"
@@ -1732,7 +1228,9 @@ const ContentDetails = React.memo(function ContentDetails({
                 R
               </div>
             </div>
-            <span className="font-medium">r/{content.subreddit}</span>
+            <span className="font-medium">
+              r/{(content as any).subreddit || "reddit"}
+            </span>
             <Button
               variant="link"
               size="sm"
@@ -1753,7 +1251,7 @@ const ContentDetails = React.memo(function ContentDetails({
       </div>
 
       {/* Detail Content - Scrollable */}
-      <ScrollArea
+      <div
         className={cn(
           "flex-1 overflow-y-auto min-h-0",
           isMobile && "max-h-[50vh]"
@@ -1761,8 +1259,8 @@ const ContentDetails = React.memo(function ContentDetails({
       >
         <div className="p-3 space-y-4">
           {/* Original Content */}
-          <div>
-            <h4 className="text-sm font-medium mb-1.5">Original Content</h4>
+          <div className="w-full">
+            {/* <h4 className="text-sm font-medium mb-1.5">Original Content</h4> */}
             <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2 mb-3">
                 <span className="font-semibold text-base">u/{"Unknown"}</span>
@@ -1773,7 +1271,14 @@ const ContentDetails = React.memo(function ContentDetails({
               <h3 className="text-lg font-semibold mb-3">
                 {content.post_title}
               </h3>
-              <div className="prose dark:prose-invert max-w-none">
+              <div
+                className="prose prose-invert overflow-hidden overflow-x-auto"
+                style={{
+                  maxWidth: markdownMaxWidth,
+                  wordBreak: "break-word",
+                  overflowWrap: "break-word",
+                }}
+              >
                 <MarkdownRender content={content?.post_body || ""} />
               </div>
             </div>
@@ -1799,7 +1304,7 @@ const ContentDetails = React.memo(function ContentDetails({
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Action Buttons - Fixed */}
       {content.status !== "discarded" && (
@@ -1846,7 +1351,7 @@ const ContentDetails = React.memo(function ContentDetails({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 });
 
@@ -1884,26 +1389,30 @@ const ContentListItem = React.memo(function ContentListItem({
   return (
     <div
       className={cn(
-        "p-3 border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-all duration-200",
+        "p-3 border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-all duration-200 w-full min-w-0",
         isSelected &&
           "bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-l-blue-500 dark:border-l-blue-400"
       )}
       onClick={handleClick}
+      id="content-list-item"
     >
-      <div className="flex items-center gap-1 mb-1">
-        <div className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 p-0.5 rounded-full">
+      <div
+        className="flex items-center gap-1 mb-1 w-full min-w-0"
+        id="content-list-item-header"
+      >
+        <div className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 p-0.5 rounded-full flex-shrink-0">
           <div className="h-4 w-4 flex items-center justify-center font-bold text-xs">
             R
           </div>
         </div>
         {item.platform === "reddit" && (
-          <span className="text-xs font-medium">
+          <span className="text-xs font-medium truncate min-w-0 max-w-[120px]">
             r/{item.subreddit || item.tag}
           </span>
         )}
         <div
           className={cn(
-            "ml-auto px-1.5 py-0.5 rounded-full text-xs",
+            "ml-auto px-1.5 py-0.5 rounded-full text-xs flex-shrink-0",
             getStatusBadgeClass(item.status)
           )}
         >
@@ -1912,27 +1421,31 @@ const ContentListItem = React.memo(function ContentListItem({
       </div>
 
       {/* Post Title */}
-      <h4 className="text-sm font-medium mb-1 line-clamp-1">{item.title}</h4>
+      <h4 className="text-sm font-medium mb-1 line-clamp-1 w-full min-w-0 break-words overflow-hidden">
+        {item.title}
+      </h4>
 
       {/* Post Content */}
-      <p className="text-xs leading-tight line-clamp-2 mb-1 text-muted-foreground">
+      {/* <p className="text-xs leading-tight line-clamp-2 mb-1 text-muted-foreground break-words whitespace-normal overflow-hidden w-full min-w-0">
         {item.content}
-      </p>
+      </p> */}
 
-      <div className="flex items-center text-xs text-muted-foreground">
-        <span className="font-medium">u/{item.author}</span>
-        <span className="mx-1">•</span>
-        <span>{item.time}</span>
+      <div className="flex items-center text-xs text-muted-foreground w-full min-w-0">
+        <span className="font-medium truncate max-w-[80px]">
+          u/{item.author}
+        </span>
+        <span className="mx-1 flex-shrink-0">•</span>
+        <span className="flex-shrink-0">{item.time}</span>
 
         {/* Comments and Upvotes */}
-        <div className="flex items-center gap-2 ml-auto mr-1">
+        <div className="flex items-center gap-2 ml-auto mr-1 flex-shrink-0">
           <div className="flex items-center gap-0.5">
-            <MessageSquare className="h-3 w-3" />
-            <span>{item.comments}</span>
+            <MessageSquare className="h-3 w-3 flex-shrink-0" />
+            <span className="min-w-0">{item.comments}</span>
           </div>
           <div className="flex items-center gap-0.5">
-            <ArrowUpRight className="h-3 w-3" />
-            <span>{item.upvotes}</span>
+            <ArrowUpRight className="h-3 w-3 flex-shrink-0" />
+            <span className="min-w-0">{item.upvotes}</span>
           </div>
         </div>
 
@@ -1941,7 +1454,7 @@ const ContentListItem = React.memo(function ContentListItem({
           href={item.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0"
           onClick={handleExternalLinkClick}
         >
           <ExternalLink className="h-3 w-3" />

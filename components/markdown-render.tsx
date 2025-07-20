@@ -2,11 +2,13 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
 import React from "react";
+import rehypeRaw from "rehype-raw";
 
 export default function MarkdownRender({ content }: { content: string }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
+      rehypePlugins={[rehypeRaw]}
       components={
         {
           p: ({ node, ...props }: any) => (
@@ -32,13 +34,13 @@ export default function MarkdownRender({ content }: { content: string }) {
           ),
           code: ({ node, ...props }: any) => (
             <code
-              className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-sm font-mono"
+              className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-sm font-mono overflow-x-auto"
               {...props}
             />
           ),
           pre: ({ node, ...props }: any) => (
             <pre
-              className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg mb-4 overflow-x-auto"
+              className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg mb-4 overflow-x-auto max-w-full"
               {...props}
             />
           ),
