@@ -3,10 +3,21 @@ import Cookies from 'js-cookie';
 
 export interface UserInfo {
   id: string;
-  name: string;
+  username: string;
   email: string;
-  plan: string;
   // Add more fields as needed
+  subscription?: {
+    tier: string;
+    ends_at?: string;
+    // Add other subscription fields as needed
+  };
+  plan?: {
+    name: string;
+    price: number;
+    currency: string;
+    features: string[];
+    description: string;
+  };
 }
 
 interface UserState {

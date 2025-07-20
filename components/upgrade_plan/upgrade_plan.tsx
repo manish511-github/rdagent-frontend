@@ -179,7 +179,7 @@ export default function UpgradePlan({
   };
 
   return (
-    <div className="w-full py-20 lg:py-40 bg-gradient-to-br from-background via-background/80 to-background/60">
+    <div className="w-full py-20 lg:py-20 bg-gradient-to-br from-background via-background/80 to-background/60">
       <div className="container mx-auto px-4">
         <div className="flex text-center justify-center items-center gap-4 flex-col">
           <Badge variant="secondary" className="text-sm">

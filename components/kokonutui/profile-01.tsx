@@ -1,10 +1,12 @@
 import type React from "react"
-import { LogOut, MoveUpRight, Settings, CreditCard, HelpCircle, Sparkles } from "lucide-react"
+import { LogOut, MoveUpRight, Settings, CreditCard, HelpCircle } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import Cookies from "js-cookie"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
+import { useSelector } from "react-redux"
+import type { RootState } from "@/store/store"
 
 interface MenuItem {
   label: string
@@ -14,35 +16,45 @@ interface MenuItem {
   external?: boolean
 }
 
-interface Profile01Props {
-  name: string
-  role: string
-  avatar: string
-  subscription?: string
-}
-
 const defaultProfile = {
   name: "Alex Morgan",
-  role: "Marketing Director",
   avatar: "https://ferf1mheo22r9ira.public.blob.vercel-storage.com/avatar-02-albo9B0tWOSLXCVZh9rX9KFxXIVWMr.png",
   subscription: "Pro Plan",
-} satisfies Required<Profile01Props>
+}
 
-export default function Profile01({
-  name = defaultProfile.name,
-  role = defaultProfile.role,
-  avatar = defaultProfile.avatar,
-  subscription = defaultProfile.subscription,
-}: Partial<Profile01Props> = defaultProfile) {
+export default function Profile01() {
+  // Get user info from Redux
+  const userInfo = useSelector((state: RootState) => state.user.info)
+  const name = userInfo?.username || defaultProfile.name
+  // UserInfo does not have an avatar field, so always use default avatar
+  const avatar = defaultProfile.avatar
+  // Map tier to display label
+  let subscriptionLabel = ""
+  switch (userInfo?.subscription?.tier) {
+    case "trial":
+      subscriptionLabel = "Trial"
+      break
+    case "basic":
+      subscriptionLabel = "Basic"
+      break
+    case "pro":
+      subscriptionLabel = "Pro"
+      break
+    case "enterprise":
+      subscriptionLabel = "Enterprise"
+      break
+    default:
+      subscriptionLabel = ""
+  }
+
   const menuItems: MenuItem[] = [
     {
       label: "Subscription",
-      value: subscription,
+      value: subscriptionLabel,
       href: "#",
       icon: <CreditCard className="w-4 h-4" />,
       external: false,
     },
-
     {
       label: "Settings",
       href: "#",
@@ -60,9 +72,9 @@ export default function Profile01({
   const { toast } = useToast()
 
   return (
-    <div className="w-full max-w-sm mx-auto">
-      <div className="relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0A0A0C]">
-        <div className="relative px-6 pt-10 pb-5">
+    <div className="w-full max-w-xs mx-auto">
+      <div className="relative overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0A0A0C]">
+        <div className="relative px-3 pt-3 pb-2">
           <div className="flex items-center gap-4 mb-6">
             <div className="relative shrink-0">
               <Image
@@ -78,7 +90,6 @@ export default function Profile01({
             {/* Profile Info */}
             <div className="flex-1">
               <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{name}</h2>
-              <p className="text-zinc-600 dark:text-zinc-400">{role}</p>
             </div>
           </div>
           <div className="h-px bg-zinc-200 dark:bg-zinc-800 my-5" />
