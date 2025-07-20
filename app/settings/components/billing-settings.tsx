@@ -1,93 +1,136 @@
 "use client"
-
+import { useState, useEffect } from "react"
+import { useSelector } from "react-redux"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CreditCard, Download } from "lucide-react"
+import { Calendar, CreditCard, Download } from "lucide-react"
+import type { RootState } from "@/store/store"
+import { useRouter } from "next/navigation"
 
-export default function BillingSettings() {
-  const invoices = [
-    { id: "INV-001", date: "2024-01-15", amount: "$29.00", status: "Paid" },
-    { id: "INV-002", date: "2023-12-15", amount: "$29.00", status: "Paid" },
-    { id: "INV-003", date: "2023-11-15", amount: "$29.00", status: "Paid" },
-  ]
+interface Invoice {
+  id: string
+  date: string
+  amount: number
+  status: "paid" | "pending" | "failed"
+  downloadUrl: string
+}
+
+export function BillingSettings() {
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter()
+
+  // Get user data from Redux
+  const { info: userInfo } = useSelector((state: RootState) => state.user)
+  const subscription = userInfo?.subscription
+
+  useEffect(() => {
+    // TODO: Fetch invoices from API
+    const mockInvoices: Invoice[] = [
+      {
+        id: "inv_001",
+        date: "2025-01-20",
+        amount: 29.99,
+        status: "paid",
+        downloadUrl: "#",
+      },
+      {
+        id: "inv_002",
+        date: "2024-12-20",
+        amount: 29.99,
+        status: "paid",
+        downloadUrl: "#",
+      },
+    ]
+
+    setTimeout(() => {
+      setInvoices(mockInvoices)
+      setIsLoading(false)
+    }, 1000)
+  }, [])
+
+  const handleUpgrade = () => {
+    router.push("/upgrade")
+  }
+
+  const handleManageBilling = () => {
+    // TODO: Redirect to billing portal
+    console.log("Redirect to billing portal")
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  }
+
+  const getStatusBadge = (status: Invoice["status"]) => {
+    switch (status) {
+      case "paid":
+        return (
+          <Badge variant="secondary" className="bg-green-100 text-green-800">
+            Paid
+          </Badge>
+        )
+      case "pending":
+        return (
+          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+            Pending
+          </Badge>
+        )
+      case "failed":
+        return <Badge variant="destructive">Failed</Badge>
+      default:
+        return <Badge variant="secondary">{status}</Badge>
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Billing & Usage</h1>
-        <p className="text-muted-foreground">Manage your subscription and billing information.</p>
-      </div>
-
       {/* Current Plan */}
       <Card>
         <CardHeader>
           <CardTitle>Current Plan</CardTitle>
-          <CardDescription>Your active subscription details</CardDescription>
+          <CardDescription>Manage your subscription and billing information</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold">Pro Plan</h3>
-                <Badge variant="secondary">Active</Badge>
-              </div>
-              <p className="text-muted-foreground text-sm">$29/month • Billed monthly</p>
-              <p className="text-muted-foreground text-sm">Next billing date: February 15, 2024</p>
-            </div>
-            <div className="text-right">
-              <Button variant="outline">Change Plan</Button>
-            </div>
-          </div>
-          <Separator />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold">10</div>
-              <div className="text-sm text-muted-foreground">Projects</div>
-              <div className="text-xs text-muted-foreground">of 50 used</div>
-            </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold">25</div>
-              <div className="text-sm text-muted-foreground">Team Members</div>
-              <div className="text-xs text-muted-foreground">of unlimited</div>
-            </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold">100GB</div>
-              <div className="text-sm text-muted-foreground">Storage</div>
-              <div className="text-xs text-muted-foreground">of 500GB used</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Payment Method */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Method</CardTitle>
-          <CardDescription>Manage your payment information</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 border rounded">
-                <CreditCard className="h-4 w-4" />
-              </div>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">•••• •••• •••• 4242</p>
-                <p className="text-sm text-muted-foreground">Expires 12/25</p>
+                <h3 className="text-lg font-semibold capitalize">{subscription?.tier || "Free"} Plan</h3>
+                <p className="text-sm text-muted-foreground">
+                  {subscription?.tier === "trial"
+                    ? `Trial ends ${subscription.ends_at ? formatDate(subscription.ends_at) : "soon"}`
+                    : subscription?.tier === "free"
+                      ? "Basic features included"
+                      : "Full access to all features"}
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                {subscription?.tier === "trial" || subscription?.tier === "free" ? (
+                  <Button onClick={handleUpgrade}>Upgrade Plan</Button>
+                ) : (
+                  <Button variant="outline" onClick={handleManageBilling}>
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Manage Billing
+                  </Button>
+                )}
               </div>
             </div>
-            <Button variant="outline">Update</Button>
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="font-medium">Billing Address</p>
-              <p className="text-sm text-muted-foreground">123 Main St, San Francisco, CA 94105</p>
-            </div>
-            <Button variant="outline">Edit</Button>
+
+            {subscription?.ends_at && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span>
+                  {subscription.tier === "trial" ? "Trial ends" : "Next billing date"}:{" "}
+                  {formatDate(subscription.ends_at)}
+                </span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -96,40 +139,79 @@ export default function BillingSettings() {
       <Card>
         <CardHeader>
           <CardTitle>Billing History</CardTitle>
-          <CardDescription>Download your previous invoices</CardDescription>
+          <CardDescription>Download your previous invoices and receipts</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell className="font-medium">{invoice.id}</TableCell>
-                  <TableCell>{invoice.date}</TableCell>
-                  <TableCell>{invoice.amount}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">
-                      {invoice.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      <Download className="h-4 w-4 mr-1" />
-                      Download
-                    </Button>
-                  </TableCell>
-                </TableRow>
+          {isLoading ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="space-y-1">
+                    <div className="h-4 bg-gray-200 rounded w-24 animate-pulse" />
+                    <div className="h-3 bg-gray-200 rounded w-32 animate-pulse" />
+                  </div>
+                  <div className="h-6 bg-gray-200 rounded w-16 animate-pulse" />
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          ) : invoices.length > 0 ? (
+            <div className="space-y-3">
+              {invoices.map((invoice) => (
+                <div key={invoice.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <p className="font-medium">${invoice.amount}</p>
+                      <p className="text-sm text-muted-foreground">{formatDate(invoice.date)}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    {getStatusBadge(invoice.status)}
+                    <Button variant="ghost" size="sm">
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <p className="text-muted-foreground">No billing history available</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Payment Method */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Method</CardTitle>
+          <CardDescription>Update your payment information</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {subscription?.tier !== "trial" && subscription?.tier !== "free" ? (
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <CreditCard className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">•••• •••• •••• 4242</p>
+                    <p className="text-sm text-muted-foreground">Expires 12/25</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm">
+                  Update
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-muted-foreground">No payment method on file</p>
+                <Button className="mt-2" onClick={handleUpgrade}>
+                  Add Payment Method
+                </Button>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
