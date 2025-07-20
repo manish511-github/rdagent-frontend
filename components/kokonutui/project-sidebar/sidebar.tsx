@@ -1,15 +1,13 @@
 "use client"
-
-import type React from "react"
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { ChevronLeft, ChevronRight, Settings, HelpCircle } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Logo } from "./logo"
 import { MobileToggle } from "./mobile-toggle"
 import { CurrentProject } from "./current-project"
 import { ProjectsNavigation } from "./projects-navigation"
 import { ProjectNavigation } from "./project-navigation"
+import { SettingsNavigation } from "./settings-navigation"
 import { NavItem } from "./nav-item"
 
 // Project type definition
@@ -22,26 +20,16 @@ interface SidebarProps {
   currentProject: Project | null
 }
 
-// Add custom keyframe animation
-const fadeInAnimation = {
-  from: { opacity: 0, transform: "translateX(-10px)" },
-  to: { opacity: 1, transform: "translateX(0)" },
-}
-
-const fadeOutAnimation = {
-  from: { opacity: 1, transform: "translateX(0)" },
-  to: { opacity: 0, transform: "translateX(-10px)" },
-}
-
 export default function Sidebar({ currentProject }: SidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const pathname = usePathname()
 
-  // Determine if we're on the projects listing page or a specific project page
+  // Determine the current page type
   const isProjectsPage = pathname === "/projects"
   const isSpecificProject = pathname.startsWith("/projects/") && pathname !== "/projects"
+  const isSettingsPage = pathname.startsWith("/settings")
 
   useEffect(() => {
     setIsMounted(true)
@@ -113,11 +101,13 @@ export default function Sidebar({ currentProject }: SidebarProps) {
 
           <div className="flex-1 overflow-y-auto py-3 px-3">
             <div className="space-y-6">
-              {/* Current Project Section */}
-              <CurrentProject currentProject={currentProject} isCollapsed={isCollapsed} />
+              {/* Current Project Section - only show for project pages */}
+              {!isSettingsPage && <CurrentProject currentProject={currentProject} isCollapsed={isCollapsed} />}
 
               {/* Navigation Sections */}
-              {isSpecificProject ? (
+              {isSettingsPage ? (
+                <SettingsNavigation isCollapsed={isCollapsed} isMounted={isMounted} pathname={pathname} />
+              ) : isSpecificProject ? (
                 <ProjectNavigation
                   currentProject={currentProject}
                   isCollapsed={isCollapsed}
@@ -125,11 +115,7 @@ export default function Sidebar({ currentProject }: SidebarProps) {
                   pathname={pathname}
                 />
               ) : (
-                <ProjectsNavigation
-                  isCollapsed={isCollapsed}
-                  isMounted={isMounted}
-                  pathname={pathname}
-                />
+                <ProjectsNavigation isCollapsed={isCollapsed} isMounted={isMounted} pathname={pathname} />
               )}
             </div>
           </div>
@@ -139,7 +125,7 @@ export default function Sidebar({ currentProject }: SidebarProps) {
             className={`px-3 py-3 border-t border-gray-200 dark:border-[#1F1F23] ${isCollapsed ? "flex flex-col items-center" : ""}`}
           >
             <div className="space-y-1">
-              <NavItem href="#" icon={Settings} isCollapsed={isCollapsed} isMounted={isMounted}>
+              <NavItem href="/settings" icon={Settings} isCollapsed={isCollapsed} isMounted={isMounted}>
                 Settings
               </NavItem>
               <NavItem href="#" icon={HelpCircle} isCollapsed={isCollapsed} isMounted={isMounted}>

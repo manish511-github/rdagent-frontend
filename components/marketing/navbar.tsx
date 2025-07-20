@@ -173,7 +173,7 @@ export default function Navbar() {
 
             <div className="hidden md:flex items-center gap-3">
               <Link
-                href="/sign-in"
+                href="/login"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Sign in
@@ -313,7 +313,7 @@ export default function Navbar() {
           {/* Mobile menu footer */}
           <div className="p-4 border-t border-border space-y-3">
             <Link
-              href="/sign-in"
+              href="/login"
               className="block w-full py-3 px-4 text-center text-base font-medium hover:bg-muted rounded-lg transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >

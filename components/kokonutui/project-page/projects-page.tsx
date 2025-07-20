@@ -256,7 +256,7 @@ export default function ProjectsPage() {
         (project) =>
           project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          project.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())),
+          (Array.isArray(project.tags) ? project.tags : []).some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())),
       )
     }
 
@@ -329,7 +329,7 @@ export default function ProjectsPage() {
   // Loading state
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
+      <div className="bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
         <div className="p-6 max-w-[1600px] mx-auto">
           <div className="flex items-center justify-center h-[50vh]">
             <div className="text-center">
@@ -345,7 +345,7 @@ export default function ProjectsPage() {
   // Error state
   if (status === 'failed') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
+      <div className="bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
         <div className="p-6 max-w-[1600px] mx-auto">
           <div className="flex items-center justify-center h-[50vh]">
             <div className="text-center">
@@ -559,7 +559,7 @@ export default function ProjectsPage() {
 
   // Handle project click
   const handleProjectClick = (projectId: string) => {
-    debugger
+    
     if (!projectId) {
       toast({
         title: "Error",
@@ -573,7 +573,7 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
+    <div className=" bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
       <div className="p-6 max-w-[1600px] mx-auto">
         {/* Header */}
         <div className="flex flex-col gap-6 mb-8">
@@ -597,9 +597,9 @@ export default function ProjectsPage() {
         </div>
 
         {/* Filters and Search */}
-        <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-2 mb-4 w-full">
           {/* Search */}
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <div className="relative flex-1 min-w-0 max-w-3xl">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               ref={searchInputRef}

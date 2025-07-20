@@ -60,7 +60,7 @@ function AccountVerifyInner() {
         <div className="flex flex-col items-center gap-2">
           <CheckCircle2Icon className="h-8 w-8 text-green-600" />
           <span className="text-lg font-medium text-green-700 dark:text-green-400">{message}</span>
-          <Button className="mt-4" onClick={() => router.push("/sign-in")}>Go to Sign In</Button>
+          <Button className="mt-4" onClick={() => router.push("/login")}>Go to Sign In</Button>
         </div>
       )}
       {status === "error" && (

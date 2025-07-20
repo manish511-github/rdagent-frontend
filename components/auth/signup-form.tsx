@@ -61,6 +61,7 @@ export default function SignupForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [apiError, setApiError] = useState("")
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
@@ -98,28 +99,45 @@ export default function SignupForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setApiError("")
 
     if (!validateForm()) return
 
     setIsSubmitting(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    setIsSubmitting(false)
-    setIsSubmitted(true)
-
-    // Reset form after success
-    setTimeout(() => {
-      setFormData({
-        fullName: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        // Removed terms: false,
+    try {
+      const response = await fetch("http://localhost:8000/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+        }),
       })
-      setIsSubmitted(false)
-    }, 3000)
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({ detail: `HTTP error! status: ${response.status}` }))
+        throw new Error(errorBody.detail || `HTTP error! status: ${response.status}`)
+      }
+
+      setIsSubmitted(true)
+      setTimeout(() => {
+        setFormData({
+          fullName: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+        })
+        setIsSubmitted(false)
+      }, 3000)
+    } catch (err: any) {
+      setApiError(err.message || "Failed to create account. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleInputChange = (field: keyof FormData, value: string) => {
@@ -132,8 +150,8 @@ export default function SignupForm() {
   }
 
   const handleGoogleSignup = () => {
-    // Handle Google signup logic here
-    console.log("Google signup clicked")
+    // Redirect to FastAPI Google OAuth endpoint for signup
+    window.location.href = "http://localhost:8000/auth/google";
   }
 
   if (isSubmitted) {
@@ -147,13 +165,19 @@ export default function SignupForm() {
           <CheckCircle className="size-16 text-green-500" />
         </motion.div>
         <h3 className="text-xl font-semibold">Account Created Successfully!</h3>
-        <p className="text-muted-foreground">Welcome to Relative! Please check your email to verify your account.</p>
+        <p className="text-muted-foreground">Welcome to Zooptics! Please check your email to verify your account.</p>
       </motion.div>
     )
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {apiError && (
+        <div className="p-2 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-center gap-2 text-xs text-red-600 dark:text-red-400 animate-in fade-in duration-300">
+          <AlertCircle className="h-3 w-3 flex-shrink-0" />
+          <span>{apiError}</span>
+        </div>
+      )}
       {/* Full Name Field */}
       <div className="space-y-2">
         <Label htmlFor="fullName" className="text-sm font-medium">

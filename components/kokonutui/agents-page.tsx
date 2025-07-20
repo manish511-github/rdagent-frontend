@@ -328,7 +328,6 @@ async function updateAgentStatus(projectId: string, agentId: string, status: str
 // Add mutation function for creating new agent
 async function createNewAgent(projectId: string, agentData: ApiAgent): Promise<Agent> {
   let token = Cookies.get("access_token");
-  debugger
   let response = await fetch(`http://localhost:8000/agents`, {
     method: 'POST',
     headers: {

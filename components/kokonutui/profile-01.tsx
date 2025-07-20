@@ -42,12 +42,7 @@ export default function Profile01({
       icon: <CreditCard className="w-4 h-4" />,
       external: false,
     },
-    {
-      label: "AI Credits",
-      value: "2,450",
-      href: "#",
-      icon: <Sparkles className="w-4 h-4" />,
-    },
+
     {
       label: "Settings",
       href: "#",
@@ -128,7 +123,7 @@ export default function Profile01({
                   description: "You have been logged out successfully.",
                   variant: "default",
                 });
-                router.push("/sign-in");
+                router.push("/login");
               }}
             >
               <div className="flex items-center gap-2">
