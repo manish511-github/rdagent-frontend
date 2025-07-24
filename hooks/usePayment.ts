@@ -19,29 +19,61 @@ export function usePayment() {
       const accessToken = Cookies.get("access_token");
       const email = user?.email || "user@example.com";
       const userId = user?.id;
+      const status = user?.subscription?.status;
+      const tier = user?.subscription?.tier;
       const body = JSON.stringify({
         plan_id: planId,
         email,
         user_id: userId || ""
       });
-      const response = await fetch(`http://localhost:8000/subscription/create-transaction`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body,
-      });
 
-      if (!response.ok) {
-        throw new Error('Failed to create transaction');
-      }
+      // Routing logic
+      if (status === "active" && tier !== "trial") {
+        // Make a POST request to /update-subscription
+        const response = await fetch(`http://localhost:8000/subscription/update-subscription`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body,
+        });
 
-      const data = await response.json();
-      if (data.txn) {
-        openCheckout(data.txn);
+        if (!response.ok) {
+          throw new Error('Failed to update subscription');
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          toast({
+            title: "Subscription Updated",
+            description: data.message || "Your subscription has been updated.",
+            variant: "default",
+          });
+        } else {
+          throw new Error(data.message || 'Failed to update subscription');
+        }
       } else {
-        throw new Error('No transaction ID received');
+        // Route to /create-transaction
+        const response = await fetch(`http://localhost:8000/subscription/create-transaction`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body,
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create transaction');
+        }
+
+        const data = await response.json();
+        if (data.txn) {
+          openCheckout(data.txn);
+        } else {
+          throw new Error('No transaction ID received');
+        }
       }
     } catch (error) {
       console.error('Payment error:', error);

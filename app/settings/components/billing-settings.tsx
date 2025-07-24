@@ -14,6 +14,8 @@ import {
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 import { useRouter } from "next/navigation";
+import { useCancelSubscription } from "@/hooks/useCancelSubscription";
+import { useResumeSubscription } from "@/hooks/useResumeSubscription";
 
 const invoices = [
   {
@@ -36,31 +38,42 @@ const invoices = [
   },
 ];
 
+
 export default function UserBilling() {
   const userInfo = useSelector((state: RootState) => state.user.info);
-  const isTrial = userInfo?.subscription?.tier === "trial";
-  const isBasic = userInfo?.subscription?.tier === "basic";
-  const isPro = userInfo?.subscription?.tier === "pro";
-  const isEnterprise = userInfo?.subscription?.tier === "enterprise";
-  const plan = userInfo?.plan;
   const router = useRouter();
+  const { cancelSubscription, isCancelling } = useCancelSubscription();
+  const { resumeSubscription, isResuming } = useResumeSubscription();
 
-  // Plan display name fallback
-  const planDisplayName = plan?.name ? `${plan.name} Plan` : "Current Plan";
-  const planDescription = plan?.description || "";
-  const planPrice = plan && plan.price !== undefined ? `$${plan.price}${plan.currency ? `/${plan.currency}` : ""}` : "";
-  // Subscription end/renewal date
-  let renewalOrEndDate = "";
-  const endsAt = userInfo?.subscription?.ends_at;
-  if (endsAt) {
-    const date = new Date(endsAt);
-    const formatted = date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-    if (isTrial) {
-      renewalOrEndDate = `Ends on ${formatted}`;
-    } else {
-      renewalOrEndDate = `Renews on ${formatted}`;
-    }
-  }
+  // Group all plan-related variables
+  const planInfo = {
+    name: userInfo?.plan?.name,
+    displayName: userInfo?.plan?.name ? `${userInfo.plan.name} Plan` : "Current Plan",
+    price: userInfo?.plan?.price,
+    currency: userInfo?.plan?.currency,
+    features: userInfo?.plan?.features,
+    description: userInfo?.plan?.description,
+    planId: userInfo?.plan?.plan_id,
+    billingCycle: userInfo?.subscription?.billing_cycle === 'month' ? 'monthly' : 'yearly',
+    isTrial: userInfo?.subscription?.tier === "trial",
+    isBasic: userInfo?.subscription?.tier === "basic",
+    isPro: userInfo?.subscription?.tier === "pro",
+    isEnterprise: userInfo?.subscription?.tier === "enterprise",
+    isScheduledForCancellation: userInfo?.subscription?.is_scheduled_for_cancellation,
+    endsAt: userInfo?.subscription?.ends_at,
+    renewalOrEndDate: (() => {
+      const endsAt = userInfo?.subscription?.ends_at;
+      if (!endsAt) return "";
+      const date = new Date(endsAt);
+      const formatted = date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+      if (userInfo?.subscription?.tier === "trial") {
+        return `Ends on ${formatted}`;
+      } else {
+        return `Renews on ${formatted}`;
+      }
+    })(),
+    planPrice: userInfo?.plan && userInfo.plan.price !== undefined ? `$${userInfo.plan.price}/${userInfo?.subscription?.billing_cycle === 'month' ? 'monthly' : 'yearly'}` : "",
+  };
 
   return (
     <div className="container mx-auto px-4 py-6 md:px-6 2xl:max-w-[1400px]">
@@ -84,39 +97,96 @@ export default function UserBilling() {
           <CardContent className="p-6">
             <div className="flex flex-col items-start justify-between gap-6 sm:flex-row">
               <div>
-                <div className="flex items-center gap-2">
-                  <Package className="text-primary size-5" />
-                  <h2 className="text-lg font-semibold">
-                    {planDisplayName}
-                  </h2>
-                  <Badge>Current Plan</Badge>
-                </div>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  {planDescription}
-                  {(!isTrial && planPrice) ? ` • ${planPrice}` : ""}
-                  {renewalOrEndDate ? ` • ${renewalOrEndDate}` : ""}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {isTrial ? (
-                  <Button 
-                    variant="default" 
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                    onClick={() => router.push("/upgrade")}
-                  >
-                    Upgrade
-                  </Button>
+                {planInfo.isScheduledForCancellation ? (
+                  <>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Package className="text-primary size-5" />
+                      <h2 className="text-lg font-semibold">
+                        {planInfo.name}
+                      </h2>
+                      <span className="text-xs text-destructive font-semibold">• Cancellation scheduled for {planInfo.endsAt ? new Date(planInfo.endsAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : ''}</span>
+                    </div>
+                    {planInfo.planPrice && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xl font-bold text-primary">{planInfo.planPrice.split('/')[0]}</span>
+                        <span className="text-sm text-muted-foreground font-medium">/{planInfo.planPrice.split('/')[1]}</span>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <>
+                    <div className="flex items-center gap-2">
+                      <Package className="text-primary size-5" />
+                      <h2 className="text-lg font-semibold">
+                        {planInfo.displayName}
+                      </h2>
+                      <Badge>Current Plan</Badge>
+                    </div>
+                    {(!planInfo.isTrial && planInfo.planPrice) && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xl font-bold text-primary">{planInfo.planPrice.split('/')[0]}</span>
+                        <span className="text-sm text-muted-foreground font-medium">/{planInfo.planPrice.split('/')[1]}</span>
+                        {planInfo.renewalOrEndDate && (
+                          <span className="text-xs text-muted-foreground ml-3">{planInfo.renewalOrEndDate}</span>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {planInfo.isScheduledForCancellation ? (
+                  <>
+                    <Button 
+                      variant="outline"
+                      onClick={() => router.push('/upgrade')}
+                    >
+                      View all Plans
+                    </Button>
+                    <Button 
+                      variant="default"
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                      disabled={isResuming}
+                      onClick={() => {
+                        if (userInfo?.id) {
+                          resumeSubscription(userInfo.id);
+                        }
+                      }}
+                    >
+                      {isResuming ? "Resuming..." : "Resume"}
+                    </Button>
+                  </>
+                ) : (
+                  planInfo.isTrial ? (
                     <Button 
                       variant="default" 
                       className="bg-primary text-primary-foreground hover:bg-primary/90"
                       onClick={() => router.push("/upgrade")}
                     >
-                      Change Plan
+                      Upgrade
                     </Button>
-                    <Button variant="destructive">Cancel Plan</Button>
-                  </>
+                  ) : (
+                    <>
+                      <Button 
+                        variant="default" 
+                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        onClick={() => router.push("/upgrade")}
+                      >
+                        Change Plan
+                      </Button>
+                      <Button 
+                        variant="destructive"
+                        disabled={isCancelling}
+                        onClick={() => {
+                          if (userInfo?.id) {
+                            cancelSubscription(userInfo.id);
+                          }
+                        }}
+                      >
+                        {isCancelling ? "Cancelling..." : "Cancel Plan"}
+                      </Button>
+                    </>
+                  )
                 )}
               </div>
             </div>
