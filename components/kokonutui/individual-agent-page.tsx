@@ -75,6 +75,8 @@ import React from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { selectPostById } from "@/store/features/agentSlice";
 import MarkdownRender from "../markdown-render";
+import ResponseComposer from "./response-generator";
+import { InfinitePostsList } from "./infinite-posts-list";
 
 // Add this utility function to hide scrollbars
 const scrollbarHideClass = "scrollbar-hide";
@@ -518,6 +520,7 @@ const ContentManagement = React.memo(function ContentManagement({
   setSortBy,
   statusFilter,
   setStatusFilter,
+  agentId,
 }: {
   filteredContent: DisplayPost[];
   selectedContentId: string | null;
@@ -535,7 +538,11 @@ const ContentManagement = React.memo(function ContentManagement({
   setSortBy: (sort: string) => void;
   statusFilter: string;
   setStatusFilter: (filter: string) => void;
+  agentId: string;
 }) {
+  const [selectedPost, setSelectedPost] = React.useState<DisplayPost | null>(
+    null
+  );
   return (
     <div className="flex flex-col h-full">
       {/* Header with Search and Filters */}
@@ -607,44 +614,34 @@ const ContentManagement = React.memo(function ContentManagement({
           )}
           id="content-list-container"
         >
-          {/* Content List - Scrollable */}
+          {/* Content List - Infinite Scroll */}
           <div
             className="flex-1 overflow-y-auto min-h-0"
             id="content-list-scroll-area"
           >
-            {filteredContent.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full mb-3">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <h3 className="text-sm font-medium mb-1">No content found</h3>
-                <p className="text-xs text-muted-foreground">
-                  Try adjusting your filters or search query
-                </p>
-              </div>
-            ) : (
-              <div className="w-full min-w-0">
-                {filteredContent.map((item) => (
-                  <ContentListItem
-                    key={item.id}
-                    item={item}
-                    isSelected={item.id === selectedContentId}
-                    onSelect={setSelectedContentId}
-                    showDetailPane={showDetailPane}
-                    getStatusBadgeClass={getStatusBadgeClass}
-                    getStatusLabel={getStatusLabel}
-                  />
-                ))}
-              </div>
-            )}
+            <InfinitePostsList
+              agentId={agentId}
+              searchQuery={searchQuery}
+              sortBy={sortBy}
+              statusFilter={statusFilter}
+              selectedContentId={selectedContentId}
+              onSelectContent={setSelectedContentId}
+              onSelectedPostChange={setSelectedPost}
+              showDetailPane={showDetailPane}
+              getStatusBadgeClass={getStatusBadgeClass}
+              getStatusLabel={getStatusLabel}
+              ContentListItem={ContentListItem}
+            />
           </div>
         </div>
 
         {/* Right Pane - Content Details (Desktop) */}
-        {showDetailPane && !isMobile && selectedContentId && (
+        {showDetailPane && !isMobile && selectedContentId && selectedPost && (
           <div className="flex flex-col min-w-0 min-h-0 ml-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/60 overflow-hidden flex-[3]">
             <ContentDetails
               selectedContentId={selectedContentId}
+              selectedPost={selectedPost}
+              agentId={agentId}
               toggleDetailPane={toggleDetailPane}
               getStatusBadgeClass={getStatusBadgeClass}
               getStatusLabel={getStatusLabel}
@@ -654,10 +651,12 @@ const ContentManagement = React.memo(function ContentManagement({
       </div>
 
       {/* Mobile Detail View - Only shown on mobile devices */}
-      {showDetailPane && selectedContentId && isMobile && (
+      {showDetailPane && selectedContentId && selectedPost && isMobile && (
         <div className="mt-2 mx-3 mb-3 bg-white dark:bg-gray-900/60 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
           <ContentDetails
             selectedContentId={selectedContentId}
+            selectedPost={selectedPost}
+            agentId={agentId}
             toggleDetailPane={toggleDetailPane}
             getStatusBadgeClass={getStatusBadgeClass}
             getStatusLabel={getStatusLabel}
@@ -1082,6 +1081,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
               setSortBy={setSortBy}
               statusFilter={statusFilter}
               setStatusFilter={setStatusFilter}
+              agentId={agentId}
             />
           )}
 
@@ -1110,6 +1110,8 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
 // ContentDetails Component
 interface ContentDetailsProps {
   selectedContentId: string;
+  selectedPost: DisplayPost;
+  agentId: string;
   toggleDetailPane: () => void;
   getStatusBadgeClass: (status: PostStatus) => string;
   getStatusLabel: (status: PostStatus) => string;
@@ -1117,6 +1119,8 @@ interface ContentDetailsProps {
 
 const ContentDetails = React.memo(function ContentDetails({
   selectedContentId,
+  selectedPost,
+  agentId,
   toggleDetailPane,
   getStatusBadgeClass,
   getStatusLabel,
@@ -1156,13 +1160,8 @@ const ContentDetails = React.memo(function ContentDetails({
     return `${Math.max(calculatedWidth, 200)}px`; // Minimum 200px
   }, [parentWidth]);
 
-  // Memoize the selector to prevent recreation on every render
-  const selectPostByIdMemoized = React.useMemo(
-    () => selectPostById(selectedContentId),
-    [selectedContentId]
-  );
-
-  const content = useSelector(selectPostByIdMemoized);
+  // Use the selected post data passed from the parent component
+  const content = selectedPost;
 
   // Early return for loading state
   if (!selectedContentId) {
@@ -1237,11 +1236,7 @@ const ContentDetails = React.memo(function ContentDetails({
               className="h-auto p-0 text-xs flex items-center gap-1"
               asChild
             >
-              <a
-                href={content.post_url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href={content.url} target="_blank" rel="noopener noreferrer">
                 View Original
                 <ExternalLink className="h-3 w-3 ml-0.5" />
               </a>
@@ -1265,12 +1260,10 @@ const ContentDetails = React.memo(function ContentDetails({
               <div className="flex items-center gap-2 mb-3">
                 <span className="font-semibold text-base">u/{"Unknown"}</span>
                 <span className="text-sm text-muted-foreground">
-                  {content.created_utc}
+                  {content.time}
                 </span>
               </div>
-              <h3 className="text-lg font-semibold mb-3">
-                {content.post_title}
-              </h3>
+              <h3 className="text-lg font-semibold mb-3">{content.title}</h3>
               <div
                 className="prose prose-invert overflow-hidden overflow-x-auto"
                 style={{
@@ -1279,10 +1272,33 @@ const ContentDetails = React.memo(function ContentDetails({
                   overflowWrap: "break-word",
                 }}
               >
-                <MarkdownRender content={content?.post_body || ""} />
+                <MarkdownRender content={content?.content || ""} />
               </div>
             </div>
           </div>
+
+          {/* Response Composer - only if not discarded */}
+          {content.status !== "discarded" && (
+            <div className="w-full mt-4">
+              <ResponseComposer
+                post={{
+                  id: content.id,
+                  title: content.title,
+                  body: content.content,
+                  author: content.author,
+                  subreddit: content.subreddit || content.tag || "reddit",
+                  url: content.url,
+                }}
+                agentId={agentId}
+                // TODO: Implement onSend to handle reply submission
+                onSend={(markdown) => {
+                  // Handle reply submission here
+                  // e.g., call an API or update state
+                  console.log("Reply sent:", markdown);
+                }}
+              />
+            </div>
+          )}
 
           {/* Discarded Reason */}
           {content.status === "discarded" && (
