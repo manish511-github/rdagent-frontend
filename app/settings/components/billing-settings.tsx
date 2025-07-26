@@ -16,6 +16,8 @@ import type { RootState } from "@/store/store";
 import { useRouter } from "next/navigation";
 import { useCancelSubscription } from "@/hooks/useCancelSubscription";
 import { useResumeSubscription } from "@/hooks/useResumeSubscription";
+import { usePaymentMethodChange } from "@/hooks/usePaymentMethodChange";
+import { useCustomerPortal } from "@/hooks/useCustomerPortal";
 
 const invoices = [
   {
@@ -44,6 +46,8 @@ export default function UserBilling() {
   const router = useRouter();
   const { cancelSubscription, isCancelling } = useCancelSubscription();
   const { resumeSubscription, isResuming } = useResumeSubscription();
+  const { handlePaymentMethodChange } = usePaymentMethodChange();
+  const { openCustomerPortal } = useCustomerPortal();
 
   // Group all plan-related variables
   const planInfo = {
@@ -61,6 +65,8 @@ export default function UserBilling() {
     isEnterprise: userInfo?.subscription?.tier === "enterprise",
     isScheduledForCancellation: userInfo?.subscription?.is_scheduled_for_cancellation,
     endsAt: userInfo?.subscription?.ends_at,
+    status: userInfo?.subscription?.status,
+    pastDue: userInfo?.subscription?.past_due,
     renewalOrEndDate: (() => {
       const endsAt = userInfo?.subscription?.ends_at;
       if (!endsAt) return "";
@@ -86,9 +92,15 @@ export default function UserBilling() {
               Manage your subscription and billing details
             </p>
           </div>
-          <Button variant="outline">
-            <Settings className="mr-2 size-4" />
-            Billing Settings
+          <Button 
+            variant="outline"
+            onClick={() => {
+              if (userInfo?.id) {
+                openCustomerPortal(userInfo.id);
+              }
+            }}
+          >
+            Manage Subscription
           </Button>
         </div>
 
@@ -97,7 +109,54 @@ export default function UserBilling() {
           <CardContent className="p-6">
             <div className="flex flex-col items-start justify-between gap-6 sm:flex-row">
               <div>
-                {planInfo.isScheduledForCancellation ? (
+                {planInfo.status === "inactive" && planInfo.pastDue ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Package className="text-primary size-5" />
+                      <h2 className="text-lg font-semibold">
+                        {planInfo.name}
+                      </h2>
+                      <Badge variant="destructive">Payment Failed</Badge>
+                    </div>
+                    {planInfo.planPrice && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xl font-bold text-primary">{planInfo.planPrice.split('/')[0]}</span>
+                        <span className="text-sm text-muted-foreground font-medium">/{planInfo.planPrice.split('/')[1]}</span>
+                      </div>
+                    )}
+                    <div className="mt-4 p-2 bg-destructive/10 border border-destructive/20 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-5 h-5 bg-destructive rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">!</span>
+                        </div>
+                        <div>
+                          <p className="text-sm text-destructive/80">
+                            Payment Method declined. Please update your payment information to continue your subscription.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : planInfo.status === "inactive" ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Package className="text-primary size-5" />
+                      <h2 className="text-lg font-semibold">
+                        {planInfo.name}
+                      </h2>
+                      <Badge variant="destructive">Plan Expired</Badge>
+                    </div>
+                    {planInfo.planPrice && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xl font-bold text-primary">{planInfo.planPrice.split('/')[0]}</span>
+                        <span className="text-sm text-muted-foreground font-medium">/{planInfo.planPrice.split('/')[1]}</span>
+                      </div>
+                    )}
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Your subscription has expired. Renew your plan to continue accessing all features and benefits.
+                    </p>
+                  </>
+                ) : planInfo.isScheduledForCancellation ? (
                   <>
                     <div className="flex items-center gap-2 mt-2">
                       <Package className="text-primary size-5" />
@@ -135,7 +194,24 @@ export default function UserBilling() {
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
-                {planInfo.isScheduledForCancellation ? (
+                {planInfo.status === "inactive" && planInfo.pastDue ? (
+                  <>
+                    <Button 
+                      variant="outline"
+                      onClick={() => router.push("/upgrade")}
+                    >
+                      View all Plans
+                    </Button>
+                  </>
+                ) : planInfo.status === "inactive" ? (
+                  <Button 
+                    variant="default" 
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    onClick={() => router.push("/upgrade")}
+                  >
+                    Subscribe
+                  </Button>
+                ) : planInfo.isScheduledForCancellation ? (
                   <>
                     <Button 
                       variant="outline"
@@ -206,7 +282,16 @@ export default function UserBilling() {
                   </span>
                 </div>
               </div>
-              <Button variant="outline">Update Payment Method</Button>
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  if (userInfo?.id) {
+                    handlePaymentMethodChange(userInfo.id);
+                  }
+                }}
+              >
+                Update Payment Method
+              </Button>
             </div>
           </CardContent>
         </Card>

@@ -1,10 +1,13 @@
 import { useState } from "react";
 import Cookies from "js-cookie";
 import { useToast } from "@/components/ui/use-toast";
+import { useDispatch } from "react-redux";
+import { fetchUser } from "@/store/slices/userSlice";
 
 export function useCancelSubscription() {
   const [isCancelling, setIsCancelling] = useState(false);
   const { toast } = useToast();
+  const dispatch = useDispatch();
 
   const cancelSubscription = async (userId: number) => {
     setIsCancelling(true);
@@ -26,6 +29,9 @@ export function useCancelSubscription() {
         description: "Your subscription has been cancelled successfully.",
         variant: "default",
       });
+      setTimeout(() => {
+        (dispatch as any)(fetchUser());
+      }, 1500);
       return true;
     } catch (error) {
       console.error("Cancel subscription error:", error);

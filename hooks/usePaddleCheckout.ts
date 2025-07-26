@@ -13,19 +13,29 @@ export function usePaddleCheckout() {
     });
   }, []);
 
-  const openCheckout = (txnId: string) => {
-    debugger
+  const openCheckout = (data: { txn_id: string; auth_token?: string }, email?: string) => {
     if (!paddleRef.current) {
       alert("Paddle not initialized");
       return;
     }
-    paddleRef.current.Checkout.open({
-      transactionId: txnId,
+    
+    const checkoutOptions: any = {
+      transactionId: data.txn_id,
       settings: {
+        allowLogout: false,
         theme: "light",
+        variant: "one-page",
         successUrl: "http://localhost:3000/success",
       },
-    });
+    };
+
+    if (data.auth_token) {
+      checkoutOptions.customerAuthToken = data.auth_token;
+    } else if (email) {
+      checkoutOptions.customer = { email };
+    }
+
+    paddleRef.current.Checkout.open(checkoutOptions);
   };
 
   return { openCheckout };

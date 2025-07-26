@@ -7,12 +7,13 @@ export interface UserInfo {
   email: string;
   is_active?: boolean;
   subscription?: {
-    status: 'active' | 'pastDue';
+    status: 'active' | 'pastDue' | 'inactive';
     tier: string; // 'trial', 'basic', etc.
     starts_at: string; // ISO string
     ends_at: string; // ISO string
     billing_cycle?: string;
     is_scheduled_for_cancellation?: boolean;
+    past_due?: boolean;
   };
   plan?: {
     name: string;

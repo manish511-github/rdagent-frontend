@@ -1,10 +1,13 @@
 import { useState } from "react";
 import Cookies from "js-cookie";
 import { useToast } from "@/components/ui/use-toast";
+import { useDispatch } from "react-redux";
+import { fetchUser } from "@/store/slices/userSlice";
 
 export function useResumeSubscription() {
   const [isResuming, setIsResuming] = useState(false);
   const { toast } = useToast();
+  const dispatch = useDispatch();
 
   const resumeSubscription = async (userId: number) => {
     setIsResuming(true);
@@ -28,6 +31,9 @@ export function useResumeSubscription() {
           description: data.message || "Your subscription cancellation has been removed.",
           variant: "default",
         });
+      setTimeout(() => {
+        (dispatch as any)(fetchUser());
+      }, 1500);
       } else {
         throw new Error(data.message || "Failed to resume subscription");
       }

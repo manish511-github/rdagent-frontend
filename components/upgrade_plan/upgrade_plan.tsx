@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import Cookies from "js-cookie";
 import { usePayment } from "@/hooks/usePayment";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store/store";
 
 interface Plan {
   id: number;
@@ -166,6 +168,7 @@ export default function UpgradePlan({
   const [frequency, setFrequency] = useState<'monthly' | 'yearly'>(
     currentBillingType === 'yearly' ? 'yearly' : 'monthly'
   );
+  const userEmail = useSelector((state: RootState) => state.user.info?.email);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -173,17 +176,7 @@ export default function UpgradePlan({
     setIsAuthenticated(!!accessToken);
   }, []);
 
-  const handlePlanSelect = async (planId: number) => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to upgrade your plan.",
-        variant: "destructive",
-      });
-      router.push("/login");
-      return;
-    }
-
+  const handlePlanSelect = async (planId: number, email?: string) => {
     setSelectedPlan(planId);
     
     if (onPlanSelect) {
@@ -192,7 +185,7 @@ export default function UpgradePlan({
     }
 
     // Use the payment hook
-    await handlePayment(planId);
+    await handlePayment(planId, email);
   };
 
   const handleContactSales = () => {
@@ -290,7 +283,13 @@ export default function UpgradePlan({
                       <Button 
                         variant={plan.popular ? "default" : "outline"}
                         className="gap-4 w-full"
-                        onClick={() => handlePlanSelect(plan.id)}
+                        onClick={() => {
+                          if (!isAuthenticated) {
+                            router.push("/login");
+                          } else {
+                            handlePlanSelect(plan.id, userEmail);
+                          }
+                        }}
                         disabled={isLoading}
                       >
                         {isLoading && selectedPlan === plan.id ? (
@@ -303,7 +302,7 @@ export default function UpgradePlan({
                           "Current Plan"
                         ) : (
                           <>
-                            {isAuthenticated ? "Subscribe" : "Get Started"} 
+                            {!isAuthenticated ? "Get Started" : "Subscribe"} 
                             <MoveRight className="w-4 h-4" />
                           </>
                         )}

@@ -9,6 +9,7 @@ import { AcceleratePlanningSection } from "@/components/landing-page/accelerate-
 import { SimplifiedPricingSection } from "@/components/landing-page/simplified-pricing-section"
 import { FAQSection } from "@/components/landing-page/faq-section" // This import is still here
 import { Footer } from "@/components/landing-page/footer"
+import UpgradePlan from "@/components/upgrade_plan/upgrade_plan"
 
 export default function HomePage() {
   return (
@@ -22,7 +23,10 @@ export default function HomePage() {
         <OptimizedSchedulingSection />
         <AcceleratePlanningSection />
         {/* <TestimonialsSection /> */}
-        <SimplifiedPricingSection />
+        {/* <SimplifiedPricingSection /> */}
+        <div className="border-x [&>*:last-child]:pb-20 [&>div>div:first-child]:!pt-20 lg:pt-0 pb-0">
+            <UpgradePlan />
+          </div>
         <FAQSection /> {/* This component is still rendered here */}
       </main>
       <Footer />
