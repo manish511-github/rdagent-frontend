@@ -10,6 +10,10 @@ import {
   RefreshCw,
   Settings,
   Zap,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  Clock,
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
@@ -18,27 +22,15 @@ import { useCancelSubscription } from "@/hooks/useCancelSubscription";
 import { useResumeSubscription } from "@/hooks/useResumeSubscription";
 import { usePaymentMethodChange } from "@/hooks/usePaymentMethodChange";
 import { useCustomerPortal } from "@/hooks/useCustomerPortal";
-
-const invoices = [
-  {
-    id: "INV-001",
-    date: "Mar 1, 2024",
-    amount: "$29.00",
-    status: "Paid",
-  },
-  {
-    id: "INV-002",
-    date: "Feb 1, 2024",
-    amount: "$29.00",
-    status: "Paid",
-  },
-  {
-    id: "INV-003",
-    date: "Jan 1, 2024",
-    amount: "$29.00",
-    status: "Paid",
-  },
-];
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { usePaymentHistory } from '@/hooks/usePaymentHistory';
+import type {
+  PaymentMethod,
+  Payment,
+  PaymentHistoryItem,
+  PaymentHistoryResponse
+} from '@/types/paymentHistory';
 
 
 export default function UserBilling() {
@@ -48,6 +40,22 @@ export default function UserBilling() {
   const { resumeSubscription, isResuming } = useResumeSubscription();
   const { handlePaymentMethodChange } = usePaymentMethodChange();
   const { openCustomerPortal } = useCustomerPortal();
+  const { toast } = useToast();
+  
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
+  const userId = userInfo?.id ? String(userInfo.id) : '';
+  const {
+    data: paymentHistoryData,
+    isLoading: isLoadingHistory,
+    error: paymentHistoryError,
+  } = usePaymentHistory({ userId, page, pageSize });
+  const paymentHistory = paymentHistoryData?.payment_history || [];
+  const pagination = paymentHistoryData?.pagination;
+  const currentPage = pagination?.page || 1;
+  const totalPages = pagination?.total_pages || 1;
+  const hasNext = pagination?.has_next;
+  const hasPrevious = pagination?.has_previous;
 
   // Group all plan-related variables
   const planInfo = {
@@ -296,44 +304,214 @@ export default function UserBilling() {
           </CardContent>
         </Card>
 
-        {/* Billing History */}
+        {/* Payment History */}
         <Card className="p-0">
           <CardContent className="p-6">
             <div className="mb-6 flex flex-col items-start justify-between gap-3 sm:flex-row">
-              <h2 className="text-lg font-semibold">Billing History</h2>
-              <Button variant="outline" size="sm">
-                <Download className="mr-2 size-4" />
-                Download All
-              </Button>
+              <h2 className="text-lg font-semibold">Payment History</h2>
+              <div className="flex gap-2 items-center">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setPage(1)}
+                  disabled={isLoadingHistory}
+                >
+                  <RefreshCw className={`mr-2 size-4 ${isLoadingHistory ? 'animate-spin' : ''}`} />
+                  {isLoadingHistory ? 'Loading...' : 'Refresh'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(currentPage - 1)}
+                  disabled={!hasPrevious || isLoadingHistory}
+                >
+                  Previous
+                </Button>
+                <span className="text-xs text-muted-foreground">Page {currentPage} of {totalPages}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(currentPage + 1)}
+                  disabled={!hasNext || isLoadingHistory}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
 
-            <div className="space-y-4">
-              {invoices.map((invoice) => (
-                <div
-                  key={invoice.id}
-                  className="flex flex-col items-start justify-between gap-3 border-b py-3 last:border-0 sm:flex-row sm:items-center"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-muted rounded-md p-2">
-                      <FileText className="text-muted-foreground size-4" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{invoice.id}</p>
-                      <p className="text-muted-foreground text-sm">
-                        {invoice.date}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Badge variant="outline">{invoice.status}</Badge>
-                    <span className="font-medium">{invoice.amount}</span>
-                    <Button variant="ghost" size="sm">
-                      <Download className="size-4" />
-                    </Button>
-                  </div>
+            {isLoadingHistory ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="size-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Loading payment history...</span>
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : paymentHistoryError ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <AlertCircle className="mx-auto size-12 text-destructive mb-2" />
+                  <p className="text-sm text-destructive">Failed to load payment history</p>
+                </div>
+              </div>
+            ) : paymentHistory.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <FileText className="mx-auto size-12 text-muted-foreground/50 mb-2" />
+                  <p className="text-sm text-muted-foreground">No payment history found</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Header Row */}
+                <div className="hidden md:grid md:grid-cols-7 gap-3 pb-2 border-b border-muted text-sm font-medium text-muted-foreground">
+                  <div>Event Type</div>
+                  <div>Status</div>
+                  <div>Date</div>
+                  <div>Origin</div>
+                  <div>Plan</div>
+                  <div>Payment Method</div>
+                  <div className="text-right">Amount</div>
+                </div>
+                
+                {paymentHistory.map((item: PaymentHistoryItem) => {
+                  const formatEventType = (eventType: string) => {
+                    return eventType.split('.').map(word => 
+                      word.charAt(0).toUpperCase() + word.slice(1)
+                    ).join(' ');
+                  };
+
+                  const getStatusBadge = (eventType: string, status: string) => {
+                    if (eventType.includes('payment_failed')) {
+                      return <Badge variant="destructive" className="flex items-center gap-1">
+                        <XCircle className="size-3" />
+                        Failed
+                      </Badge>;
+                    }
+                    if (eventType.includes('completed')) {
+                      return <Badge variant="default" className="flex items-center gap-1 bg-green-100 text-green-800 hover:bg-green-200">
+                        <CheckCircle className="size-3" />
+                        Completed
+                      </Badge>;
+                    }
+                    if (eventType.includes('past_due')) {
+                      return <Badge variant="secondary" className="flex items-center gap-1">
+                        <Clock className="size-3" />
+                        Past Due
+                      </Badge>;
+                    }
+                    if (status === 'active') {
+                      return <Badge variant="default" className="flex items-center gap-1 bg-blue-100 text-blue-800 hover:bg-blue-200">
+                        <CheckCircle className="size-3" />
+                        Active
+                      </Badge>;
+                    }
+                    if (status === 'canceled') {
+                      return <Badge variant="outline" className="flex items-center gap-1">
+                        <XCircle className="size-3" />
+                        Canceled
+                      </Badge>;
+                    }
+                    return <Badge variant="outline">{status}</Badge>;
+                  };
+
+                  const getPaymentMethodInfo = (payments?: Payment[]) => {
+                    if (!payments || payments.length === 0) return null;
+                    const payment = payments[0];
+                    if (payment.method_details?.card) {
+                      const card = payment.method_details.card;
+                      return `${card.type.charAt(0).toUpperCase() + card.type.slice(1)} ••••${card.last4}`;
+                    }
+                    return payment.method_details?.type || 'Unknown';
+                  };
+
+                  const getAmount = (item: PaymentHistoryItem) => {
+                    if (item.payout_totals?.grand_total) {
+                      const amount = parseFloat(item.payout_totals.grand_total) / 100;
+                      return `$${amount.toFixed(2)}`;
+                    }
+                    if (item.list_items?.[0]?.price?.unit_price?.amount) {
+                      const amount = parseFloat(item.list_items[0].price.unit_price.amount) / 100;
+                      return `$${amount.toFixed(2)}`;
+                    }
+                    return '-';
+                  };
+
+                  const getAttemptCount = (payments?: Payment[]) => {
+                    if (!payments) return '-';
+                    return payments.length.toString();
+                  };
+
+                  const formatDate = (dateString: string) => {
+                    return new Date(dateString).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    });
+                  };
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="grid grid-cols-1 md:grid-cols-7 gap-3 border-b py-4 last:border-0 items-center"
+                    >
+                      {/* Event Type */}
+                      <div className="md:col-span-1">
+                        <p className="font-medium text-sm">{formatEventType(item.event_type)}</p>
+                      </div>
+                      
+                      {/* Status */}
+                      <div className="md:col-span-1">
+                        {getStatusBadge(item.event_type, item.status)}
+                      </div>
+                      
+                      {/* Date */}
+                      <div className="md:col-span-1">
+                        <p className="text-sm text-muted-foreground">
+                          {formatDate(item.occurred_at || item.created_at)}
+                        </p>
+                      </div>
+                      
+                      {/* Origin */}
+                      <div className="md:col-span-1">
+                        <p className="text-sm text-muted-foreground">
+                          {item.origin ? item.origin.replace(/_/g, ' ') : '-'}
+                        </p>
+                      </div>
+
+                      {/* Plan */}
+                      <div className="md:col-span-1">
+                        <p className="text-sm text-muted-foreground">
+                          {item.list_items?.[0]?.price?.name || '-'}
+                        </p>
+                      </div>
+                      
+                      {/* Payment Method & Attempts */}
+                      <div className="md:col-span-1">
+                        <div className="space-y-1">
+                          <p className="text-sm">
+                            {getPaymentMethodInfo(item.payments) || '-'}
+                          </p>
+                          {item.payments && (
+                            <p className="text-xs text-muted-foreground">
+                              Attempts: {getAttemptCount(item.payments)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Amount */}
+                      <div className="md:col-span-1 text-right">
+                        <span className="font-medium">{getAmount(item)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+                
+                {/* Remove old View All History button, as pagination is now handled */}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
