@@ -25,6 +25,15 @@ export interface AgentResult {
   results: {
     agent_platform: string;
     posts: any[];
+    pagination?: {
+      current_page: number;
+      limit: number;
+      total_posts: number;
+      total_pages: number;
+      has_next_page: boolean;
+      has_previous_page: boolean;
+      posts_in_current_page: number;
+    };
   };
   error: string | null;
   created_at: string;
@@ -55,6 +64,12 @@ export async function fetchAgentResults({
     searchParams.append("status", status);
   }
 
+  // Note: Backend doesn't currently support search parameter
+  // Search filtering will be handled client-side for now
+  if (search && search.trim()) {
+    searchParams.append("search", search);
+  }
+
   const response = await fetch(
     `http://localhost:8000/agents/${agentId}/results?${searchParams}`,
     {
@@ -80,8 +95,9 @@ export async function fetchAgentResults({
   }
 
   let posts = agentResult.results.posts || [];
+  const pagination = agentResult.results.pagination;
 
-  // Apply client-side search filtering if provided
+  // Apply client-side search filtering if provided (fallback until backend implements search)
   if (search && search.trim()) {
     const searchLower = search.toLowerCase();
     posts = posts.filter(
@@ -92,15 +108,16 @@ export async function fetchAgentResults({
     );
   }
 
-  // Determine if there's a next page
-  // Since backend doesn't provide total count, we assume there's more if we got the full limit
-  const hasNextPage = posts.length === limit;
+  // Get pagination info from backend response
+  const hasNextPage = pagination?.has_next_page || false;
+  const totalCount = pagination?.total_posts || 0;
+  const currentPage = pagination?.current_page || page;
 
   return {
     data: posts,
     hasNextPage,
-    nextPage: hasNextPage ? page + 1 : undefined,
-    totalCount: posts.length,
+    nextPage: hasNextPage ? currentPage + 1 : undefined,
+    totalCount,
   };
 }
 

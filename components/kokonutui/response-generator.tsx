@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Send, Sparkles } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store";
+import {
+  setReplyDraft,
+  setReplyGenerating,
+  clearReplyDraft,
+  selectReplyDraft,
+  selectReplyGenerating,
+} from "@/store/features/agentSlice";
 import Cookies from "js-cookie";
 
 export interface PostData {
@@ -28,11 +36,14 @@ export default function ResponseComposer({
   agentId,
   onSend,
 }: ResponseComposerProps) {
-  const [response, setResponse] = useState("");
-  const [generating, setGenerating] = useState(false);
+  const dispatch = useDispatch<AppDispatch>();
+
+  // Use Redux state for post-specific reply drafts
+  const response = useSelector(selectReplyDraft(post.id));
+  const generating = useSelector(selectReplyGenerating(post.id));
 
   const handleGenerate = async () => {
-    setGenerating(true);
+    dispatch(setReplyGenerating({ postId: post.id, generating: true }));
     // Replace with your actual AI call
     let token = Cookies.get("access_token");
     const aiResponse = await fetch(
@@ -51,14 +62,16 @@ export default function ResponseComposer({
       }
     ).then((r) => r.json());
     console.log(aiResponse);
-    setResponse(aiResponse.reply || "");
-    setGenerating(false);
+    dispatch(
+      setReplyDraft({ postId: post.id, content: aiResponse.reply || "" })
+    );
+    dispatch(setReplyGenerating({ postId: post.id, generating: false }));
   };
 
   const handleSend = () => {
     if (!response.trim()) return;
     onSend?.(response);
-    setResponse("");
+    dispatch(clearReplyDraft({ postId: post.id }));
   };
 
   return (
@@ -91,7 +104,11 @@ export default function ResponseComposer({
           rows={6}
           placeholder={`Reply to u/${post.author}…`}
           value={response}
-          onChange={(e) => setResponse(e.target.value)}
+          onChange={(e) =>
+            dispatch(
+              setReplyDraft({ postId: post.id, content: e.target.value })
+            )
+          }
           className="text-sm resize-none"
         />
 
