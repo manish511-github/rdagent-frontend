@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { RootState } from "../store";
 import Cookies from "js-cookie";
 import { createSelector } from "@reduxjs/toolkit";
+import { fetchAgentResults, AgentPostsParams } from "../../lib/api";
 
 // Types
 export type AgentType = "twitter" | "reddit" | "mixed";
@@ -34,6 +35,7 @@ export interface RedditPost {
   post_title: string;
   post_body: string;
   post_url: string;
+  post_author: string;
   upvotes: number;
   comment_count: number;
   created_utc: string;
@@ -105,6 +107,29 @@ export interface AgentState {
   agentStatus: "active" | "paused" | "completed" | "error";
   lastUpdated: string | null;
   agentData: AgentData | null;
+  // Infinite scroll state
+  posts: DisplayPost[];
+  pagination: {
+    currentPage: number;
+    hasNextPage: boolean;
+    isLoadingMore: boolean;
+    totalCount: number;
+    limit: number;
+  };
+  filters: {
+    sortBy: string;
+    order: string;
+    statusFilter: string;
+    searchQuery: string;
+  };
+  // Post-specific reply drafts
+  replyDrafts: Record<
+    string,
+    {
+      content: string;
+      generating: boolean;
+    }
+  >;
 }
 
 // Unified interface for displaying posts in the UI
@@ -141,11 +166,214 @@ const initialState: AgentState = {
   agentStatus: "active",
   lastUpdated: null,
   agentData: null,
+  // Infinite scroll state
+  posts: [],
+  pagination: {
+    currentPage: 1,
+    hasNextPage: false,
+    isLoadingMore: false,
+    totalCount: 0,
+    limit: 50,
+  },
+  filters: {
+    sortBy: "combined_relevance", // This will be set by component on first load
+    order: "desc",
+    statusFilter: "all",
+    searchQuery: "",
+  },
+  // Post-specific reply drafts
+  replyDrafts: {},
 };
 
 interface AgentConnection {
   eventSource: EventSource;
 }
+
+// Helper function to transform posts to DisplayPost format
+const transformPostsToDisplayPosts = (
+  posts: any[],
+  platform: string
+): DisplayPost[] => {
+  return posts.map((post: any, index: number) => {
+    if (post.post_id || platform === "reddit") {
+      // Reddit post
+      return {
+        id: post.post_id || `reddit_${index}`,
+        platform: "reddit" as const,
+        author: post.post_author || "Unknown",
+        time: post.created_utc
+          ? new Date(post.created_utc).toLocaleString()
+          : "Unknown",
+        status: post.status || "processed",
+        title: post.post_title || "",
+        content: post.post_body || "",
+        tag: post.subreddit || "",
+        relevance: Math.round((post.combined_relevance || 0) * 100),
+        sentiment: "neutral",
+        keywords: post.matched_query ? [post.matched_query] : [],
+        intent: "Unknown",
+        aiResponse: post.comment_draft || "",
+        aiConfidence: 0,
+        comments: post.comment_count || 0,
+        upvotes: post.upvotes || 0,
+        url: post.post_url || "",
+        created_at: post.created_utc || "",
+        subreddit: post.subreddit || "",
+      };
+    } else if (post.tweet_id || platform === "twitter") {
+      // Twitter post
+      return {
+        id: post.tweet_id || `twitter_${index}`,
+        platform: "twitter" as const,
+        author: post.user_name || "Unknown",
+        time: post.created_at
+          ? new Date(post.created_at).toLocaleString()
+          : "Unknown",
+        status: post.status || "processed",
+        title: "",
+        content: post.text || "",
+        tag: post.hashtags?.join(", ") || "",
+        relevance: post.relevance_score || 0,
+        sentiment: "neutral",
+        keywords: post.hashtags || [],
+        intent: "Unknown",
+        aiResponse: "",
+        aiConfidence: 0,
+        comments: 0,
+        upvotes: post.favorite_count || 0,
+        url: `https://twitter.com/${post.user_screen_name}/status/${post.tweet_id}`,
+        created_at: post.created_at || "",
+      };
+    }
+
+    // Fallback
+    return {
+      id: `unknown_${index}`,
+      platform: "reddit" as const,
+      author: "Unknown",
+      time: "Unknown",
+      status: "processed" as const,
+      title: "Unknown post",
+      content: "",
+      tag: "",
+      relevance: 0,
+      sentiment: "neutral",
+      keywords: [],
+      intent: "Unknown",
+      aiResponse: "",
+      aiConfidence: 0,
+      comments: 0,
+      upvotes: 0,
+      url: "",
+      created_at: "",
+    };
+  });
+};
+
+// Thunks for infinite scroll
+export const fetchAgentPosts = createAsyncThunk(
+  "agent/fetchPosts",
+  async (
+    {
+      agentId,
+      sortBy,
+      order,
+      statusFilter,
+      searchQuery,
+    }: {
+      agentId: string;
+      sortBy?: string;
+      order?: string;
+      statusFilter?: string;
+      searchQuery?: string;
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const params: AgentPostsParams = {
+        agentId,
+        page: 1,
+        limit: 50,
+        sort_by: sortBy || "combined_relevance",
+        order: order || "desc",
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        search: searchQuery || undefined,
+      };
+
+      const response = await fetchAgentResults(params);
+
+      // Transform posts to DisplayPost format
+      const transformedPosts = transformPostsToDisplayPosts(
+        response.data,
+        "reddit"
+      );
+
+      return {
+        posts: transformedPosts,
+        hasNextPage: response.hasNextPage,
+        totalCount: response.totalCount || 0,
+        currentPage: 1,
+      };
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to fetch agent posts"
+      );
+    }
+  }
+);
+
+export const loadMoreAgentPosts = createAsyncThunk(
+  "agent/loadMorePosts",
+  async (
+    {
+      agentId,
+      currentPage,
+      sortBy,
+      order,
+      statusFilter,
+      searchQuery,
+    }: {
+      agentId: string;
+      currentPage: number;
+      sortBy: string;
+      order: string;
+      statusFilter: string;
+      searchQuery: string;
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const params: AgentPostsParams = {
+        agentId,
+        page: currentPage + 1,
+        limit: 50,
+        sort_by: sortBy,
+        order,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        search: searchQuery || undefined,
+      };
+
+      const response = await fetchAgentResults(params);
+
+      // Transform posts to DisplayPost format
+      const transformedPosts = transformPostsToDisplayPosts(
+        response.data,
+        "reddit"
+      );
+
+      return {
+        posts: transformedPosts,
+        hasNextPage: response.hasNextPage,
+        totalCount: response.totalCount || 0,
+        currentPage: currentPage + 1,
+      };
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to load more posts"
+      );
+    }
+  }
+);
 
 // Thunks
 export const fetchAgentData = createAsyncThunk(
@@ -338,9 +566,91 @@ const agentSlice = createSlice({
         | "error";
       state.lastUpdated = new Date().toISOString();
     },
+    // Infinite scroll reducers
+    setFilters: (state, action) => {
+      state.filters = { ...state.filters, ...action.payload };
+    },
+    resetPosts: (state) => {
+      state.posts = [];
+      state.pagination = {
+        currentPage: 1,
+        hasNextPage: false,
+        isLoadingMore: false,
+        totalCount: 0,
+        limit: 50,
+      };
+    },
+    // Reply draft management
+    setReplyDraft: (state, action) => {
+      const { postId, content } = action.payload;
+      if (!state.replyDrafts[postId]) {
+        state.replyDrafts[postId] = { content: "", generating: false };
+      }
+      state.replyDrafts[postId].content = content;
+    },
+    setReplyGenerating: (state, action) => {
+      const { postId, generating } = action.payload;
+      if (!state.replyDrafts[postId]) {
+        state.replyDrafts[postId] = { content: "", generating: false };
+      }
+      state.replyDrafts[postId].generating = generating;
+    },
+    clearReplyDraft: (state, action) => {
+      const { postId } = action.payload;
+      if (state.replyDrafts[postId]) {
+        state.replyDrafts[postId].content = "";
+      }
+    },
+    removeReplyDraft: (state, action) => {
+      const { postId } = action.payload;
+      delete state.replyDrafts[postId];
+    },
   },
   extraReducers: (builder) => {
     builder
+      // Infinite scroll reducers
+      .addCase(fetchAgentPosts.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+        state.pagination.isLoadingMore = false;
+      })
+      .addCase(fetchAgentPosts.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.posts = action.payload.posts;
+        state.pagination = {
+          ...state.pagination,
+          currentPage: action.payload.currentPage,
+          hasNextPage: action.payload.hasNextPage,
+          totalCount: action.payload.totalCount,
+          isLoadingMore: false,
+        };
+        state.lastUpdated = new Date().toISOString();
+      })
+      .addCase(fetchAgentPosts.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload as string;
+        state.pagination.isLoadingMore = false;
+      })
+      .addCase(loadMoreAgentPosts.pending, (state) => {
+        state.pagination.isLoadingMore = true;
+        state.error = null;
+      })
+      .addCase(loadMoreAgentPosts.fulfilled, (state, action) => {
+        state.posts = [...state.posts, ...action.payload.posts];
+        state.pagination = {
+          ...state.pagination,
+          currentPage: action.payload.currentPage,
+          hasNextPage: action.payload.hasNextPage,
+          totalCount: action.payload.totalCount,
+          isLoadingMore: false,
+        };
+        state.lastUpdated = new Date().toISOString();
+      })
+      .addCase(loadMoreAgentPosts.rejected, (state, action) => {
+        state.pagination.isLoadingMore = false;
+        state.error = action.payload as string;
+      })
+      // Existing reducers
       .addCase(fetchAgentData.pending, (state) => {
         state.status = "loading";
         state.error = null;
@@ -412,6 +722,12 @@ export const {
   setAgentType,
   clearError,
   updateAgentData,
+  setFilters,
+  resetPosts,
+  setReplyDraft,
+  setReplyGenerating,
+  clearReplyDraft,
+  removeReplyDraft,
 } = agentSlice.actions;
 
 // Selectors
@@ -436,7 +752,28 @@ export const selectPostById = (postId: string) => (state: RootState) => {
   return state.agent.redditPosts[index];
 };
 
-// Memoized selector for display posts
+// Infinite scroll selectors
+export const selectPosts = (state: RootState) => state.agent.posts;
+export const selectPagination = (state: RootState) => state.agent.pagination;
+export const selectFilters = (state: RootState) => state.agent.filters;
+export const selectHasNextPage = (state: RootState) =>
+  state.agent.pagination.hasNextPage;
+export const selectIsLoadingMore = (state: RootState) =>
+  state.agent.pagination.isLoadingMore;
+export const selectCurrentPage = (state: RootState) =>
+  state.agent.pagination.currentPage;
+export const selectTotalCount = (state: RootState) =>
+  state.agent.pagination.totalCount;
+
+// Reply draft selectors
+export const selectReplyDraft = (postId: string) => (state: RootState) =>
+  state.agent.replyDrafts[postId]?.content || "";
+export const selectReplyGenerating = (postId: string) => (state: RootState) =>
+  state.agent.replyDrafts[postId]?.generating || false;
+export const selectAllReplyDrafts = (state: RootState) =>
+  state.agent.replyDrafts;
+
+// Memoized selector for display posts (legacy - keeping for backward compatibility)
 export const selectDisplayPosts = createSelector(
   [
     (state: RootState) => state.agent.redditPosts,
@@ -446,7 +783,7 @@ export const selectDisplayPosts = createSelector(
     const transformedRedditPosts = redditPosts.map((post) => ({
       id: `${post.post_id}`,
       platform: "reddit" as const,
-      author: "Unknown",
+      author: post.post_author,
       time: new Date(post.created_utc).toLocaleString(),
       status: post.status,
       title: post.post_title,
