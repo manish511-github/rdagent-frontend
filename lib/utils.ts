@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { getApiUrl } from "./config"
 import Cookies from "js-cookie"
 
 export function cn(...inputs: ClassValue[]) {
@@ -9,7 +10,7 @@ export async function refreshAccessToken() {
   const refreshToken = Cookies.get("refresh_token")
   if (!refreshToken) return null
 
-  const response = await fetch("http://localhost:8000/auth/refresh", {
+  const response = await fetch(getApiUrl("auth/refresh"), {
     method: "POST",
     headers: {
       "refresh-token": refreshToken,

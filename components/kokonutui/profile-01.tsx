@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/store/store"
+import { getApiUrl } from "../../lib/config";
 
 interface MenuItem {
   label: string
@@ -120,7 +121,7 @@ export default function Profile01() {
                                 rounded-lg transition-colors duration-200"
               onClick={async () => {
                 try {
-                  await fetch("http://localhost:8000/auth/logout", {
+                  await fetch(getApiUrl("auth/logout"), {
                     method: "POST",
                     credentials: "include",
                   });

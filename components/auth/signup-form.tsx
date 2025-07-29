@@ -1,5 +1,6 @@
 "use client"
 
+import { getApiUrl } from "../../lib/config";
 import type React from "react"
 
 import { useState } from "react"
@@ -106,7 +107,7 @@ export default function SignupForm() {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch("http://localhost:8000/users", {
+      const response = await fetch(getApiUrl("users"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -151,7 +152,7 @@ export default function SignupForm() {
 
   const handleGoogleSignup = () => {
     // Redirect to FastAPI Google OAuth endpoint for signup
-    window.location.href = "http://localhost:8000/auth/google";
+    window.location.href = getApiUrl("auth/google");
   }
 
   if (isSubmitted) {

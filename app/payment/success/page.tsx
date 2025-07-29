@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/use-toast"
 // import { ReceiptGenerator } from "@/components/payment/receipt-generator"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/store/store"
+import { getApiUrl } from "../../../lib/config";
 
 interface TransactionDetails {
   transaction_id: string
@@ -49,7 +50,7 @@ export default function PaymentSuccessPage() {
       if (txnId) {
         setIsLoading(true)
         try {
-          const response = await fetch("http://localhost:8000/subscription/transaction-detail", {
+          const response = await fetch(getApiUrl("subscription/transaction-detail"), {
             method: "POST", // Assuming you need to POST the transaction ID
             headers: {
               "Content-Type": "application/json",

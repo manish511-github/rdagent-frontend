@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import Cookies from 'js-cookie';
+import { getApiUrl } from '../lib/config';
 import type {
   PaymentMethod,
   Payment,
@@ -16,7 +18,7 @@ export function usePaymentHistory({ userId, page, pageSize }: UsePaymentHistoryO
   return useQuery<PaymentHistoryResponse, Error>({
     queryKey: ['paymentHistory', userId, page, pageSize],
     queryFn: async () => {
-      const response = await fetch('http://localhost:8000/subscription/get-payment-history', {
+      const response = await fetch(getApiUrl('subscription/get-payment-history'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

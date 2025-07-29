@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import Cookies from 'js-cookie';
 import { useToast } from "@/components/ui/use-toast"
 import { EyeIcon, EyeOffIcon, LoaderCircleIcon, AlertCircleIcon } from "lucide-react"
+import { getApiUrl } from "../lib/config";
 
 export default function SignInForm() {
   const router = useRouter()
@@ -59,7 +60,7 @@ export default function SignInForm() {
     try {
       // Simulate API call to FastAPI backend
       await new Promise((resolve) => setTimeout(resolve, 1500))
-      const response = await fetch("http://localhost:8000/auth/login", {
+      const response = await fetch(getApiUrl("auth/login"), {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -94,7 +95,7 @@ export default function SignInForm() {
 
   const handleGoogleSignIn = () => {
     // Redirect to FastAPI Google OAuth endpoint
-    window.location.href = "http://localhost:8000/auth/google";
+    window.location.href = getApiUrl("auth/google");
   }
 
   const goBackToEmail = () => {

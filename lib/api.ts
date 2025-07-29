@@ -1,4 +1,5 @@
 import Cookies from "js-cookie";
+import { getApiUrl } from "./config";
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -71,7 +72,7 @@ export async function fetchAgentResults({
   }
 
   const response = await fetch(
-    `http://localhost:8000/agents/${agentId}/results?${searchParams}`,
+    getApiUrl(`agents/${agentId}/results?${searchParams}`),
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -127,7 +128,7 @@ export async function fetchAgentInfo(agentId: string) {
     throw new Error("Authentication required");
   }
 
-  const response = await fetch(`http://localhost:8000/agents/${agentId}`, {
+  const response = await fetch(getApiUrl(`agents/${agentId}`), {
     headers: {
       Authorization: `Bearer ${token}`,
     },

@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import Cookies from 'js-cookie';
 import { LucideIcon } from 'lucide-react';
 import { refreshAccessToken } from "@/lib/utils";
+import { getApiUrl } from "../../lib/config";
 
 interface Project {
   uuid: string;
@@ -51,7 +52,7 @@ export const fetchProjects = createAsyncThunk(
   'projects/fetchProjects',
   async () => {
     let token = Cookies.get('access_token');
-    let response = await fetch('http://localhost:8000/projects', {
+    let response = await fetch(getApiUrl("projects"), {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
@@ -62,7 +63,7 @@ export const fetchProjects = createAsyncThunk(
     if (response.status === 401) {
       token = await refreshAccessToken();
       if (token) {
-        response = await fetch('http://localhost:8000/projects', {
+        response = await fetch(getApiUrl("projects"), {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoaderCircleIcon, CheckCircle2Icon, AlertCircleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getApiUrl } from "../../../lib/config";
 
 function AccountVerifyInner() {
   const searchParams = useSearchParams();
@@ -24,7 +25,7 @@ function AccountVerifyInner() {
 
     const verifyAccount = async () => {
       try {
-        const response = await fetch("http://localhost:8000/users/verify", {
+        const response = await fetch(getApiUrl("users/verify"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

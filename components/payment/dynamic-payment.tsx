@@ -1,5 +1,6 @@
 "use client";
 import { initializePaddle, Paddle } from "@paddle/paddle-js";
+import { getApiUrl } from "../../lib/config";
 import { useEffect, useState } from "react";
 
 export default function Payment() {
@@ -15,14 +16,14 @@ export default function Payment() {
   const handleCheckout = async () => {
     if (!paddle) return alert("Paddle not initialized");
 
-    const response = await fetch("http://localhost:8000/subscription/create");
+    const response = await fetch(getApiUrl("subscription/create"));
     const data = await response.json();
 
     paddle.Checkout.open({
       transactionId: data.txn,
       settings: {
         theme: "dark",
-        successUrl: "http://localhost:3000/success",
+        successUrl: "http://localhost:3000/paymentsuccess",
       },
     });
   };

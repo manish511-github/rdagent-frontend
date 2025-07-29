@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Cookies from "js-cookie";
 import { refreshAccessToken } from "@/lib/utils";
+import { getApiUrl } from "../../lib/config";
 
 interface LayoutProps {
   children: ReactNode;
@@ -41,7 +42,7 @@ export default function Layout({ children }: LayoutProps) {
       try {
         let token = Cookies.get("access_token");
         let response = await fetch(
-          `http://localhost:8000/projects/${currentProjectId}`,
+          getApiUrl(`projects/${currentProjectId}`),
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -54,7 +55,7 @@ export default function Layout({ children }: LayoutProps) {
           token = await refreshAccessToken();
           if (token) {
             response = await fetch(
-              `http://localhost:8000/projects/${currentProjectId}`,
+              getApiUrl(`projects/${currentProjectId}`),
               {
                 headers: {
                   Authorization: `Bearer ${token}`,

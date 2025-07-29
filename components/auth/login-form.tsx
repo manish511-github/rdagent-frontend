@@ -7,6 +7,7 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { getApiUrl } from "../../lib/config";
 import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import Cookies from "js-cookie"
@@ -81,7 +82,7 @@ export function LoginForm() {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch("http://localhost:8000/auth/login", {
+      const response = await fetch(getApiUrl("auth/login"), {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -137,7 +138,7 @@ export function LoginForm() {
 
   const handleGoogleLogin = () => {
     // Handle Google login logic here
-    window.location.href = "http://localhost:8000/auth/google";
+    window.location.href = getApiUrl("auth/google");
 
   }
 

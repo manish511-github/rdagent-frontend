@@ -3,6 +3,7 @@ import Cookies from "js-cookie";
 import { useToast } from "@/components/ui/use-toast";
 import { useDispatch } from "react-redux";
 import { fetchUser } from "@/store/slices/userSlice";
+import { getApiUrl } from "../lib/config";
 
 export function useResumeSubscription() {
   const [isResuming, setIsResuming] = useState(false);
@@ -13,7 +14,7 @@ export function useResumeSubscription() {
     setIsResuming(true);
     try {
       const accessToken = Cookies.get("access_token");
-      const response = await fetch("http://localhost:8000/subscription/remove-scheduled-cancellation", {
+      const response = await fetch(getApiUrl("subscription/remove-scheduled-cancellation"), {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${accessToken}`,

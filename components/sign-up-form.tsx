@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 
 import { EyeIcon, EyeOffIcon, LoaderCircleIcon, AlertCircleIcon } from "lucide-react"
+import { getApiUrl } from "../lib/config";
 
 export default function SignUpForm() {
   const router = useRouter()
@@ -77,7 +78,7 @@ export default function SignUpForm() {
     setError(""); // Clear previous errors
 
     try {
-      const response = await fetch('http://localhost:8000/users', {
+      const response = await fetch(getApiUrl("users"), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +113,7 @@ export default function SignUpForm() {
 
   const handleGoogleSignUp = () => {
     // Redirect to FastAPI Google OAuth endpoint for signup
-    window.location.href = "http://localhost:8000/auth/google";
+    window.location.href = getApiUrl("auth/google");
   }
 
   return (

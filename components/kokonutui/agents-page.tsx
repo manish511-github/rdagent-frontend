@@ -66,6 +66,7 @@ import Cookies from 'js-cookie'
 import { refreshAccessToken } from "@/lib/utils"
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
+import { getApiUrl } from "../../lib/config";
 
 // Mock data for agents
 
@@ -274,7 +275,7 @@ function getAuthToken(): string | undefined {
 // Add this function to fetch agents
 async function fetchAgents(projectId: string): Promise<Agent[]> {
   let token = Cookies.get("access_token");
-  let response = await fetch(`http://localhost:8000/agents/project/${projectId}`, {
+  let response = await fetch(getApiUrl(`agents/project/${projectId}`), {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -284,7 +285,7 @@ async function fetchAgents(projectId: string): Promise<Agent[]> {
   if (response.status === 401) {
     token = await refreshAccessToken();
     if (token) {
-      response = await fetch(`http://localhost:8000/agents/project/${projectId}`, {
+      response = await fetch(getApiUrl(`agents/project/${projectId}`), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -308,7 +309,7 @@ async function updateAgentStatus(projectId: string, agentId: string, status: str
     throw new Error('Authentication required')
   }
 
-  const response = await fetch(`http://localhost:8000/agents/${projectId}/${agentId}/status`, {
+  const response = await fetch(getApiUrl(`agents/${projectId}/${agentId}/status`), {
     method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -328,7 +329,7 @@ async function updateAgentStatus(projectId: string, agentId: string, status: str
 // Add mutation function for creating new agent
 async function createNewAgent(projectId: string, agentData: ApiAgent): Promise<Agent> {
   let token = Cookies.get("access_token");
-  let response = await fetch(`http://localhost:8000/agents`, {
+  let response = await fetch(getApiUrl("agents"), {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -341,7 +342,7 @@ async function createNewAgent(projectId: string, agentData: ApiAgent): Promise<A
   if (response.status === 401) {
     token = await refreshAccessToken();
     if (token) {
-      response = await fetch(`http://localhost:8000/agents`, {
+      response = await fetch(getApiUrl("agents"), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -373,7 +374,7 @@ async function generateAgentProfile(input: {
   project_id: string;
   existing_context?: string;
 }) {
-  const response = await fetch('http://localhost:8000/agents/generate-instruction-personality', {
+  const response = await fetch(getApiUrl("agents/generate-instruction-personality"), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -395,7 +396,7 @@ async function generateExpectedOutcomes(input: {
   project_id: string;
   instructions: string;
 }) {
-  const response = await fetch('http://localhost:8000/agents/generate-expected-outcomes', {
+  const response = await fetch(getApiUrl("agents/generate-expected-outcomes"), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -519,7 +520,7 @@ export default function AgentsPage() {
     if (!token) return
 
     // Create SSE connection
-    const eventSource = new EventSource(`http://localhost:8000/sse/projects/${projectId}/events?token=${token}`)
+    const eventSource = new EventSource(getApiUrl(`sse/projects/${projectId}/events?token=${token}`))
 
     // Handle incoming messages
     eventSource.onmessage = (event) => {
@@ -1419,7 +1420,7 @@ export default function AgentsPage() {
     }
     if (platform === "reddit") {
       setRedditLoading(true);
-      fetch("http://localhost:8000/auth/reddit/state", {
+      fetch(getApiUrl("auth/reddit/state"), {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${accessToken}`,
@@ -1432,7 +1433,7 @@ export default function AgentsPage() {
         })
         .then((data) => {
           const state = data.state;
-          window.open(`http://localhost:8000/auth/reddit/login?state=${state}`, "_blank");
+          window.open(getApiUrl(`auth/reddit/login?state=${state}`), "_blank");
         })
         .catch((err) => {
           setRedditLoading(false);

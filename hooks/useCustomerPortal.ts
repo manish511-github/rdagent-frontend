@@ -1,10 +1,11 @@
 import Cookies from "js-cookie";
+import { getApiUrl } from "../lib/config";
 
 export function useCustomerPortal() {
   const openCustomerPortal = async (userId: number) => {
     try {
       const accessToken = Cookies.get("access_token");
-      const response = await fetch("http://localhost:8000/subscription/create-customer-portal-session", {
+      const response = await fetch(getApiUrl("subscription/create-customer-portal-session"), {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${accessToken}`,

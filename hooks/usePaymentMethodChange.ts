@@ -1,5 +1,6 @@
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 import Cookies from "js-cookie";
+import { getApiUrl } from "../lib/config";
 
 export function usePaymentMethodChange() {
   const { openCheckout } = usePaddleCheckout();
@@ -7,7 +8,7 @@ export function usePaymentMethodChange() {
   const handlePaymentMethodChange = async (userId: number) => {
     try {
       const accessToken = Cookies.get("access_token");
-      const response = await fetch("http://localhost:8000/subscription/get-payment-method-change-transaction", {
+      const response = await fetch(getApiUrl("subscription/get-payment-method-change-transaction"), {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${accessToken}`,

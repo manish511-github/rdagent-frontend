@@ -90,6 +90,7 @@ import { Project } from "./projectTypes";
 import { getStatusColor, getPriorityColor, getHealthColor, formatCurrency, getDaysUntilDue, formatRelativeDate } from "./projectUtils";
 import { projectCategories, projectStatuses, priorityLevels, healthStatuses } from "./projectConstants";
 import { CreateProjectDialog } from "./CreateProjectDialog";
+import { getApiUrl } from "../../../lib/config";
 
 
 interface WebsiteAnalysisResult {
@@ -104,7 +105,7 @@ interface WebsiteAnalysisResult {
 // Replace mock function with API call
 const analyzeWebsite = async (url: string) => {
   try {
-    const response = await fetch('http://localhost:8000/scraper/scrape-website', {
+    const response = await fetch(getApiUrl("scraper/scrape-website"), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -474,7 +475,7 @@ export default function ProjectsPage() {
       console.log("Creating new project:", projectData);
       let token = Cookies.get("access_token");
 
-      let response = await fetch('http://localhost:8000/projects', {
+      let response = await fetch(getApiUrl("projects"), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -487,7 +488,7 @@ export default function ProjectsPage() {
       if (response.status === 401) {
         token = await refreshAccessToken();
         if (token) {
-          response = await fetch('http://localhost:8000/projects', {
+          response = await fetch(getApiUrl("projects"), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

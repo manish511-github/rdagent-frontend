@@ -15,6 +15,7 @@ import {
   selectReplyGenerating,
 } from "@/store/features/agentSlice";
 import Cookies from "js-cookie";
+import { getApiUrl } from "../../lib/config";
 
 export interface PostData {
   id: string;
@@ -47,25 +48,25 @@ export default function ResponseComposer({
     // Replace with your actual AI call
     let token = Cookies.get("access_token");
     const aiResponse = await fetch(
-      "http://localhost:8000/reddit/generate-reply",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          post_id: post.id,
-          agent_id: parseInt(agentId),
-          user_text: "",
-        }),
-      }
+      getApiUrl("reddit/generate-reply"),
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            post_id: post.id,
+            agent_id: parseInt(agentId),
+            user_text: "",
+          }),
+        }
     ).then((r) => r.json());
     console.log(aiResponse);
-    dispatch(
+      dispatch(
       setReplyDraft({ postId: post.id, content: aiResponse.reply || "" })
-    );
-    dispatch(setReplyGenerating({ postId: post.id, generating: false }));
+      );
+      dispatch(setReplyGenerating({ postId: post.id, generating: false }));
   };
 
   const handleSend = () => {

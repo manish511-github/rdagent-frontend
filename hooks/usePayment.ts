@@ -3,6 +3,7 @@ import type { RootState } from "@/store/store";
 import { fetchUser } from "@/store/slices/userSlice";
 import Cookies from "js-cookie";
 import { useToast } from "@/components/ui/use-toast";
+import { getApiUrl } from '../lib/config';
 import { useState } from "react";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 
@@ -32,7 +33,7 @@ export function usePayment() {
       // Routing logic
       if (status === "active" && tier !== "trial") {
         // Make a POST request to /update-subscription
-        const response = await fetch(`http://localhost:8000/subscription/update-subscription`, {
+        const response = await fetch(getApiUrl(`subscription/update-subscription`), {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -60,7 +61,7 @@ export function usePayment() {
         }
       } else {
         // Route to /create-transaction
-        const response = await fetch(`http://localhost:8000/subscription/create-transaction`, {
+        const response = await fetch(getApiUrl(`subscription/create-transaction`), {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,

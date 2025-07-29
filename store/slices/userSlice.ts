@@ -29,6 +29,7 @@ export interface UserInfo {
 }
 // Selectors for subscription logic
 import { RootState } from '../store';
+import { getApiUrl } from "../../lib/config";
 
 export const selectUserInfo = (state: RootState) => state.user.info;
 export const selectUserPlanId = (state: RootState) => state.user.info?.plan?.plan_id ?? null;
@@ -61,7 +62,7 @@ export const fetchUser = createAsyncThunk<UserInfo, void, { rejectValue: string 
   async (_, { rejectWithValue }) => {
     const token = Cookies.get('access_token');
     if (!token) return rejectWithValue('No access token');
-    const response = await fetch('http://localhost:8000/users/me', {
+    const response = await fetch('getApiUrl("users/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {

@@ -3,6 +3,7 @@ import { RootState } from "../store";
 import Cookies from "js-cookie";
 import { createSelector } from "@reduxjs/toolkit";
 import { fetchAgentResults, AgentPostsParams } from "../../lib/api";
+import { getApiUrl } from "../../lib/config";
 
 // Types
 export type AgentType = "twitter" | "reddit" | "mixed";
@@ -387,7 +388,7 @@ export const fetchAgentData = createAsyncThunk(
       console.log("Fetching agent data for agentId:", agentId);
 
       const response = await fetch(
-        `http://localhost:8000/agents/${agentId}/results`,
+        getApiUrl(`agents/${agentId}/results`),
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -510,7 +511,7 @@ export const updateAgentStatus = createAsyncThunk(
       }
 
       const response = await fetch(
-        `http://localhost:8000/agents/${agentId}/status`,
+        getApiUrl(`agents/${agentId}/status`),
         {
           method: "PATCH",
           headers: {
