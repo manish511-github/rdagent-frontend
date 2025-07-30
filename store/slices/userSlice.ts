@@ -62,7 +62,7 @@ export const fetchUser = createAsyncThunk<UserInfo, void, { rejectValue: string 
   async (_, { rejectWithValue }) => {
     const token = Cookies.get('access_token');
     if (!token) return rejectWithValue('No access token');
-    const response = await fetch('getApiUrl("users/me', {
+    const response = await fetch(getApiUrl("users/me"), {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
