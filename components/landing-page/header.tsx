@@ -11,6 +11,7 @@ import { useTheme } from "next-themes"
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
   const headerRef = useRef<HTMLElement>(null)
 
@@ -22,6 +23,11 @@ export function Header() {
 
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  // Ensure component is mounted to prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true)
   }, [])
 
   // Effect to manage body overflow when mobile menu is open
@@ -109,22 +115,14 @@ export function Header() {
                   className="flex-shrink-0"
                 >
                   <Link href="/" className="flex items-center gap-2">
-                    <motion.div
-                      animate={{ rotate: [0, 360] }}
-                      transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                      className="relative"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur-sm opacity-30" />
-                      <Image
-                        src="/placeholder.svg?height=32&width=32"
-                        alt="logo"
-                        width={32}
-                        height={32}
-                        className="dark:invert relative z-10"
-                      />
-                    </motion.div>
-                    <span className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
-                      FaithAni
+                    <Image
+                      src={theme === "dark" ? "/logo-light.svg" : "/logo-dark.svg"}
+                      alt="logo"
+                      width={32}
+                      height={32}
+                    />
+                    <span className="text-xl font-medium font-montserrat bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
+                      zooptics
                     </span>
                   </Link>
                 </motion.div>
@@ -178,45 +176,47 @@ export function Header() {
                 {/* Right side actions */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {/* Theme toggle */}
-                  <motion.div
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                      className="relative h-9 w-9 rounded-full bg-muted/50 hover:bg-muted border-0"
+                  {mounted && (
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 17 }}
                     >
-                      <AnimatePresence mode="wait" initial={false}>
-                        {theme === "dark" ? (
-                          <motion.div
-                            key="moon"
-                            initial={{ opacity: 0, rotate: -90, scale: 0.5 }}
-                            animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                            exit={{ opacity: 0, rotate: 90, scale: 0.5 }}
-                            transition={{ duration: 0.3 }}
-                            className="absolute inset-0 flex items-center justify-center"
-                          >
-                            <Moon className="h-4 w-4" />
-                          </motion.div>
-                        ) : (
-                          <motion.div
-                            key="sun"
-                            initial={{ opacity: 0, rotate: 90, scale: 0.5 }}
-                            animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                            exit={{ opacity: 0, rotate: -90, scale: 0.5 }}
-                            transition={{ duration: 0.3 }}
-                            className="absolute inset-0 flex items-center justify-center"
-                          >
-                            <Sun className="h-4 w-4" />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                      <span className="sr-only">Toggle theme</span>
-                    </Button>
-                  </motion.div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                        className="relative h-9 w-9 rounded-full bg-muted/50 hover:bg-muted border-0"
+                      >
+                        <AnimatePresence mode="wait" initial={false}>
+                          {theme === "dark" ? (
+                            <motion.div
+                              key="moon"
+                              initial={{ opacity: 0, rotate: -90, scale: 0.5 }}
+                              animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                              exit={{ opacity: 0, rotate: 90, scale: 0.5 }}
+                              transition={{ duration: 0.3 }}
+                              className="absolute inset-0 flex items-center justify-center"
+                            >
+                              <Moon className="h-4 w-4" />
+                            </motion.div>
+                          ) : (
+                            <motion.div
+                              key="sun"
+                              initial={{ opacity: 0, rotate: 90, scale: 0.5 }}
+                              animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                              exit={{ opacity: 0, rotate: -90, scale: 0.5 }}
+                              transition={{ duration: 0.3 }}
+                              className="absolute inset-0 flex items-center justify-center"
+                            >
+                              <Sun className="h-4 w-4" />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                        <span className="sr-only">Toggle theme</span>
+                      </Button>
+                    </motion.div>
+                  )}
 
                   {/* Desktop auth buttons */}
                   <div className="hidden lg:flex items-center gap-2">

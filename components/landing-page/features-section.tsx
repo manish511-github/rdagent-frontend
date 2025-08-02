@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
@@ -39,8 +39,14 @@ const features = [
 
 export function FeaturesSection() {
   const [activeTab, setActiveTab] = useState("smart-task-management")
+  const [mounted, setMounted] = useState(false)
   const { theme } = useTheme()
-  const dashedBorderSvg = getDashedBorderSvg(theme)
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  
+  const dashedBorderSvg = mounted ? getDashedBorderSvg(theme) : ""
 
   return (
     <section id="smart-productivity" className="pt-12 lg:pt-5">
@@ -125,50 +131,54 @@ export function FeaturesSection() {
                       className="flex justify-center"
                     >
                       <div>
-                        <div className="px-6 lg:px-10">
-                          <motion.div
-                            className="w-full border-2 border-dashed opacity-20 border-black dark:border-white h-10"
-                            style={{
-                              backgroundImage: dashedBorderSvg,
-                            }}
-                          />
-                        </div>
-                        <div className="relative grid grid-cols-[auto_1fr_auto] items-stretch">
-                          <motion.div
-                            className="border-2 border-dashed h-full w-6 lg:w-10 opacity-20 border-black dark:border-white"
-                            style={{
-                              backgroundImage: dashedBorderSvg,
-                            }}
-                          />
-                          <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ duration: 0.6, delay: 0.2 }}
-                            whileHover={{ scale: 1.05 }}
-                          >
-                            <Image
-                              src={feature.image || "/placeholder.svg"}
-                              alt={feature.title}
-                              width={400}
-                              height={510}
-                              className="m-3 rounded-md object-contain shadow-md lg:rounded-xl lg:shadow-lg dark:invert transition-all duration-300 hover:shadow-xl"
-                            />
-                          </motion.div>
-                          <motion.div
-                            className="h-full border-2 border-dashed w-6 lg:w-10 opacity-20 border-black dark:border-white"
-                            style={{
-                              backgroundImage: dashedBorderSvg,
-                            }}
-                          />
-                        </div>
-                        <div className="px-6 lg:px-10">
-                          <motion.div
-                            className="w-full border-2 border-dashed h-6 lg:h-10 opacity-20 border-black dark:border-white"
-                            style={{
-                              backgroundImage: dashedBorderSvg,
-                            }}
-                          />
-                        </div>
+                        {mounted && (
+                          <>
+                            <div className="px-6 lg:px-10">
+                              <motion.div
+                                className="w-full border-2 border-dashed opacity-20 border-black dark:border-white h-10"
+                                style={{
+                                  backgroundImage: dashedBorderSvg,
+                                }}
+                              />
+                            </div>
+                            <div className="relative grid grid-cols-[auto_1fr_auto] items-stretch">
+                              <motion.div
+                                className="border-2 border-dashed h-full w-6 lg:w-10 opacity-20 border-black dark:border-white"
+                                style={{
+                                  backgroundImage: dashedBorderSvg,
+                                }}
+                              />
+                              <motion.div
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ duration: 0.6, delay: 0.2 }}
+                                whileHover={{ scale: 1.05 }}
+                              >
+                                <Image
+                                  src={feature.image || "/placeholder.svg"}
+                                  alt={feature.title}
+                                  width={400}
+                                  height={510}
+                                  className="m-3 rounded-md object-contain shadow-md lg:rounded-xl lg:shadow-lg dark:invert transition-all duration-300 hover:shadow-xl"
+                                />
+                              </motion.div>
+                              <motion.div
+                                className="h-full border-2 border-dashed w-6 lg:w-10 opacity-20 border-black dark:border-white"
+                                style={{
+                                  backgroundImage: dashedBorderSvg,
+                                }}
+                              />
+                            </div>
+                            <div className="px-6 lg:px-10">
+                              <motion.div
+                                className="w-full border-2 border-dashed h-6 lg:h-10 opacity-20 border-black dark:border-white"
+                                style={{
+                                  backgroundImage: dashedBorderSvg,
+                                }}
+                              />
+                            </div>
+                          </>
+                        )}
                       </div>
                     </motion.div>
                   )}

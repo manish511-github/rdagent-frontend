@@ -11,7 +11,7 @@ import { getApiUrl } from "../../lib/config";
 import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import Cookies from "js-cookie"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 
 interface FormData {
   email: string
@@ -55,7 +55,6 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
-  const { toast } = useToast()
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
@@ -105,10 +104,8 @@ export function LoginForm() {
       const { store } = await import("@/store/store");
       store.dispatch(fetchUser());
 
-      toast({
-        title: "Success!",
-        description: "You have successfully signed in.",
-        variant: "default",
+      toast.success("You have successfully signed in.", {
+        description: "Redirecting to dashboard...",
       });
 
       // setIsSubmitted(true);
@@ -118,10 +115,8 @@ export function LoginForm() {
       }, 1500);
     } catch (err) {
       setErrors({ password: "Invalid email or password. Please try again." });
-      toast({
-        title: "Login Failed",
+      toast.error("Login Failed", {
         description: "Invalid email or password. Please try again.",
-        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -235,7 +230,7 @@ export function LoginForm() {
 
       {/* Forgot Password Link */}
       <div className="text-right text-sm">
-        <Link href="/forgot-password" className="font-medium text-primary hover:underline">
+        <Link href="/auth/forgot-password" className="font-medium text-primary hover:underline">
           Forgot password?
         </Link>
       </div>

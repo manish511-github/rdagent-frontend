@@ -16,8 +16,8 @@ function AccountVerifyInner() {
 
   useEffect(() => {
     const token = searchParams.get("token");
-    const email = searchParams.get("email");
-    if (!token || !email) {
+    const user_id = searchParams.get("id");
+    if (!token || !user_id) {
       setStatus("error");
       setMessage("Invalid verification link.");
       return;
@@ -32,7 +32,7 @@ function AccountVerifyInner() {
           },
           body: JSON.stringify({
             token: token,
-            email: email,
+            user_id: user_id,
           }),
         });
         if (!response.ok) {

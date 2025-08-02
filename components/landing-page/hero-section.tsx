@@ -8,27 +8,36 @@ import { ChevronRight } from "lucide-react"
 import { FadeIn } from "@/components/animations/fade-in"
 import { useTheme } from "next-themes"
 import { getDashedBorderSvg } from "@/lib/utils"
+import { useState, useEffect } from "react"
 
 export function HeroSection() {
   const { theme } = useTheme()
-  const dashedBorderSvg = getDashedBorderSvg(theme)
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  
+  const dashedBorderSvg = mounted ? getDashedBorderSvg(theme) : ""
 
   return (
     <section className="pb-16 text-center lg:pb-0 overflow-hidden">
       <div className="flex">
-        <motion.div
-          className="relative w-[159px] border-r p-1 max-lg:hidden 2xl:flex-1"
-          initial={{ x: -100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-        >
-          <div
-            className="h-full w-full border-2 border-dashed opacity-20 border-black dark:border-white" // Added opacity-20
-            style={{
-              backgroundImage: dashedBorderSvg,
-            }}
-          />
-        </motion.div>
+        {mounted && (
+          <motion.div
+            className="relative w-[159px] border-r p-1 max-lg:hidden 2xl:flex-1"
+            initial={{ x: -100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+            <div
+              className="h-full w-full border-2 border-dashed opacity-20 border-black dark:border-white" // Added opacity-20
+              style={{
+                backgroundImage: dashedBorderSvg,
+              }}
+            />
+          </motion.div>
+        )}
 
         <div className="container mx-auto pt-16 pb-12 text-center md:pt-20 leading-7 lg:pt-24">
           <FadeIn delay={0.3}>
@@ -67,50 +76,54 @@ export function HeroSection() {
           </FadeIn>
         </div>
 
+        {mounted && (
+          <motion.div
+            className="relative w-[159px] p-1 max-lg:hidden border-r-0 border-l 2xl:flex-1"
+            initial={{ x: 100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+            <div
+              className="h-full w-full border-2 border-dashed opacity-20 border-black dark:border-white" // Added opacity-20
+              style={{
+                backgroundImage: dashedBorderSvg,
+              }}
+            />
+          </motion.div>
+        )}
+      </div>
+
+      {mounted && (
         <motion.div
-          className="relative w-[159px] p-1 max-lg:hidden border-r-0 border-l 2xl:flex-1"
-          initial={{ x: 100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
+          className="flex h-8 gap-1 max-lg:hidden"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 1, delay: 0.5 }}
         >
-          <div
-            className="h-full w-full border-2 border-dashed opacity-20 border-black dark:border-white" // Added opacity-20
+          <div className="flex-1 border" />
+          <motion.div
+            className="h-full border-dashed w-52 border-2 opacity-20 border-black dark:border-white" // Added opacity-20
             style={{
               backgroundImage: dashedBorderSvg,
             }}
           />
+          <div className="w-24 border" />
+          <motion.div
+            className="h-full border-2 border-dashed w-52 opacity-20 border-black dark:border-white" // Added opacity-20
+            style={{
+              backgroundImage: dashedBorderSvg,
+            }}
+          />
+          <div className="w-24 border" />
+          <motion.div
+            className="h-full border-2 border-dashed w-52 opacity-20 border-black dark:border-white" // Added opacity-20
+            style={{
+              backgroundImage: dashedBorderSvg,
+            }}
+          />
+          <div className="flex-1 border" />
         </motion.div>
-      </div>
-
-      <motion.div
-        className="flex h-8 gap-1 max-lg:hidden"
-        initial={{ scaleX: 0 }}
-        animate={{ scaleX: 1 }}
-        transition={{ duration: 1, delay: 0.5 }}
-      >
-        <div className="flex-1 border" />
-        <motion.div
-          className="h-full border-dashed w-52 border-2 opacity-20 border-black dark:border-white" // Added opacity-20
-          style={{
-            backgroundImage: dashedBorderSvg,
-          }}
-        />
-        <div className="w-24 border" />
-        <motion.div
-          className="h-full border-2 border-dashed w-52 opacity-20 border-black dark:border-white" // Added opacity-20
-          style={{
-            backgroundImage: dashedBorderSvg,
-          }}
-        />
-        <div className="w-24 border" />
-        <motion.div
-          className="h-full border-2 border-dashed w-52 opacity-20 border-black dark:border-white" // Added opacity-20
-          style={{
-            backgroundImage: dashedBorderSvg,
-          }}
-        />
-        <div className="flex-1 border" />
-      </motion.div>
+      )}
 
       <div className="flex">
         <div className="relative w-[159px] border-r p-1 max-lg:hidden 2xl:flex-1" />
@@ -128,23 +141,25 @@ export function HeroSection() {
         <div className="relative w-[159px] p-1 max-lg:hidden border-r-0 border-l 2xl:flex-1" />
       </div>
 
-      <motion.div
-        className="flex max-lg:hidden"
-        initial={{ y: 50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, delay: 1.5 }}
-      >
-        <div className="h-8 flex-1 border" />
-        <div className="h-[96px] w-[min(753px,55vw)] -translate-y-1.5">
-          <motion.div
-            className="h-full w-full border-2 border-dashed opacity-20 border-black dark:border-white" // Added opacity-20
-            style={{
-              backgroundImage: dashedBorderSvg,
-            }}
-          />
-        </div>
-        <div className="h-8 flex-1 border" />
-      </motion.div>
+      {mounted && (
+        <motion.div
+          className="flex max-lg:hidden"
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 1.5 }}
+        >
+          <div className="h-8 flex-1 border" />
+          <div className="h-[96px] w-[min(753px,55vw)] -translate-y-1.5">
+            <motion.div
+              className="h-full w-full border-2 border-dashed opacity-20 border-black dark:border-white" // Added opacity-20
+              style={{
+                backgroundImage: dashedBorderSvg,
+              }}
+            />
+          </div>
+          <div className="h-8 flex-1 border" />
+        </motion.div>
+      )}
     </section>
   )
 }

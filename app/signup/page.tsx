@@ -1,15 +1,28 @@
+"use client"
+
 import SignupForm from "@/components/auth/signup-form"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import type { Metadata } from "next"
-
-export const metadata: Metadata = {
-  title: "Sign Up - Create Your Account | Relative",
-  description: "Create your Relative account and start optimizing your workflows today.",
-}
+import { useAuthGuard } from "@/hooks/useAuthGuard"
+import { AuthLoading } from "@/components/auth/auth-loading"
 
 export default function SignupPage() {
+  const { isAuthenticated, isLoading } = useAuthGuard({
+    redirectTo: "/projects",
+    requireAuth: false // Redirect authenticated users away from signup
+  })
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return <AuthLoading message="Checking authentication..." />
+  }
+
+  // If user is authenticated, they will be redirected automatically by the hook
+  if (isAuthenticated) {
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">

@@ -57,7 +57,7 @@ export const fetchProjects = createAsyncThunk(
         'Authorization': `Bearer ${token}`,
       },
     });
-    debugger
+    
     
     // If unauthorized, try to refresh the token and retry once
     if (response.status === 401) {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -37,8 +37,14 @@ const schedulingFeatures = [
 
 export function OptimizedSchedulingSection() {
   const [activeTab, setActiveTab] = useState("unified-scheduling")
+  const [mounted, setMounted] = useState(false)
   const { theme } = useTheme()
-  const dashedBorderSvg = getDashedBorderSvg(theme)
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  
+  const dashedBorderSvg = mounted ? getDashedBorderSvg(theme) : ""
 
   return (
     <section id="optimized-scheduling">
@@ -108,25 +114,29 @@ export function OptimizedSchedulingSection() {
           {schedulingFeatures.map((feature) => (
             <TabsContent key={feature.id} value={feature.id} className="mt-0">
               <div className="flex flex-1 flex-col px-2 py-4 max-lg:border-x">
-                <div
-                  className="w-full border-2 border-dashed h-5 opacity-20 border-black dark:border-white"
-                  style={{
-                    backgroundImage: dashedBorderSvg,
-                  }}
-                />
-                <Image
-                  src={feature.image || "/placeholder.svg"}
-                  alt={feature.title}
-                  width={1312}
-                  height={743}
-                  className="my-2 rounded-md object-contain shadow-md lg:rounded-xl lg:shadow-lg dark:invert"
-                />
-                <div
-                  className="w-full border-2 border-dashed h-5 opacity-20 border-black dark:border-white"
-                  style={{
-                    backgroundImage: dashedBorderSvg,
-                  }}
-                />
+                {mounted && (
+                  <>
+                    <div
+                      className="w-full border-2 border-dashed h-5 opacity-20 border-black dark:border-white"
+                      style={{
+                        backgroundImage: dashedBorderSvg,
+                      }}
+                    />
+                    <Image
+                      src={feature.image || "/placeholder.svg"}
+                      alt={feature.title}
+                      width={1312}
+                      height={743}
+                      className="my-2 rounded-md object-contain shadow-md lg:rounded-xl lg:shadow-lg dark:invert"
+                    />
+                    <div
+                      className="w-full border-2 border-dashed h-5 opacity-20 border-black dark:border-white"
+                      style={{
+                        backgroundImage: dashedBorderSvg,
+                      }}
+                    />
+                  </>
+                )}
               </div>
             </TabsContent>
           ))}

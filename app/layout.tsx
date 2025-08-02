@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { Inter, Playfair_Display, Montserrat } from "next/font/google" // Import new fonts
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/sonner"
 import { ReduxProvider } from "@/components/providers/redux-provider"
 import Providers from './providers'
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" }) // Define Inter as a CSS variable
