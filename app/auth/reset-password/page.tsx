@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -36,7 +36,59 @@ const resetPasswordSchema = z
     path: ["confirmPassword"],
   });
 
-export default function ResetPasswordPage() {
+// Loading component for Suspense fallback
+function ResetPasswordLoading() {
+  const { theme } = useTheme();
+  
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
+      {/* Logo at top left */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="absolute top-8 left-8"
+      >
+        <Link href="/" className="flex items-center gap-2">
+          <Image
+            src={theme === "dark" ? "/logo-light.svg" : "/logo-dark.svg"}
+            alt="logo"
+            width={32}
+            height={32}
+          />
+          <span className="text-xl font-medium font-montserrat bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
+            zooptics
+          </span>
+        </Link>
+      </motion.div>
+
+      <div className="w-full max-w-md space-y-8 rounded-lg border bg-card p-8 shadow-lg">
+        <div className="text-center">
+          <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground">
+            Reset Password
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Loading...
+          </p>
+        </div>
+        <div className="flex justify-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{
+              duration: 1,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "linear",
+            }}
+            className="size-8 border-2 border-current border-t-transparent rounded-full"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Component that uses useSearchParams
+function ResetPasswordContent() {
   const { theme } = useTheme();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -363,5 +415,14 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main page component with Suspense wrapper
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<ResetPasswordLoading />}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
