@@ -77,6 +77,18 @@ import { selectPostById } from "@/store/features/agentSlice";
 import MarkdownRender from "../markdown-render";
 import ResponseComposer from "./response-generator";
 import { InfinitePostsList } from "./infinite-posts-list";
+import { Skeleton } from "@/components/ui/skeleton";
+import Cookies from "js-cookie";
+import { getApiUrl } from "@/lib/config";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 // Add this utility function to hide scrollbars
 const scrollbarHideClass = "scrollbar-hide";
@@ -161,9 +173,245 @@ const getStatusLabel = (status: PostStatus) => {
 // Performance Metrics Component
 const PerformanceMetrics = React.memo(function PerformanceMetrics({
   setActiveView,
+  agentId,
 }: {
   setActiveView: (view: string) => void;
+  agentId: string;
 }) {
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch analytics data when component mounts
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const token = Cookies.get("access_token");
+        if (!token) {
+          throw new Error("Authentication required");
+        }
+
+        const response = await fetch(getApiUrl(`agents/${agentId}/analytics`), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch analytics data");
+        }
+
+        const data = await response.json();
+        setAnalyticsData(data);
+      } catch (err) {
+        console.error("Error fetching analytics:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to load analytics"
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (agentId) {
+      fetchAnalytics();
+    }
+  }, [agentId]);
+
+  // Loading skeleton component
+  const LoadingSkeleton = () => (
+    <div className="p-3 space-y-4 overflow-y-auto">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-7 w-24" />
+      </div>
+
+      {/* Performance Overview Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {[1, 2, 3].map((i) => (
+          <Card
+            key={i}
+            className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800"
+          >
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-6 w-12" />
+                </div>
+                <Skeleton className="h-8 w-8 rounded-full" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Chart Skeleton */}
+      <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+        <CardContent className="p-3">
+          <Skeleton className="h-4 w-32 mb-3" />
+          <div className="h-40 flex items-end justify-between gap-1">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="flex flex-col items-center">
+                <Skeleton className="w-8 h-32" />
+                <Skeleton className="h-3 w-4 mt-1" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Grid Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {[1, 2].map((i) => (
+          <Card
+            key={i}
+            className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800"
+          >
+            <CardContent className="p-3">
+              <Skeleton className="h-4 w-24 mb-3" />
+              <div className="space-y-2">
+                {[1, 2, 3].map((j) => (
+                  <div key={j} className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="h-3 w-8" />
+                    </div>
+                    <Skeleton className="h-2 w-full" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Keywords Skeleton */}
+      <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+        <CardContent className="p-3">
+          <Skeleton className="h-4 w-20 mb-3" />
+          <div className="flex flex-wrap gap-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-6 w-16 rounded-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-3 space-y-4 overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold">Performance Metrics</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setActiveView("content")}
+          >
+            <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+            Back to Content
+          </Button>
+        </div>
+
+        <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+          <CardContent className="p-6 text-center">
+            <div className="text-red-500 mb-2">
+              <XIcon className="h-8 w-8 mx-auto" />
+            </div>
+            <h3 className="text-sm font-medium mb-1">
+              Failed to Load Analytics
+            </h3>
+            <p className="text-xs text-muted-foreground mb-3">{error}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+            >
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (isLoading) {
+    return <LoadingSkeleton />;
+  }
+
+  // No data state
+  if (!analyticsData) {
+    return (
+      <div className="p-3 space-y-4 overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold">Performance Metrics</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setActiveView("content")}
+          >
+            <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+            Back to Content
+          </Button>
+        </div>
+
+        <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+          <CardContent className="p-6 text-center">
+            <div className="text-muted-foreground mb-2">
+              <BarChart2 className="h-8 w-8 mx-auto" />
+            </div>
+            <h3 className="text-sm font-medium mb-1">No Analytics Data</h3>
+            <p className="text-xs text-muted-foreground">
+              Analytics data is not available for this agent yet.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Extract data from analytics response
+  const { runs, posts, per_run } = analyticsData;
+
+  // Extract nested data from posts object
+  const engagement = posts?.engagement;
+  const relevance = posts?.relevance;
+  const top_posts = posts?.top_posts;
+
+  // Debug logging to see what data we're receiving
+  console.log("Analytics data received:", {
+    runs,
+    posts: posts
+      ? {
+          total_distinct: posts.total_distinct,
+          by_subreddit_count: posts.by_subreddit?.length,
+          time_series_count: posts.time_series?.length,
+          engagement: posts.engagement,
+          relevance: posts.relevance,
+          top_posts: posts.top_posts?.length || 0,
+        }
+      : null,
+    extracted_engagement: engagement,
+    extracted_relevance: relevance,
+    extracted_top_posts: top_posts?.length || 0,
+    per_run,
+  });
+
+  // Calculate derived metrics
+  const successRate =
+    runs.total > 0 ? Math.round((runs.completed / runs.total) * 100) : 0;
+  const avgPostsPerRun = per_run?.posts_per_run?.avg || 0;
+  const avgRelevance = relevance?.avg ? Math.round(relevance.avg * 100) : 0;
+
   return (
     <div className="p-3 space-y-4 overflow-y-auto">
       <div className="flex items-center justify-between">
@@ -179,34 +427,39 @@ const PerformanceMetrics = React.memo(function PerformanceMetrics({
         </Button>
       </div>
 
+      {/* Debug Info - Remove this after testing */}
+      {/* <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+        <CardContent className="p-3">
+          <h3 className="text-sm font-medium mb-2 text-yellow-800 dark:text-yellow-200">
+            Debug Info
+          </h3>
+          <div className="text-xs space-y-1 text-yellow-700 dark:text-yellow-300">
+            <div>Posts: {posts?.total_distinct || 0} total</div>
+            <div>Subreddits: {posts?.by_subreddit?.length || 0} found</div>
+            <div>Time Series: {posts?.time_series?.length || 0} points</div>
+            <div>Top Posts: {top_posts?.length || 0} found</div>
+            <div>Engagement: {engagement ? "Available" : "Missing"}</div>
+            <div>Relevance: {relevance ? "Available" : "Missing"}</div>
+            <div>
+              Time Series Sample: {posts?.time_series?.[0]?.ts || "None"}
+            </div>
+          </div>
+        </CardContent>
+      </Card> */}
+
       {/* Performance Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Response Rate</p>
+                <p className="text-xs text-muted-foreground">Total Posts</p>
                 <p className="text-xl font-bold">
-                  {performanceData.responseRate}%
-                </p>
-              </div>
-              <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-full">
-                <MessageSquare className="h-4 w-4 text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Conversion Rate</p>
-                <p className="text-xl font-bold">
-                  {performanceData.conversionRate}%
+                  {posts?.total_distinct?.toLocaleString() || 0}
                 </p>
               </div>
               <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-full">
-                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </CardContent>
@@ -215,9 +468,22 @@ const PerformanceMetrics = React.memo(function PerformanceMetrics({
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Response Time</p>
+                <p className="text-xs text-muted-foreground">Success Rate</p>
+                <p className="text-xl font-bold">{successRate}%</p>
+              </div>
+              <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-full">
+                <Users className="h-4 w-4 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Avg Posts/Run</p>
                 <p className="text-xl font-bold">
-                  {performanceData.averageResponseTime}
+                  {avgPostsPerRun.toLocaleString()}
                 </p>
               </div>
               <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-full">
@@ -228,103 +494,266 @@ const PerformanceMetrics = React.memo(function PerformanceMetrics({
         </Card>
       </div>
 
-      {/* Engagement Trends */}
-      <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
-        <CardContent className="p-3">
-          <h3 className="text-sm font-medium mb-3">Weekly Engagement Trends</h3>
-          <div className="h-40 flex items-end justify-between gap-1">
-            {performanceData.weeklyEngagement.map((value, index) => (
-              <div key={index} className="relative flex flex-col items-center">
-                <div
-                  className="w-8 bg-blue-500 dark:bg-blue-600 rounded-t-sm"
-                  style={{ height: `${value}%` }}
-                ></div>
-                <span className="text-xs mt-1">D{index + 1}</span>
+      {/* Engagement Metrics & Top Subreddits */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+          <CardContent className="p-3">
+            <h3 className="text-sm font-medium mb-3">Engagement Metrics</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  Avg Upvotes
+                </span>
+                <span className="text-sm font-medium">
+                  {engagement?.upvotes?.avg?.toFixed(1) || 0}
+                </span>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Platform & Sentiment Analysis */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
-          <CardContent className="p-3">
-            <h3 className="text-sm font-medium mb-3">Platform Breakdown</h3>
-            <div className="space-y-2">
-              {Object.entries(performanceData.platformBreakdown).map(
-                ([platform, percentage]) => (
-                  <div key={platform} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="capitalize">{platform}</span>
-                      <span>{percentage}%</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                      <div
-                        className={cn(
-                          "h-full rounded-full",
-                          platform === "reddit"
-                            ? "bg-orange-500"
-                            : platform === "twitter"
-                            ? "bg-blue-400"
-                            : "bg-blue-700"
-                        )}
-                        style={{ width: `${percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )
-              )}
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  Avg Comments
+                </span>
+                <span className="text-sm font-medium">
+                  {engagement?.comments?.avg?.toFixed(1) || 0}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  Max Upvotes
+                </span>
+                <span className="text-sm font-medium">
+                  {engagement?.upvotes?.max?.toLocaleString() || 0}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  Max Comments
+                </span>
+                <span className="text-sm font-medium">
+                  {engagement?.comments?.max?.toLocaleString() || 0}
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
           <CardContent className="p-3">
-            <h3 className="text-sm font-medium mb-3">Sentiment Analysis</h3>
-            <div className="space-y-2">
-              {Object.entries(performanceData.sentimentAnalysis).map(
-                ([sentiment, percentage]) => (
-                  <div key={sentiment} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="capitalize">{sentiment}</span>
-                      <span>{percentage}%</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                      <div
-                        className={cn(
-                          "h-full rounded-full",
-                          sentiment === "positive"
-                            ? "bg-green-500"
-                            : sentiment === "neutral"
-                            ? "bg-gray-400"
-                            : "bg-red-500"
-                        )}
-                        style={{ width: `${percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )
-              )}
+            <h3 className="text-sm font-medium mb-3">Relevance Analysis</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  Avg Relevance
+                </span>
+                <span className="text-sm font-medium">{avgRelevance}%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  Min Relevance
+                </span>
+                <span className="text-sm font-medium">
+                  {relevance?.min ? Math.round(relevance.min * 100) : 0}%
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  Max Relevance
+                </span>
+                <span className="text-sm font-medium">
+                  {relevance?.max ? Math.round(relevance.max * 100) : 0}%
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {posts?.by_subreddit && posts.by_subreddit.length > 0 && (
+          <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+            <CardContent className="p-3">
+              <h3 className="text-sm font-medium mb-3">Top Subreddits</h3>
+              <ScrollArea className="h-40">
+                <div className="space-y-2">
+                  {posts.by_subreddit
+                    .sort((a: any, b: any) => b.count - a.count)
+                    .map((subreddit: any, index: number) => {
+                      const percentage =
+                        posts.total_distinct > 0
+                          ? Math.round(
+                              (subreddit.count / posts.total_distinct) * 100
+                            )
+                          : 0;
+
+                      return (
+                        <div key={index} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-medium">
+                              r/{subreddit.subreddit}
+                            </span>
+                            <span>
+                              {subreddit.count} posts ({percentage}%)
+                            </span>
+                          </div>
+                          <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-orange-500"
+                              style={{ width: `${percentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      {/* Top Keywords */}
+      {/* Time Series Chart */}
+      {posts?.time_series && posts.time_series.length > 0 && (
+        <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+          <CardContent className="p-3">
+            <h3 className="text-sm font-medium mb-3">Posts Over Time</h3>
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={posts.time_series.slice(-14).map((item: any) => ({
+                    ...item,
+                    name: new Date(item.ts).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    }),
+                  }))}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                  />
+                  <XAxis
+                    dataKey="name"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      borderColor: "hsl(var(--border))",
+                    }}
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill="hsl(var(--primary))"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Top Posts */}
+      {top_posts && top_posts.length > 0 && (
+        <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+          <CardContent className="p-3">
+            <h3 className="text-sm font-medium mb-3">Top Performing Posts</h3>
+            <ScrollArea className="h-96">
+              <div className="space-y-3">
+                {top_posts.map((post: any, index: number) => (
+                  <div
+                    key={index}
+                    className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                  >
+                    <div className="flex items-start justify-between mb-1">
+                      <h4 className="text-xs font-medium line-clamp-1 flex-1 mr-2">
+                        {post.post_title}
+                      </h4>
+                      <Badge
+                        variant="secondary"
+                        className="text-xs px-1.5 py-0.5"
+                      >
+                        {Math.round(post.combined_relevance * 100)}%
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>r/{post.subreddit}</span>
+                      <span>•</span>
+                      <span>{post.upvotes} upvotes</span>
+                      <span>•</span>
+                      <span>{post.comment_count || 0} comments</span>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0 text-xs ml-auto"
+                        asChild
+                      >
+                        <a
+                          href={post.post_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Run Statistics */}
       <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
         <CardContent className="p-3">
-          <h3 className="text-sm font-medium mb-3">Top Keywords</h3>
-          <div className="flex flex-wrap gap-2">
-            {performanceData.topKeywords.map((keyword, index) => (
-              <Badge
-                key={index}
-                variant="secondary"
-                className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800"
-              >
-                {keyword}
-              </Badge>
-            ))}
+          <h3 className="text-sm font-medium mb-3">Execution Statistics</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="text-center">
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                {runs?.total || 0}
+              </div>
+              <div className="text-xs text-muted-foreground">Total Runs</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                {runs?.completed || 0}
+              </div>
+              <div className="text-xs text-muted-foreground">Completed</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                {runs?.scheduled || 0}
+              </div>
+              <div className="text-xs text-muted-foreground">Scheduled</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-red-600 dark:text-red-400">
+                {runs?.failed || 0}
+              </div>
+              <div className="text-xs text-muted-foreground">Failed</div>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+            {runs?.last_completed_at && (
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Last completed:</span>
+                <span>{new Date(runs.last_completed_at).toLocaleString()}</span>
+              </div>
+            )}
+            {runs?.next_run_at && (
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Next run:</span>
+                <span>{new Date(runs.next_run_at).toLocaleString()}</span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -592,7 +1021,12 @@ const ContentManagement = React.memo(function ContentManagement({
               {/* Status Filter */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 w-9 p-0" title="Filter by Status">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-9 p-0"
+                    title="Filter by Status"
+                  >
                     <FilterIcon className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -615,25 +1049,33 @@ const ContentManagement = React.memo(function ContentManagement({
                       Approved
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("needs_review")}>
+                  <DropdownMenuItem
+                    onClick={() => setStatusFilter("needs_review")}
+                  >
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-amber-500" />
                       Needs Review
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("discarded")}>
+                  <DropdownMenuItem
+                    onClick={() => setStatusFilter("discarded")}
+                  >
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-gray-500" />
                       Discarded
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("escalated")}>
+                  <DropdownMenuItem
+                    onClick={() => setStatusFilter("escalated")}
+                  >
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-purple-500" />
                       Escalated
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("processed")}>
+                  <DropdownMenuItem
+                    onClick={() => setStatusFilter("processed")}
+                  >
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-green-600" />
                       Processed
@@ -651,7 +1093,12 @@ const ContentManagement = React.memo(function ContentManagement({
               {/* Sort By */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 w-9 p-0" title="Sort Posts">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-9 p-0"
+                    title="Sort Posts"
+                  >
                     <SlidersHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -883,8 +1330,6 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
     };
   }, []);
 
-
-
   // Memoize the filtered content calculation
   const filteredContent = React.useMemo(() => {
     let filtered = displayPosts.filter((item) => {
@@ -1051,18 +1496,30 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="h-10 w-10 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400">
                   {agent.platform === "reddit" && (
-                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+                    <svg
+                      className="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
                     </svg>
                   )}
                   {agent.platform === "twitter" && (
-                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    <svg
+                      className="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                     </svg>
                   )}
                   {agent.platform === "mixed" && (
-                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    <svg
+                      className="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                     </svg>
                   )}
                 </div>
@@ -1077,10 +1534,14 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
                         : "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800/50"
                     )}
                   >
-                    <div className={cn(
-                      "w-1.5 h-1.5 rounded-full mr-1.5",
-                      agent.status === "active" ? "bg-green-500" : "bg-gray-400"
-                    )} />
+                    <div
+                      className={cn(
+                        "w-1.5 h-1.5 rounded-full mr-1.5",
+                        agent.status === "active"
+                          ? "bg-green-500"
+                          : "bg-gray-400"
+                      )}
+                    />
                     {agent.status === "active" ? "Active" : "Paused"}
                   </Badge>
                   <span className="text-xs text-muted-foreground hidden sm:inline">
@@ -1091,8 +1552,6 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
 
               {/* Spacer for layout balance */}
               <div className="flex-1" />
-
-
             </div>
 
             {/* Right Side - View Selector and Actions */}
@@ -1112,8 +1571,8 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
                   size="sm"
                   className={cn(
                     "h-8 w-8 p-0",
-                    activeView === "content" 
-                      ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary" 
+                    activeView === "content"
+                      ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary"
                       : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
                   )}
                   onClick={() => setActiveView("content")}
@@ -1126,8 +1585,8 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
                   size="sm"
                   className={cn(
                     "h-8 w-8 p-0",
-                    activeView === "performance" 
-                      ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary" 
+                    activeView === "performance"
+                      ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary"
                       : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
                   )}
                   onClick={() => setActiveView("performance")}
@@ -1140,8 +1599,8 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
                   size="sm"
                   className={cn(
                     "h-8 w-8 p-0",
-                    activeView === "config" 
-                      ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary" 
+                    activeView === "config"
+                      ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary"
                       : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
                   )}
                   onClick={() => setActiveView("config")}
@@ -1220,7 +1679,10 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
           {/* Performance Section */}
           {activeView === "performance" && (
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <PerformanceMetrics setActiveView={setActiveView} />
+              <PerformanceMetrics
+                setActiveView={setActiveView}
+                agentId={agentId}
+              />
             </div>
           )}
 
