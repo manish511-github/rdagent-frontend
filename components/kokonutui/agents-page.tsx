@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect, useCallback } from "react"
-import { useRouter, useParams, usePathname } from "next/navigation"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import React, { useState, useEffect, useCallback } from "react";
+import { useRouter, useParams, usePathname } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Search,
   Filter,
@@ -38,12 +38,18 @@ import {
   Music,
   CheckCircle,
   LoaderCircle,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -51,22 +57,52 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { PlatformIcon } from "./platform-icons"
-import Layout from "./layout"
-import { cn } from "@/lib/utils"
-import { toast } from "@/components/ui/use-toast"
-import Cookies from 'js-cookie'
-import { refreshAccessToken } from "@/lib/utils"
-import { useSelector } from "react-redux";
-import type { RootState } from "@/store/store";
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { PlatformIcon } from "./platform-icons";
+import Layout from "./layout";
+import { cn } from "@/lib/utils";
+import { toast } from "@/components/ui/use-toast";
+import Cookies from "js-cookie";
+import { refreshAccessToken } from "@/lib/utils";
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState, AppDispatch } from "@/store/store";
 import { getApiUrl } from "../../lib/config";
+import {
+  fetchAgents,
+  createAgent,
+  updateAgentStatus,
+  selectAgents,
+  selectAgentsStatus,
+  selectAgentsError,
+  selectAgentsLoading,
+  selectCreateAgentStatus,
+  clearAgents,
+  clearError,
+  clearCreateStatus,
+  updateAgentStatusLocally,
+  type Agent as ReduxAgent,
+  type ApiAgent as ReduxApiAgent,
+} from "@/store/slices/agentsSlice";
+import {
+  selectCurrentProject,
+  fetchCurrentProject,
+} from "@/store/slices/currentProjectSlice";
 
 // Mock data for agents
 
@@ -77,7 +113,7 @@ const platformOptions = [
   { value: "twitter", label: "Twitter", icon: "twitter" },
   { value: "instagram", label: "Instagram", icon: "instagram" },
   { value: "tiktok", label: "TikTok", icon: "tiktok" },
-]
+];
 
 // Goal options for the form
 const goalOptions = [
@@ -109,55 +145,55 @@ const goalOptions = [
     description: "Provide assistance and resolve issues",
     color: "from-zinc-800 to-zinc-950",
   },
-]
+];
 
 // Helper functions
 const getPlatformGradient = (platform: string) => {
   switch (platform) {
     case "reddit":
-      return "from-orange-500 to-red-600"
+      return "from-orange-500 to-red-600";
     case "linkedin":
-      return "from-blue-600 to-blue-800"
+      return "from-blue-600 to-blue-800";
     case "twitter":
-      return "from-sky-400 to-blue-600"
+      return "from-sky-400 to-blue-600";
     case "instagram":
-      return "from-purple-500 to-pink-600"
+      return "from-purple-500 to-pink-600";
     case "email":
-      return "from-emerald-500 to-teal-600"
+      return "from-emerald-500 to-teal-600";
     default:
-      return "from-gray-500 to-gray-700"
+      return "from-gray-500 to-gray-700";
   }
-}
+};
 
 const getStatusColor = (status: string) => {
   switch (status) {
     case "active":
-      return "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400"
+      return "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400";
     case "paused":
-      return "text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400"
+      return "text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400";
     case "error":
-      return "text-red-600 bg-red-50 dark:bg-red-950/30 dark:text-red-400"
+      return "text-red-600 bg-red-50 dark:bg-red-950/30 dark:text-red-400";
     case "pending":
-      return "text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400"
+      return "text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400";
     default:
-      return "text-gray-600 bg-gray-50 dark:bg-gray-800 dark:text-gray-400"
+      return "text-gray-600 bg-gray-50 dark:bg-gray-800 dark:text-gray-400";
   }
-}
+};
 
 const getGoalIcon = (goal: string) => {
   switch (goal) {
     case "lead_generation":
-      return Users
+      return Users;
     case "brand_awareness":
-      return Eye
+      return Eye;
     case "engagement":
-      return MessageSquare
+      return MessageSquare;
     case "support":
-      return Shield
+      return Shield;
     default:
-      return Target
+      return Target;
   }
-}
+};
 
 // Add platform settings types
 type PlatformSettings = {
@@ -229,143 +265,20 @@ type PlatformSettings = {
   };
 };
 
-// Add this type definition
-type Agent = {
-  id: string
-  agent_name: string
-  agent_platform: string
-  agent_status: string
-  goals: string
-  instructions: string
-  expectations: string
-  project_id: string
-  mode: string
-  review_period: string
-  review_minutes: string
-  advanced_settings: Record<string, any>
-  platform_settings: PlatformSettings
-  created_at: string
-}
-
-// Add API Agent type
-type ApiAgent = {
-  agent_name: string
-  agent_platform: string
-  agent_status: string
-  goals: string
-  instructions: string
-  expectations: string
-  project_id: string
-  mode: string
-  review_period: string
-  review_minutes: string
-  advanced_settings: Record<string, any>
-  platform_settings: PlatformSettings
-  agent_keywords?: string[]
-  schedule?: {
-    schedule_type: string;
-  }
-}
+// Use Redux types for Agent and ApiAgent
+type Agent = ReduxAgent;
+type ApiAgent = ReduxApiAgent;
 
 // Add this function to get auth token
 function getAuthToken(): string | undefined {
-  return Cookies.get('token')
+  return Cookies.get("token");
 }
 
-// Add this function to fetch agents
-async function fetchAgents(projectId: string): Promise<Agent[]> {
-  let token = Cookies.get("access_token");
-  let response = await fetch(getApiUrl(`agents/project/${projectId}`), {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  // If unauthorized, try to refresh the token and retry once
-  if (response.status === 401) {
-    token = await refreshAccessToken();
-    if (token) {
-      response = await fetch(getApiUrl(`agents/project/${projectId}`), {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-    }
-  }
-  if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error('Authentication failed')
-    }
-    throw new Error('Failed to fetch agents')
-  }
-  return response.json()
-}
+// fetchAgents is now handled by Redux slice
 
-// Add mutation function for updating agent status
-async function updateAgentStatus(projectId: string, agentId: string, status: string): Promise<Agent> {
-  const token = getAuthToken()
-  if (!token) {
-    throw new Error('Authentication required')
-  }
+// updateAgentStatus is now handled by Redux slice
 
-  const response = await fetch(getApiUrl(`agents/${projectId}/${agentId}/status`), {
-    method: 'PATCH',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ status }),
-  })
-  if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error('Authentication failed')
-    }
-    throw new Error('Failed to update agent status')
-  }
-  return response.json()
-}
-
-// Add mutation function for creating new agent
-async function createNewAgent(projectId: string, agentData: ApiAgent): Promise<Agent> {
-  let token = Cookies.get("access_token");
-  let response = await fetch(getApiUrl("agents"), {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(agentData),
-  });
-
-  // If unauthorized, try to refresh the token and retry once
-  if (response.status === 401) {
-    token = await refreshAccessToken();
-    if (token) {
-      response = await fetch(getApiUrl("agents"), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(agentData),
-      });
-    }
-  }
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error('Authentication failed');
-    }
-    if (response.status === 404) {
-      throw new Error('Project not found or you don\'t have access to it');
-    }
-    const errorData = await response.json();
-    throw new Error(errorData.detail || 'Failed to create agent');
-  }
-
-  return response.json();
-}
+// createNewAgent is now handled by Redux slice
 
 // Add API call function
 async function generateAgentProfile(input: {
@@ -374,18 +287,21 @@ async function generateAgentProfile(input: {
   project_id: string;
   existing_context?: string;
 }) {
-  const response = await fetch(getApiUrl("agents/generate-instruction-personality"), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(input),
-  });
-  
+  const response = await fetch(
+    getApiUrl("agents/generate-instruction-personality"),
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    }
+  );
+
   if (!response.ok) {
-    throw new Error('Failed to generate agent profile');
+    throw new Error("Failed to generate agent profile");
   }
-  
+
   return response.json();
 }
 
@@ -397,17 +313,17 @@ async function generateExpectedOutcomes(input: {
   instructions: string;
 }) {
   const response = await fetch(getApiUrl("agents/generate-expected-outcomes"), {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(input),
   });
-  
+
   if (!response.ok) {
-    throw new Error('Failed to generate expected outcomes');
+    throw new Error("Failed to generate expected outcomes");
   }
-  
+
   return response.json();
 }
 
@@ -446,36 +362,62 @@ type Project = {
 };
 
 export default function AgentsPage() {
-  const router = useRouter()
-  const params = useParams()
-  const pathname = usePathname()
-  const queryClient = useQueryClient()
-  
+  const router = useRouter();
+  const params = useParams();
+  const pathname = usePathname();
+  const queryClient = useQueryClient();
+  const dispatch = useDispatch<AppDispatch>();
+
+  // Redux selectors
+  const agents = useSelector((state: RootState) => selectAgents(state));
+  const isLoading = useSelector((state: RootState) =>
+    selectAgentsLoading(state)
+  );
+  const error = useSelector((state: RootState) => selectAgentsError(state));
+  const createStatus = useSelector((state: RootState) =>
+    selectCreateAgentStatus(state)
+  );
+
+  // Get current project from currentProject slice (has full project data including keywords)
+  const currentProject = useSelector((state: RootState) =>
+    selectCurrentProject(state)
+  );
+
   // Extract project ID from URL with better validation
   const projectId = (() => {
-    // First try to get from URL params
-    const id = typeof params?.project_id === 'string' ? params.project_id : 
-              typeof params?.projectId === 'string' ? params.projectId : null
-    
+    // First try to get from URL params (route parameter is [id])
+    const id =
+      typeof params?.id === "string"
+        ? params.id
+        : typeof params?.project_id === "string"
+        ? params.project_id
+        : typeof params?.projectId === "string"
+        ? params.projectId
+        : null;
+
     // If not found in params, try to extract from pathname
     if (!id && pathname) {
-      const match = pathname.match(/\/projects\/([^/]+)/)
-      return match ? match[1] : null
+      // Support both /projects/ and /project/ patterns
+      const match = pathname.match(/\/projects?\/([^/]+)/);
+      return match ? match[1] : null;
     }
-    
-    // Validate UUID format
-    if (id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-      console.warn('Invalid UUID format for project ID:', id)
-      return null
-    }
-    
-    return id
-  })()
 
-  // Get current project from Redux (after projectId is defined)
-  const project = useSelector((state: RootState) =>
-    state.projects.items.find((p: any) => p.uuid === projectId || p.id === projectId) as Project | undefined
-  );
+    // Validate UUID format
+    if (
+      id &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        id
+      )
+    ) {
+      console.warn("Invalid UUID format for project ID:", id);
+      return null;
+    }
+
+    return id;
+  })();
+
+  // Use currentProject from currentProject slice instead of searching projects.items
+  const project = currentProject;
 
   // Add missing state for agent keywords
   const [agentKeywords, setAgentKeywords] = useState<string[]>([]);
@@ -485,8 +427,8 @@ export default function AgentsPage() {
   const [scheduleType, setScheduleType] = useState<string>("daily");
 
   // Add SSE connection state
-  const [sseConnection, setSseConnection] = useState<EventSource | null>(null)
-  
+  const [sseConnection, setSseConnection] = useState<EventSource | null>(null);
+
   // Add validation for project ID
   useEffect(() => {
     if (!projectId) {
@@ -494,167 +436,186 @@ export default function AgentsPage() {
         title: "Error",
         description: "Invalid project ID. Redirecting to projects page...",
         variant: "destructive",
-      })
-      router.push('/projects')
-      return
+      });
+      router.push("/projects");
+      return;
     }
 
     // If we're on /agents without a project ID, redirect to the project's agents page
-    if (pathname === '/agents' && projectId) {
-      router.push(`/projects/${projectId}/agents`)
-      return
+    if (pathname === "/agents" && projectId) {
+      router.push(`/projects/${projectId}/agents`);
+      return;
     }
-
-    // If we're on a project page but not on the agents page, redirect to the project's agents page
-    if (pathname.startsWith('/projects/') && !pathname.includes('/agents') && projectId) {
-      router.push(`/projects/${projectId}/agents`)
-      return
-    }
-  }, [projectId, router, pathname])
+  }, [projectId, router, pathname]);
 
   // Setup SSE connection
   useEffect(() => {
-    if (!projectId) return
+    if (!projectId) return;
 
-    const token = getAuthToken()
-    if (!token) return
+    const token = getAuthToken();
+    if (!token) return;
 
     // Create SSE connection
-    const eventSource = new EventSource(getApiUrl(`sse/projects/${projectId}/events?token=${token}`))
+    const eventSource = new EventSource(
+      getApiUrl(`sse/projects/${projectId}/events?token=${token}`)
+    );
 
     // Handle incoming messages
     eventSource.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data)
-        console.log('SSE Event:', data)
-        
-        // Handle different types of events
-        if (data.type === 'agent_status') {
-          const { agent_id, status } = data.data
-          
-          // Update agent status in Redux store
-          
-          // If status is completed, update the agent in React Query cache
-          if (status === 'completed') {
-            queryClient.setQueryData(['agents', projectId], (oldData: Agent[] | undefined) => {
-              if (!oldData) return oldData;
-              
-              return oldData.map(agent => {
-                if (agent.id === agent_id) {
-                  console.log('Matched agent:', agent);
-                  return { ...agent, agent_status: 'completed' }; // Update status
-                }
-                return agent;
-              });
-            });
-          }
+        const data = JSON.parse(event.data);
+        console.log("SSE Event:", data);
 
+        // Handle different types of events
+        if (data.type === "agent_status") {
+          const { agent_id, status } = data.data;
+
+          // Update agent status in Redux store
+
+          // If status is completed, update the agent in React Query cache
+          if (status === "completed") {
+            queryClient.setQueryData(
+              ["agents", projectId],
+              (oldData: Agent[] | undefined) => {
+                if (!oldData) return oldData;
+
+                return oldData.map((agent) => {
+                  if (agent.id === agent_id) {
+                    console.log("Matched agent:", agent);
+                    return { ...agent, agent_status: "completed" }; // Update status
+                  }
+                  return agent;
+                });
+              }
+            );
+          }
         }
       } catch (error) {
-        console.error('Error processing SSE message:', error)
+        console.error("Error processing SSE message:", error);
       }
-    }
+    };
 
     // Handle connection errors
     eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error)
-      eventSource.close()
-    }
+      console.error("SSE connection error:", error);
+      eventSource.close();
+    };
 
-    setSseConnection(eventSource)
+    setSseConnection(eventSource);
 
     // Cleanup on unmount
     return () => {
-      eventSource.close()
-    }
-  }, [projectId, queryClient])
+      eventSource.close();
+    };
+  }, [projectId, queryClient]);
 
-  // Replace mock data with React Query
-  const { data: agents = [], isLoading, error } = useQuery<Agent[], Error>({
-    queryKey: ['agents', projectId],
-    queryFn: () => {
-      if (!projectId) {
-        throw new Error('Project ID is required')
+  // Fetch agents using Redux when projectId changes
+  useEffect(() => {
+    if (projectId) {
+      dispatch(fetchAgents(projectId));
+    } else {
+      dispatch(clearAgents());
+    }
+  }, [projectId, dispatch]);
+
+  // Fetch current project data when projectId changes
+  useEffect(() => {
+    if (projectId) {
+      // Only fetch if we don't have the project data or if it's a different project
+      if (!currentProject || currentProject.uuid !== projectId) {
+        dispatch(fetchCurrentProject(projectId));
       }
-      return fetchAgents(projectId)
-    },
-    enabled: Boolean(projectId), // Only run query if projectId exists
-    retry: (failureCount, error) => {
-      // Don't retry on authentication errors or missing project ID
-      if (error instanceof Error && 
-          (error.message === 'Authentication failed' || error.message === 'Project ID is required')) {
-        return false
-      }
-      return failureCount < 3
-    },
-  })
+    }
+  }, [projectId, dispatch, currentProject]);
 
   // Add error handling for authentication and missing project ID
   useEffect(() => {
-    if (error instanceof Error) {
-      if (error.message === 'Authentication failed') {
+    if (error) {
+      if (error === "Authentication failed") {
         toast({
           title: "Authentication Error",
           description: "Please log in to continue",
           variant: "destructive",
-        })
+        });
         // You can add router.push('/login') here if needed
-      } else if (error.message === 'Project ID is required') {
+      } else if (error === "Project not found") {
         toast({
           title: "Error",
-          description: "Project ID is required. Redirecting to projects page...",
+          description: "Project not found. Redirecting to projects page...",
           variant: "destructive",
-        })
-        router.push('/projects')
+        });
+        router.push("/projects");
       } else {
         toast({
           title: "Error",
-          description: error.message || "Failed to load agents",
+          description: error || "Failed to load agents",
           variant: "destructive",
-        })
+        });
       }
     }
-  }, [error, router])
+  }, [error, router, toast]);
 
-  // Add mutation for updating agent status
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ agentId, status }: { agentId: string; status: string }) => 
-      updateAgentStatus(projectId || '', agentId, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agents', projectId] })
-      toast({
-        title: "Status updated",
-        description: "Agent status has been updated successfully.",
-      })
-    },
-    onError: (error) => {
+  // Redux action for updating agent status
+  const handleUpdateAgentStatus = async (agentId: string, status: string) => {
+    if (!projectId) return;
+
+    try {
+      // Optimistic update
+      dispatch(updateAgentStatusLocally({ agentId, status }));
+
+      const result = await dispatch(
+        updateAgentStatus({ projectId, agentId, status })
+      );
+
+      if (updateAgentStatus.fulfilled.match(result)) {
+        toast({
+          title: "Status updated",
+          description: "Agent status has been updated successfully.",
+        });
+      } else {
+        throw new Error(
+          (result.payload as string) || "Failed to update agent status"
+        );
+      }
+    } catch (error) {
+      // Revert optimistic update on error
+      dispatch(fetchAgents(projectId));
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update agent status",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to update agent status",
         variant: "destructive",
-      })
-    },
-  })
+      });
+    }
+  };
 
-  // Add mutation for creating new agent
-  const createAgentMutation = useMutation({
-    mutationFn: (agentData: ApiAgent) => createNewAgent(projectId || '', agentData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agents', projectId] })
-      setIsCreateModalOpen(false)
-      toast({
-        title: "Agent created",
-        description: "New agent has been created successfully.",
-      })
-    },
-    onError: (error) => {
+  // Redux action for creating new agent
+  const handleCreateAgent = async (agentData: ApiAgent) => {
+    try {
+      const result = await dispatch(createAgent(agentData));
+
+      if (createAgent.fulfilled.match(result)) {
+        setIsCreateModalOpen(false);
+        toast({
+          title: "Agent created",
+          description: "New agent has been created successfully.",
+        });
+        // Clear create status after successful creation
+        dispatch(clearCreateStatus());
+      } else {
+        throw new Error((result.payload as string) || "Failed to create agent");
+      }
+    } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create agent",
+        description:
+          error instanceof Error ? error.message : "Failed to create agent",
         variant: "destructive",
-      })
-    },
-  })
+      });
+    }
+  };
 
   // Add mutation for generating agent profile
   const generateProfileMutation = useMutation({
@@ -694,72 +655,81 @@ export default function AgentsPage() {
     },
   });
 
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filterPlatform, setFilterPlatform] = useState("all")
-  const [filterStatus, setFilterStatus] = useState("all")
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [currentStep, setCurrentStep] = useState(1)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterPlatform, setFilterPlatform] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<{
-    name: string
-    platform: string
-    goal: string
-    instructions: string
-    expectations: string
-    mode: string
-    reviewPeriod: string
-    reviewMinutes: string
-    advancedSettings: Record<string, any>
-    platformSettings: PlatformSettings
+    name: string;
+    platform: string;
+    goal: string;
+    instructions: string;
+    expectations: string;
+    mode: string;
+    reviewPeriod: string;
+    reviewMinutes: string;
+    advancedSettings: Record<string, any>;
+    platformSettings: PlatformSettings;
   }>({
-    name: '',
-    platform: '',
-    goal: '',
-    instructions: '',
-    expectations: '',
-    mode: 'auto',
-    reviewPeriod: 'daily',
-    reviewMinutes: '30',
+    name: "",
+    platform: "",
+    goal: "",
+    instructions: "",
+    expectations: "",
+    mode: "auto",
+    reviewPeriod: "daily",
+    reviewMinutes: "30",
     advancedSettings: {},
-    platformSettings: {}
-  })
+    platformSettings: {},
+  });
 
   // Filter agents based on search query and filters
   const filteredAgents = agents.filter((agent) => {
     const matchesSearch =
-      (agent.agent_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (agent.instructions || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (agent.expectations || '').toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesPlatform = filterPlatform === "all" || agent.agent_platform === filterPlatform
-    const matchesStatus = filterStatus === "all" || agent.agent_status === filterStatus
+      (agent.agent_name || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      (agent.instructions || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      (agent.expectations || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+    const matchesPlatform =
+      filterPlatform === "all" || agent.agent_platform === filterPlatform;
+    const matchesStatus =
+      filterStatus === "all" || agent.agent_status === filterStatus;
 
-    return matchesSearch && matchesPlatform && matchesStatus
-  })
+    return matchesSearch && matchesPlatform && matchesStatus;
+  });
 
   // Toggle agent status
   const toggleAgentStatus = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    const agent = agents.find(a => a.id === id)
+    e.stopPropagation();
+    const agent = agents.find((a) => a.id === id);
     if (agent) {
-      const newStatus = agent.agent_status === "active" ? "paused" : "active"
-      updateStatusMutation.mutate({ agentId: id, status: newStatus })
+      const newStatus = agent.agent_status === "active" ? "paused" : "active";
+      handleUpdateAgentStatus(id, newStatus);
     }
-  }
+  };
 
   // Create a new agent
-  const createAgent = () => {
+  const createAgentHandler = () => {
     if (!projectId) {
       toast({
         title: "Error",
         description: "Project ID is required",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     // Prepare platform_settings as before, but do not add schedule inside reddit
     let platform_settings = { ...formData.platformSettings };
     if (formData.platform === "reddit") {
-      const redditSettings: Partial<PlatformSettings['reddit']> = platform_settings.reddit || {};
+      const redditSettings: Partial<PlatformSettings["reddit"]> =
+        platform_settings.reddit || {};
       platform_settings = {
         ...platform_settings,
         reddit: {
@@ -793,15 +763,29 @@ export default function AgentsPage() {
         : {}),
     };
 
-    createAgentMutation.mutate(newAgent);
-  }
+    handleCreateAgent(newAgent);
+  };
 
   // Calculate total stats
-  const totalActive = agents.filter((a) => a.agent_status === "active").length
-  const totalMessages = agents.reduce((sum, a) => sum + (a.advanced_settings?.messages || 0), 0)
-  const totalEngagement = agents.reduce((sum, a) => sum + (a.advanced_settings?.engagement || 0), 0)
-  const totalConversions = agents.reduce((sum, a) => sum + (a.advanced_settings?.conversions || 0), 0)
-  const avgPerformance = Math.round(agents.reduce((sum, a) => sum + (a.advanced_settings?.performance || 0), 0) / agents.length)
+  const totalActive = agents.filter((a) => a.agent_status === "active").length;
+  const totalMessages = agents.reduce(
+    (sum, a) => sum + (a.advanced_settings?.messages || 0),
+    0
+  );
+  const totalEngagement = agents.reduce(
+    (sum, a) => sum + (a.advanced_settings?.engagement || 0),
+    0
+  );
+  const totalConversions = agents.reduce(
+    (sum, a) => sum + (a.advanced_settings?.conversions || 0),
+    0
+  );
+  const avgPerformance = Math.round(
+    agents.reduce(
+      (sum, a) => sum + (a.advanced_settings?.performance || 0),
+      0
+    ) / agents.length
+  );
 
   // Add renderPlatformSettings function
   const renderPlatformSettings = () => {
@@ -821,7 +805,9 @@ export default function AgentsPage() {
                   id="subreddit"
                   placeholder="e.g., AskReddit, marketing"
                   value={formData.platformSettings.reddit?.subreddit || ""}
-                  onChange={(e) => handlePlatformSettingChange("subreddit", e.target.value)}
+                  onChange={(e) =>
+                    handlePlatformSettingChange("subreddit", e.target.value)
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -831,7 +817,9 @@ export default function AgentsPage() {
                 </div>
                 <Select
                   value={formData.platformSettings.reddit?.timeRange || ""}
-                  onValueChange={(value) => handlePlatformSettingChange("timeRange", value)}
+                  onValueChange={(value) =>
+                    handlePlatformSettingChange("timeRange", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select time range" />
@@ -847,7 +835,9 @@ export default function AgentsPage() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Target className="h-4 w-4 text-muted-foreground" />
-                  <Label htmlFor="relevanceThreshold">Relevance Threshold</Label>
+                  <Label htmlFor="relevanceThreshold">
+                    Relevance Threshold
+                  </Label>
                 </div>
                 <Input
                   id="relevanceThreshold"
@@ -855,8 +845,15 @@ export default function AgentsPage() {
                   min="0"
                   max="100"
                   placeholder="0-100"
-                  value={formData.platformSettings.reddit?.relevanceThreshold || ""}
-                  onChange={(e) => handlePlatformSettingChange("relevanceThreshold", e.target.value)}
+                  value={
+                    formData.platformSettings.reddit?.relevanceThreshold || ""
+                  }
+                  onChange={(e) =>
+                    handlePlatformSettingChange(
+                      "relevanceThreshold",
+                      e.target.value
+                    )
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -870,19 +867,27 @@ export default function AgentsPage() {
                   min="0"
                   placeholder="Minimum upvotes"
                   value={formData.platformSettings.reddit?.minUpvotes || ""}
-                  onChange={(e) => handlePlatformSettingChange("minUpvotes", e.target.value)}
+                  onChange={(e) =>
+                    handlePlatformSettingChange("minUpvotes", e.target.value)
+                  }
                 />
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="monitorComments"
-                checked={formData.platformSettings.reddit?.monitorComments || false}
-                onCheckedChange={(checked) => handlePlatformSettingChange("monitorComments", checked)}
+                checked={
+                  formData.platformSettings.reddit?.monitorComments || false
+                }
+                onCheckedChange={(checked) =>
+                  handlePlatformSettingChange("monitorComments", checked)
+                }
               />
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                <Label htmlFor="monitorComments">Also check keywords in comments</Label>
+                <Label htmlFor="monitorComments">
+                  Also check keywords in comments
+                </Label>
               </div>
             </div>
           </div>
@@ -900,7 +905,9 @@ export default function AgentsPage() {
                   id="keywords"
                   placeholder="Enter keywords or hashtags"
                   value={formData.platformSettings.twitter?.keywords || ""}
-                  onChange={(e) => handlePlatformSettingChange("keywords", e.target.value)}
+                  onChange={(e) =>
+                    handlePlatformSettingChange("keywords", e.target.value)
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -911,8 +918,15 @@ export default function AgentsPage() {
                 <Input
                   id="accountsToMonitor"
                   placeholder="Enter account handles"
-                  value={formData.platformSettings.twitter?.accountsToMonitor || ""}
-                  onChange={(e) => handlePlatformSettingChange("accountsToMonitor", e.target.value)}
+                  value={
+                    formData.platformSettings.twitter?.accountsToMonitor || ""
+                  }
+                  onChange={(e) =>
+                    handlePlatformSettingChange(
+                      "accountsToMonitor",
+                      e.target.value
+                    )
+                  }
                 />
               </div>
             </div>
@@ -924,7 +938,9 @@ export default function AgentsPage() {
                 </div>
                 <Select
                   value={formData.platformSettings.twitter?.timeRange || ""}
-                  onValueChange={(value) => handlePlatformSettingChange("timeRange", value)}
+                  onValueChange={(value) =>
+                    handlePlatformSettingChange("timeRange", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select time range" />
@@ -947,7 +963,9 @@ export default function AgentsPage() {
                   min="0"
                   placeholder="Min likes/retweets"
                   value={formData.platformSettings.twitter?.minEngagement || ""}
-                  onChange={(e) => handlePlatformSettingChange("minEngagement", e.target.value)}
+                  onChange={(e) =>
+                    handlePlatformSettingChange("minEngagement", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -959,7 +977,9 @@ export default function AgentsPage() {
                 </div>
                 <Select
                   value={formData.platformSettings.twitter?.language || ""}
-                  onValueChange={(value) => handlePlatformSettingChange("language", value)}
+                  onValueChange={(value) =>
+                    handlePlatformSettingChange("language", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select language" />
@@ -978,7 +998,9 @@ export default function AgentsPage() {
                 </div>
                 <Select
                   value={formData.platformSettings.twitter?.sentiment || ""}
-                  onValueChange={(value) => handlePlatformSettingChange("sentiment", value)}
+                  onValueChange={(value) =>
+                    handlePlatformSettingChange("sentiment", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select sentiment" />
@@ -1006,7 +1028,9 @@ export default function AgentsPage() {
                   id="keywords"
                   placeholder="Enter keywords or hashtags"
                   value={formData.platformSettings.instagram?.keywords || ""}
-                  onChange={(e) => handlePlatformSettingChange("keywords", e.target.value)}
+                  onChange={(e) =>
+                    handlePlatformSettingChange("keywords", e.target.value)
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -1017,8 +1041,15 @@ export default function AgentsPage() {
                 <Input
                   id="accountsToMonitor"
                   placeholder="Enter account handles"
-                  value={formData.platformSettings.instagram?.accountsToMonitor || ""}
-                  onChange={(e) => handlePlatformSettingChange("accountsToMonitor", e.target.value)}
+                  value={
+                    formData.platformSettings.instagram?.accountsToMonitor || ""
+                  }
+                  onChange={(e) =>
+                    handlePlatformSettingChange(
+                      "accountsToMonitor",
+                      e.target.value
+                    )
+                  }
                 />
               </div>
             </div>
@@ -1030,7 +1061,9 @@ export default function AgentsPage() {
                 </div>
                 <Select
                   value={formData.platformSettings.instagram?.timeRange || ""}
-                  onValueChange={(value) => handlePlatformSettingChange("timeRange", value)}
+                  onValueChange={(value) =>
+                    handlePlatformSettingChange("timeRange", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select time range" />
@@ -1052,8 +1085,12 @@ export default function AgentsPage() {
                   type="number"
                   min="0"
                   placeholder="Min likes/comments"
-                  value={formData.platformSettings.instagram?.minEngagement || ""}
-                  onChange={(e) => handlePlatformSettingChange("minEngagement", e.target.value)}
+                  value={
+                    formData.platformSettings.instagram?.minEngagement || ""
+                  }
+                  onChange={(e) =>
+                    handlePlatformSettingChange("minEngagement", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -1065,7 +1102,9 @@ export default function AgentsPage() {
                 </div>
                 <Select
                   value={formData.platformSettings.instagram?.contentType || ""}
-                  onValueChange={(value) => handlePlatformSettingChange("contentType", value)}
+                  onValueChange={(value) =>
+                    handlePlatformSettingChange("contentType", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select content type" />
@@ -1084,7 +1123,9 @@ export default function AgentsPage() {
                 </div>
                 <Select
                   value={formData.platformSettings.instagram?.sentiment || ""}
-                  onValueChange={(value) => handlePlatformSettingChange("sentiment", value)}
+                  onValueChange={(value) =>
+                    handlePlatformSettingChange("sentiment", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select sentiment" />
@@ -1112,7 +1153,9 @@ export default function AgentsPage() {
                   id="keywords"
                   placeholder="Enter keywords or hashtags"
                   value={formData.platformSettings.linkedin?.keywords || ""}
-                  onChange={(e) => handlePlatformSettingChange("keywords", e.target.value)}
+                  onChange={(e) =>
+                    handlePlatformSettingChange("keywords", e.target.value)
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -1123,8 +1166,15 @@ export default function AgentsPage() {
                 <Input
                   id="accountsToMonitor"
                   placeholder="Enter company or profile names"
-                  value={formData.platformSettings.linkedin?.accountsToMonitor || ""}
-                  onChange={(e) => handlePlatformSettingChange("accountsToMonitor", e.target.value)}
+                  value={
+                    formData.platformSettings.linkedin?.accountsToMonitor || ""
+                  }
+                  onChange={(e) =>
+                    handlePlatformSettingChange(
+                      "accountsToMonitor",
+                      e.target.value
+                    )
+                  }
                 />
               </div>
             </div>
@@ -1136,7 +1186,9 @@ export default function AgentsPage() {
                 </div>
                 <Select
                   value={formData.platformSettings.linkedin?.timeRange || ""}
-                  onValueChange={(value) => handlePlatformSettingChange("timeRange", value)}
+                  onValueChange={(value) =>
+                    handlePlatformSettingChange("timeRange", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select time range" />
@@ -1158,8 +1210,12 @@ export default function AgentsPage() {
                   type="number"
                   min="0"
                   placeholder="Min reactions/comments"
-                  value={formData.platformSettings.linkedin?.minEngagement || ""}
-                  onChange={(e) => handlePlatformSettingChange("minEngagement", e.target.value)}
+                  value={
+                    formData.platformSettings.linkedin?.minEngagement || ""
+                  }
+                  onChange={(e) =>
+                    handlePlatformSettingChange("minEngagement", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -1171,7 +1227,9 @@ export default function AgentsPage() {
                 </div>
                 <Select
                   value={formData.platformSettings.linkedin?.contentType || ""}
-                  onValueChange={(value) => handlePlatformSettingChange("contentType", value)}
+                  onValueChange={(value) =>
+                    handlePlatformSettingChange("contentType", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select content type" />
@@ -1186,13 +1244,22 @@ export default function AgentsPage() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <Label htmlFor="industryFilter">Industry / Job Role Filter</Label>
+                  <Label htmlFor="industryFilter">
+                    Industry / Job Role Filter
+                  </Label>
                 </div>
                 <Input
                   id="industryFilter"
                   placeholder="Enter industries or job roles"
-                  value={formData.platformSettings.linkedin?.industryFilter || ""}
-                  onChange={(e) => handlePlatformSettingChange("industryFilter", e.target.value)}
+                  value={
+                    formData.platformSettings.linkedin?.industryFilter || ""
+                  }
+                  onChange={(e) =>
+                    handlePlatformSettingChange(
+                      "industryFilter",
+                      e.target.value
+                    )
+                  }
                 />
               </div>
             </div>
@@ -1211,7 +1278,9 @@ export default function AgentsPage() {
                   id="keywords"
                   placeholder="Enter keywords or hashtags"
                   value={formData.platformSettings.tiktok?.keywords || ""}
-                  onChange={(e) => handlePlatformSettingChange("keywords", e.target.value)}
+                  onChange={(e) =>
+                    handlePlatformSettingChange("keywords", e.target.value)
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -1222,8 +1291,15 @@ export default function AgentsPage() {
                 <Input
                   id="accountsToMonitor"
                   placeholder="Enter creator handles"
-                  value={formData.platformSettings.tiktok?.accountsToMonitor || ""}
-                  onChange={(e) => handlePlatformSettingChange("accountsToMonitor", e.target.value)}
+                  value={
+                    formData.platformSettings.tiktok?.accountsToMonitor || ""
+                  }
+                  onChange={(e) =>
+                    handlePlatformSettingChange(
+                      "accountsToMonitor",
+                      e.target.value
+                    )
+                  }
                 />
               </div>
             </div>
@@ -1235,7 +1311,9 @@ export default function AgentsPage() {
                 </div>
                 <Select
                   value={formData.platformSettings.tiktok?.timeRange || ""}
-                  onValueChange={(value) => handlePlatformSettingChange("timeRange", value)}
+                  onValueChange={(value) =>
+                    handlePlatformSettingChange("timeRange", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select time range" />
@@ -1258,7 +1336,9 @@ export default function AgentsPage() {
                   min="0"
                   placeholder="Min likes/views/comments"
                   value={formData.platformSettings.tiktok?.minEngagement || ""}
-                  onChange={(e) => handlePlatformSettingChange("minEngagement", e.target.value)}
+                  onChange={(e) =>
+                    handlePlatformSettingChange("minEngagement", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -1270,7 +1350,9 @@ export default function AgentsPage() {
                 </div>
                 <Select
                   value={formData.platformSettings.tiktok?.contentType || ""}
-                  onValueChange={(value) => handlePlatformSettingChange("contentType", value)}
+                  onValueChange={(value) =>
+                    handlePlatformSettingChange("contentType", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select content type" />
@@ -1291,7 +1373,9 @@ export default function AgentsPage() {
                   id="soundFilter"
                   placeholder="Enter sound or trend names"
                   value={formData.platformSettings.tiktok?.soundFilter || ""}
-                  onChange={(e) => handlePlatformSettingChange("soundFilter", e.target.value)}
+                  onChange={(e) =>
+                    handlePlatformSettingChange("soundFilter", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -1309,46 +1393,47 @@ export default function AgentsPage() {
         title: "Error",
         description: "Project ID is required",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
-    router.push(`/projects/${projectId}/agents/${agentId}`)
-  }
+    router.push(`/projects/${projectId}/agents/${agentId}`);
+  };
 
   // Reset form data when modal is closed or opened
   useEffect(() => {
     if (!isCreateModalOpen) {
       setFormData({
-        name: '',
-        platform: '',
-        goal: '',
-        instructions: '',
-        expectations: '',
-        mode: 'auto',
-        reviewPeriod: 'daily',
-        reviewMinutes: '30',
+        name: "",
+        platform: "",
+        goal: "",
+        instructions: "",
+        expectations: "",
+        mode: "auto",
+        reviewPeriod: "daily",
+        reviewMinutes: "30",
         advancedSettings: {},
-        platformSettings: {}
-      })
-      setCurrentStep(1)
-      setAgentKeywords([])
-      setNewKeyword("")
+        platformSettings: {},
+      });
+      setCurrentStep(1);
+      setAgentKeywords([]);
+      setNewKeyword("");
     } else if (project && Array.isArray(project.keywords)) {
-      setAgentKeywords(project.keywords)
-      setNewKeyword("")
+      setAgentKeywords(project.keywords);
+      setNewKeyword("");
     } else {
-      setAgentKeywords([])
-      setNewKeyword("")
+      setAgentKeywords([]);
+      setNewKeyword("");
     }
-  }, [isCreateModalOpen, project])
+    console.log(project);
+  }, [isCreateModalOpen, project]);
 
   // Handle form input changes
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
-    }))
-  }
+    }));
+  };
 
   // Handle advanced settings changes
   const handleAdvancedSettingChange = (field: string, value: any) => {
@@ -1358,8 +1443,8 @@ export default function AgentsPage() {
         ...prev.advancedSettings,
         [field]: value,
       },
-    }))
-  }
+    }));
+  };
 
   // Handle platform settings changes
   const handlePlatformSettingChange = (field: string, value: any) => {
@@ -1372,22 +1457,24 @@ export default function AgentsPage() {
           [field]: value,
         },
       },
-    }))
-  }
+    }));
+  };
 
   // Go to next step in the form
   const goToNextStep = () => {
-    setCurrentStep((prev) => prev + 1)
-  }
+    setCurrentStep((prev) => prev + 1);
+  };
 
   // Go to previous step in the form
   const goToPrevStep = () => {
-    setCurrentStep((prev) => prev - 1)
-  }
+    setCurrentStep((prev) => prev - 1);
+  };
 
   const [redditLoading, setRedditLoading] = useState(false);
   const [redditConnected, setRedditConnected] = useState(false);
-  const [redditOauthAccountId, setRedditOauthAccountId] = useState<string | null>(null);
+  const [redditOauthAccountId, setRedditOauthAccountId] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     function handleRedditAuthMessage(event: MessageEvent) {
@@ -1413,7 +1500,9 @@ export default function AgentsPage() {
     if (!accessToken) {
       toast({
         title: "Authentication Required",
-        description: `Please sign in to connect your ${platform.charAt(0).toUpperCase() + platform.slice(1)} account.`,
+        description: `Please sign in to connect your ${
+          platform.charAt(0).toUpperCase() + platform.slice(1)
+        } account.`,
         variant: "destructive",
       });
       return;
@@ -1423,7 +1512,7 @@ export default function AgentsPage() {
       fetch(getApiUrl("auth/reddit/state"), {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
       })
@@ -1446,7 +1535,9 @@ export default function AgentsPage() {
     } else {
       toast({
         title: "Coming Soon",
-        description: `OAuth for ${platform.charAt(0).toUpperCase() + platform.slice(1)} is not yet implemented.`,
+        description: `OAuth for ${
+          platform.charAt(0).toUpperCase() + platform.slice(1)
+        } is not yet implemented.`,
         variant: "default",
       });
     }
@@ -1510,7 +1601,9 @@ export default function AgentsPage() {
                       left: 0,
                       right: 0,
                       opacity: 0.3 + Math.random() * 0.3,
-                      animation: `dataStream ${5 + Math.random() * 5}s linear infinite`,
+                      animation: `dataStream ${
+                        5 + Math.random() * 5
+                      }s linear infinite`,
                       animationDelay: `${Math.random() * 3}s`,
                     }}
                   />
@@ -1533,12 +1626,17 @@ export default function AgentsPage() {
                     <Bot className="h-6 w-6 text-cyan-400" />
                   </div>
                   <div>
-                    <h1 className="text-3xl md:text-4xl font-bold text-white">AI Agents</h1>
-                    <p className="text-cyan-100/80 text-sm">Intelligent automation across platforms</p>
+                    <h1 className="text-3xl md:text-4xl font-bold text-white">
+                      AI Agents
+                    </h1>
+                    <p className="text-cyan-100/80 text-sm">
+                      Intelligent automation across platforms
+                    </p>
                   </div>
                 </div>
                 <p className="text-base text-slate-300 max-w-2xl leading-relaxed">
-                  Deploy intelligent agents to automate engagement, generate leads, and grow your business on autopilot.
+                  Deploy intelligent agents to automate engagement, generate
+                  leads, and grow your business on autopilot.
                 </p>
               </div>
 
@@ -1550,8 +1648,12 @@ export default function AgentsPage() {
                     <span className="text-xs text-slate-400">Active</span>
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-white">{totalActive}</span>
-                    <span className="text-xs text-slate-400">/ {agents.length}</span>
+                    <span className="text-xl font-bold text-white">
+                      {totalActive}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      / {agents.length}
+                    </span>
                   </div>
                 </div>
 
@@ -1561,7 +1663,9 @@ export default function AgentsPage() {
                     <span className="text-xs text-slate-400">Messages</span>
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-white">{totalMessages}</span>
+                    <span className="text-xl font-bold text-white">
+                      {totalMessages}
+                    </span>
                     <span className="text-xs text-emerald-400">+24%</span>
                   </div>
                 </div>
@@ -1572,7 +1676,9 @@ export default function AgentsPage() {
                     <span className="text-xs text-slate-400">Engaged</span>
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-white">{totalEngagement}</span>
+                    <span className="text-xl font-bold text-white">
+                      {totalEngagement}
+                    </span>
                     <span className="text-xs text-emerald-400">+18%</span>
                   </div>
                 </div>
@@ -1583,7 +1689,9 @@ export default function AgentsPage() {
                     <span className="text-xs text-slate-400">Converts</span>
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-white">{totalConversions}</span>
+                    <span className="text-xl font-bold text-white">
+                      {totalConversions}
+                    </span>
                     <span className="text-xs text-emerald-400">+32%</span>
                   </div>
                 </div>
@@ -1594,7 +1702,9 @@ export default function AgentsPage() {
                     <span className="text-xs text-slate-400">Avg Perf</span>
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-white">{avgPerformance}%</span>
+                    <span className="text-xl font-bold text-white">
+                      {avgPerformance}%
+                    </span>
                     <span className="text-xs text-emerald-400">+5%</span>
                   </div>
                 </div>
@@ -1628,7 +1738,10 @@ export default function AgentsPage() {
                 {platformOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     <div className="flex items-center gap-2">
-                      <PlatformIcon platform={option.value} className="h-4 w-4" />
+                      <PlatformIcon
+                        platform={option.value}
+                        className="h-4 w-4"
+                      />
                       <span>{option.label}</span>
                     </div>
                   </SelectItem>
@@ -1698,11 +1811,16 @@ export default function AgentsPage() {
               <div className="p-4 bg-red-100 dark:bg-red-900/20 rounded-full mb-4">
                 <Bot className="h-8 w-8 text-red-500" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Error loading agents</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                Error loading agents
+              </h3>
               <p className="text-sm text-muted-foreground text-center max-w-sm">
-                {error instanceof Error ? error.message : 'Failed to load agents'}
+                {error || "Failed to load agents"}
               </p>
-              <Button onClick={() => window.location.reload()} className="mt-4">
+              <Button
+                onClick={() => projectId && dispatch(fetchAgents(projectId))}
+                className="mt-4"
+              >
                 Try Again
               </Button>
             </div>
@@ -1716,7 +1834,10 @@ export default function AgentsPage() {
               <p className="text-sm text-muted-foreground text-center max-w-sm">
                 Try adjusting your filters or create a new agent to get started.
               </p>
-              <Button onClick={() => setIsCreateModalOpen(true)} className="mt-4">
+              <Button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="mt-4"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Your First Agent
               </Button>
@@ -1724,7 +1845,7 @@ export default function AgentsPage() {
           ) : (
             // Existing agents grid
             filteredAgents.map((agent) => {
-              const GoalIcon = getGoalIcon(agent.goals)
+              const GoalIcon = getGoalIcon(agent.goals);
               return (
                 <Card
                   key={agent.id}
@@ -1733,7 +1854,8 @@ export default function AgentsPage() {
                     "hover:shadow-xl hover:-translate-y-1",
                     "bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800",
                     // Add disabled state for scheduled agents
-                    agent.agent_status === "scheduled" && "opacity-70 pointer-events-none"
+                    agent.agent_status === "scheduled" &&
+                      "opacity-70 pointer-events-none"
                   )}
                   onClick={() => navigateToAgentDetail(agent.id)}
                 >
@@ -1756,24 +1878,34 @@ export default function AgentsPage() {
                         <div
                           className={cn(
                             "p-2 rounded-lg bg-gradient-to-br text-white shadow-lg",
-                            getPlatformGradient(agent.agent_platform),
+                            getPlatformGradient(agent.agent_platform)
                           )}
                         >
-                          <PlatformIcon platform={agent.agent_platform} className="h-4 w-4" />
+                          <PlatformIcon
+                            platform={agent.agent_platform}
+                            className="h-4 w-4"
+                          />
                         </div>
                         <div>
-                          <CardTitle className="text-base font-semibold">{agent.agent_name}</CardTitle>
+                          <CardTitle className="text-base font-semibold">
+                            {agent.agent_name}
+                          </CardTitle>
                           <div className="flex items-center gap-2 mt-1">
                             <Badge
                               variant="secondary"
-                              className={cn("text-xs px-2 py-0.5", getStatusColor(agent.agent_status))}
+                              className={cn(
+                                "text-xs px-2 py-0.5",
+                                getStatusColor(agent.agent_status)
+                              )}
                             >
                               {agent.agent_status}
                             </Badge>
                             {agent.advanced_settings?.rating > 0 && (
                               <div className="flex items-center gap-1">
                                 <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                                <span className="text-xs font-medium">{agent.advanced_settings.rating}</span>
+                                <span className="text-xs font-medium">
+                                  {agent.advanced_settings.rating}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -1784,7 +1916,7 @@ export default function AgentsPage() {
                         size="sm"
                         className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={(e) => {
-                          e.stopPropagation()
+                          e.stopPropagation();
                           // Settings menu can be added here
                         }}
                       >
@@ -1792,38 +1924,56 @@ export default function AgentsPage() {
                       </Button>
                     </div>
 
-                    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">{agent.instructions}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+                      {agent.instructions}
+                    </p>
                   </CardHeader>
 
                   <CardContent className="relative space-y-3 px-4 py-2">
                     {/* Goal Badge */}
                     <div className="flex items-center gap-1.5">
                       <GoalIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-xs font-medium capitalize">{agent.goals.replace("_", " ")}</span>
+                      <span className="text-xs font-medium capitalize">
+                        {agent.goals.replace("_", " ")}
+                      </span>
                     </div>
 
                     {/* Key Metrics */}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2">
                         <div className="flex items-center justify-between mb-0.5">
-                          <span className="text-[10px] text-muted-foreground">{agent.advanced_settings?.keyMetric?.label || 'No metric'}</span>
-                          {agent.advanced_settings?.keyMetric?.trend !== "—" && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {agent.advanced_settings?.keyMetric?.label ||
+                              "No metric"}
+                          </span>
+                          {agent.advanced_settings?.keyMetric?.trend !==
+                            "—" && (
                             <span
                               className={cn(
                                 "text-[10px] font-medium",
-                                agent.advanced_settings?.keyMetric?.trend?.startsWith("+") ? "text-emerald-600" : "text-red-600",
+                                agent.advanced_settings?.keyMetric?.trend?.startsWith(
+                                  "+"
+                                )
+                                  ? "text-emerald-600"
+                                  : "text-red-600"
                               )}
                             >
                               {agent.advanced_settings?.keyMetric?.trend}
                             </span>
                           )}
                         </div>
-                        <span className="text-sm font-bold">{agent.advanced_settings?.keyMetric?.value || '0'}</span>
+                        <span className="text-sm font-bold">
+                          {agent.advanced_settings?.keyMetric?.value || "0"}
+                        </span>
                       </div>
                       {agent.advanced_settings?.secondaryMetric && (
                         <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2">
-                          <div className="text-[10px] text-muted-foreground mb-0.5">{agent.advanced_settings.secondaryMetric.label}</div>
-                          <span className="text-sm font-bold">{agent.advanced_settings.secondaryMetric.value}</span>
+                          <div className="text-[10px] text-muted-foreground mb-0.5">
+                            {agent.advanced_settings.secondaryMetric.label}
+                          </div>
+                          <span className="text-sm font-bold">
+                            {agent.advanced_settings.secondaryMetric.value}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -1831,8 +1981,12 @@ export default function AgentsPage() {
                     {/* Performance Bar */}
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-medium">Performance</span>
-                        <span className="text-[10px] font-bold">{agent.advanced_settings?.performance || 0}%</span>
+                        <span className="text-[10px] font-medium">
+                          Performance
+                        </span>
+                        <span className="text-[10px] font-bold">
+                          {agent.advanced_settings?.performance || 0}%
+                        </span>
                       </div>
                       <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div
@@ -1840,11 +1994,16 @@ export default function AgentsPage() {
                             "h-full transition-all duration-500 rounded-full",
                             (agent.advanced_settings?.performance || 0) >= 80
                               ? "bg-gradient-to-r from-emerald-500 to-emerald-600"
-                              : (agent.advanced_settings?.performance || 0) >= 60
-                                ? "bg-gradient-to-r from-amber-500 to-amber-600"
-                                : "bg-gradient-to-r from-red-500 to-red-600",
+                              : (agent.advanced_settings?.performance || 0) >=
+                                60
+                              ? "bg-gradient-to-r from-amber-500 to-amber-600"
+                              : "bg-gradient-to-r from-red-500 to-red-600"
                           )}
-                          style={{ width: `${agent.advanced_settings?.performance || 0}%` }}
+                          style={{
+                            width: `${
+                              agent.advanced_settings?.performance || 0
+                            }%`,
+                          }}
                         />
                       </div>
                     </div>
@@ -1854,12 +2013,18 @@ export default function AgentsPage() {
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        <span>{agent.advanced_settings?.lastActive || 'Never'}</span>
+                        <span>
+                          {agent.advanced_settings?.lastActive || "Never"}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Switch
                           checked={agent.agent_status === "active"}
-                          onCheckedChange={() => toggleAgentStatus(agent.id, { stopPropagation: () => {} } as any)}
+                          onCheckedChange={() =>
+                            toggleAgentStatus(agent.id, {
+                              stopPropagation: () => {},
+                            } as any)
+                          }
                           onClick={(e) => e.stopPropagation()}
                           className="scale-90 data-[state=checked]:bg-emerald-500"
                         />
@@ -1867,7 +2032,7 @@ export default function AgentsPage() {
                     </div>
                   </CardFooter>
                 </Card>
-              )
+              );
             })
           )}
         </div>
@@ -1876,10 +2041,12 @@ export default function AgentsPage() {
         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
           <DialogContent className="max-w-[900px] max-h-[90vh] flex flex-col">
             <DialogHeader className="pb-4">
-              <DialogTitle className="text-2xl font-bold">Create AI Agent</DialogTitle>
+              <DialogTitle className="text-2xl font-bold">
+                Create AI Agent
+              </DialogTitle>
               <DialogDescription>
-                Set up your intelligent agent in just a few steps. Choose a goal, select a platform, and configure the
-                settings.
+                Set up your intelligent agent in just a few steps. Choose a
+                goal, select a platform, and configure the settings.
               </DialogDescription>
             </DialogHeader>
 
@@ -1893,7 +2060,7 @@ export default function AgentsPage() {
                   { step: 3, label: "Platform", icon: Layers },
                   { step: 4, label: "Review", icon: CheckCircle },
                 ].map((item) => {
-                  const Icon = item.icon
+                  const Icon = item.icon;
                   return (
                     <div key={item.step} className="flex flex-col items-center">
                       <div
@@ -1902,11 +2069,15 @@ export default function AgentsPage() {
                           currentStep === item.step
                             ? "border-cyan-600 bg-cyan-600 text-white shadow-lg shadow-cyan-500/25"
                             : currentStep > item.step
-                              ? "border-emerald-500 bg-emerald-500 text-white"
-                              : "border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-400",
+                            ? "border-emerald-500 bg-emerald-500 text-white"
+                            : "border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-400"
                         )}
                       >
-                        {currentStep > item.step ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                        {currentStep > item.step ? (
+                          <Check className="h-5 w-5" />
+                        ) : (
+                          <Icon className="h-5 w-5" />
+                        )}
                       </div>
                       <span
                         className={cn(
@@ -1914,14 +2085,14 @@ export default function AgentsPage() {
                           currentStep === item.step
                             ? "text-cyan-600"
                             : currentStep > item.step
-                              ? "text-emerald-600"
-                              : "text-gray-500",
+                            ? "text-emerald-600"
+                            : "text-gray-500"
                         )}
                       >
                         {item.label}
                       </span>
                     </div>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -1931,23 +2102,30 @@ export default function AgentsPage() {
               {currentStep === 1 && (
                 <div className="space-y-6 animate-in fade-in-50 duration-300">
                   <div className="space-y-2">
-                    <Label htmlFor="agent-name" className="text-base font-medium">
+                    <Label
+                      htmlFor="agent-name"
+                      className="text-base font-medium"
+                    >
                       Agent Name
                     </Label>
                     <Input
                       id="agent-name"
                       placeholder="e.g., Reddit Lead Hunter, LinkedIn Thought Leader"
                       value={formData.name}
-                      onChange={(e) => handleInputChange("name", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("name", e.target.value)
+                      }
                       className="h-11"
                     />
                   </div>
                   {/* Goal Selection UI */}
                   <div className="space-y-3">
-                    <Label className="text-base font-medium">Select Your Goal</Label>
+                    <Label className="text-base font-medium">
+                      Select Your Goal
+                    </Label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {goalOptions.map((goal) => {
-                        const Icon = goal.icon
+                        const Icon = goal.icon;
                         return (
                           <div
                             key={goal.value}
@@ -1956,17 +2134,21 @@ export default function AgentsPage() {
                               "hover:shadow-md hover:border-zinc-400",
                               formData.goal === goal.value
                                 ? "border-zinc-600 bg-zinc-50 dark:bg-zinc-900/20 shadow-md"
-                                : "border-zinc-200 dark:border-zinc-800",
+                                : "border-zinc-200 dark:border-zinc-800"
                             )}
-                            onClick={() => handleInputChange("goal", goal.value)}
+                            onClick={() =>
+                              handleInputChange("goal", goal.value)
+                            }
                           >
                             <div className="flex items-start gap-4">
-                              <div className={cn(
-                                "p-3 rounded-lg bg-gradient-to-br text-white shadow-lg",
-                                "ring-1 ring-black/10 dark:ring-white/5",
-                                "relative overflow-hidden group",
-                                goal.color
-                              )}>
+                              <div
+                                className={cn(
+                                  "p-3 rounded-lg bg-gradient-to-br text-white shadow-lg",
+                                  "ring-1 ring-black/10 dark:ring-white/5",
+                                  "relative overflow-hidden group",
+                                  goal.color
+                                )}
+                              >
                                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                                 <div className="relative">
@@ -1974,8 +2156,12 @@ export default function AgentsPage() {
                                 </div>
                               </div>
                               <div className="flex-1">
-                                <h3 className="font-semibold mb-1">{goal.label}</h3>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400">{goal.description}</p>
+                                <h3 className="font-semibold mb-1">
+                                  {goal.label}
+                                </h3>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                  {goal.description}
+                                </p>
                               </div>
                             </div>
                             {formData.goal === goal.value && (
@@ -1984,14 +2170,17 @@ export default function AgentsPage() {
                               </div>
                             )}
                           </div>
-                        )
+                        );
                       })}
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="agent-instructions" className="text-base font-medium">
+                      <Label
+                        htmlFor="agent-instructions"
+                        className="text-base font-medium"
+                      >
                         Instructions & Personality
                       </Label>
                       <Button
@@ -2012,7 +2201,7 @@ export default function AgentsPage() {
                             agent_name: formData.name,
                             goals: [formData.goal],
                             project_id: projectId as string,
-                            existing_context: formData.instructions
+                            existing_context: formData.instructions,
                           });
                         }}
                         disabled={generateProfileMutation.isPending}
@@ -2025,13 +2214,18 @@ export default function AgentsPage() {
                       placeholder="Describe how your agent should behave, what tone to use, and any specific guidelines..."
                       className="min-h-[120px] resize-none"
                       value={formData.instructions}
-                      onChange={(e) => handleInputChange("instructions", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("instructions", e.target.value)
+                      }
                     />
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="agent-expectations" className="text-base font-medium">
+                      <Label
+                        htmlFor="agent-expectations"
+                        className="text-base font-medium"
+                      >
                         Expected Outcomes
                       </Label>
                       <Button
@@ -2048,10 +2242,15 @@ export default function AgentsPage() {
                             return;
                           }
 
-                          if (!formData.name || !formData.goal || !formData.instructions) {
+                          if (
+                            !formData.name ||
+                            !formData.goal ||
+                            !formData.instructions
+                          ) {
                             toast({
                               title: "Missing Information",
-                              description: "Please provide agent name, goal, and instructions before generating expected outcomes.",
+                              description:
+                                "Please provide agent name, goal, and instructions before generating expected outcomes.",
                               variant: "destructive",
                             });
                             return;
@@ -2061,7 +2260,7 @@ export default function AgentsPage() {
                             agent_name: formData.name,
                             goals: [formData.goal],
                             project_id: projectId as string,
-                            instructions: formData.instructions
+                            instructions: formData.instructions,
                           });
                         }}
                         disabled={generateOutcomesMutation.isPending}
@@ -2074,7 +2273,9 @@ export default function AgentsPage() {
                       placeholder="Describe what you expect the agent to achieve, key metrics to track, and success criteria..."
                       className="min-h-[120px] resize-none"
                       value={formData.expectations}
-                      onChange={(e) => handleInputChange("expectations", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("expectations", e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -2084,7 +2285,9 @@ export default function AgentsPage() {
               {currentStep === 2 && (
                 <div className="space-y-6 animate-in fade-in-50 duration-300">
                   <div className="space-y-2">
-                    <Label className="text-base font-medium">Agent Keywords</Label>
+                    <Label className="text-base font-medium">
+                      Agent Keywords
+                    </Label>
                     <div className="flex flex-wrap gap-2 mb-2 min-h-[40px] p-2 border rounded-md bg-background/60 dark:bg-card/60">
                       {agentKeywords.map((kw: string) => (
                         <Badge
@@ -2098,11 +2301,28 @@ export default function AgentsPage() {
                             size="icon"
                             variant="ghost"
                             className="h-4 w-4 p-0 ml-1 text-muted-foreground hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive"
-                            onClick={() => setAgentKeywords(agentKeywords.filter((k) => k !== kw))}
+                            onClick={() =>
+                              setAgentKeywords(
+                                agentKeywords.filter((k) => k !== kw)
+                              )
+                            }
                             tabIndex={-1}
                           >
                             <span className="sr-only">Remove</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-3 w-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
                           </Button>
                         </Badge>
                       ))}
@@ -2113,11 +2333,14 @@ export default function AgentsPage() {
                         onChange={(e) => setNewKeyword(e.target.value)}
                         placeholder="Add keyword"
                         className="w-40"
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && newKeyword.trim()) {
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && newKeyword.trim()) {
                             e.preventDefault();
                             if (!agentKeywords.includes(newKeyword.trim())) {
-                              setAgentKeywords([...agentKeywords, newKeyword.trim()]);
+                              setAgentKeywords([
+                                ...agentKeywords,
+                                newKeyword.trim(),
+                              ]);
                             }
                             setNewKeyword("");
                           }
@@ -2126,8 +2349,14 @@ export default function AgentsPage() {
                       <Button
                         type="button"
                         onClick={() => {
-                          if (newKeyword.trim() && !agentKeywords.includes(newKeyword.trim())) {
-                            setAgentKeywords([...agentKeywords, newKeyword.trim()]);
+                          if (
+                            newKeyword.trim() &&
+                            !agentKeywords.includes(newKeyword.trim())
+                          ) {
+                            setAgentKeywords([
+                              ...agentKeywords,
+                              newKeyword.trim(),
+                            ]);
                           }
                           setNewKeyword("");
                         }}
@@ -2144,12 +2373,20 @@ export default function AgentsPage() {
                     <Label className="text-base font-medium">Schedule</Label>
                     <div className="flex flex-col md:flex-row gap-4 items-center">
                       <div className="w-full md:w-60">
-                        <Label htmlFor="schedule-type" className="text-sm font-medium">Type</Label>
+                        <Label
+                          htmlFor="schedule-type"
+                          className="text-sm font-medium"
+                        >
+                          Type
+                        </Label>
                         <Select
                           value={scheduleType}
                           onValueChange={setScheduleType}
                         >
-                          <SelectTrigger id="schedule-type" className="w-full h-11 mt-1">
+                          <SelectTrigger
+                            id="schedule-type"
+                            className="w-full h-11 mt-1"
+                          >
                             <SelectValue placeholder="Select type" />
                           </SelectTrigger>
                           <SelectContent>
@@ -2168,7 +2405,9 @@ export default function AgentsPage() {
               {currentStep === 3 && (
                 <div className="space-y-6 animate-in fade-in-50 duration-300">
                   <div className="space-y-3">
-                    <Label className="text-base font-medium">Choose Your Platform</Label>
+                    <Label className="text-base font-medium">
+                      Choose Your Platform
+                    </Label>
                     <div className="grid grid-cols-5 gap-4">
                       {platformOptions.map((platform) => (
                         <div
@@ -2179,9 +2418,11 @@ export default function AgentsPage() {
                             "group",
                             formData.platform === platform.value
                               ? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 shadow-lg"
-                              : "border-zinc-200 dark:border-zinc-800",
+                              : "border-zinc-200 dark:border-zinc-800"
                           )}
-                          onClick={() => handleInputChange("platform", platform.value)}
+                          onClick={() =>
+                            handleInputChange("platform", platform.value)
+                          }
                         >
                           <div className="flex flex-col items-center gap-3">
                             <div
@@ -2195,11 +2436,16 @@ export default function AgentsPage() {
                               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                               <div className="relative">
-                                <PlatformIcon platform={platform.value} className="h-7 w-7 drop-shadow-sm" />
+                                <PlatformIcon
+                                  platform={platform.value}
+                                  className="h-7 w-7 drop-shadow-sm"
+                                />
                               </div>
                             </div>
                             <div className="text-center">
-                              <span className="font-medium text-sm block">{platform.label}</span>
+                              <span className="font-medium text-sm block">
+                                {platform.label}
+                              </span>
                             </div>
                           </div>
                           {formData.platform === platform.value && (
@@ -2218,7 +2464,9 @@ export default function AgentsPage() {
                   {/* Account Connection Section */}
                   {formData.platform && (
                     <div className="space-y-3">
-                      <Label className="text-base font-medium">Account Connection</Label>
+                      <Label className="text-base font-medium">
+                        Account Connection
+                      </Label>
                       <div className="rounded-xl border-2 p-6">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
@@ -2228,33 +2476,70 @@ export default function AgentsPage() {
                                 getPlatformGradient(formData.platform)
                               )}
                             >
-                              <PlatformIcon platform={formData.platform} className="h-6 w-6" />
+                              <PlatformIcon
+                                platform={formData.platform}
+                                className="h-6 w-6"
+                              />
                             </div>
                             <div>
-                              <h3 className="font-semibold">Login with {formData.platform.charAt(0).toUpperCase() + formData.platform.slice(1)}</h3>
-                              <p className="text-sm text-muted-foreground">Connect your account to post content</p>
+                              <h3 className="font-semibold">
+                                Login with{" "}
+                                {formData.platform.charAt(0).toUpperCase() +
+                                  formData.platform.slice(1)}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                Connect your account to post content
+                              </p>
                             </div>
                           </div>
                           {formData.platform === "reddit" && (
-                            <Button
-                              className={cn(
-                                "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white",
-                                redditConnected && !redditLoading && "opacity-100 cursor-default"
+                            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                              <Button
+                                className={cn(
+                                  "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white",
+                                  redditConnected &&
+                                    !redditLoading &&
+                                    "opacity-100 cursor-default"
+                                )}
+                                onClick={() =>
+                                  handleConnectPlatform(formData.platform)
+                                }
+                                disabled={redditLoading || redditConnected}
+                                style={
+                                  redditConnected && !redditLoading
+                                    ? {
+                                        pointerEvents: "none",
+                                        filter: "none",
+                                        opacity: 1,
+                                      }
+                                    : {}
+                                }
+                              >
+                                {redditLoading ? (
+                                  <LoaderCircle className="animate-spin h-5 w-5 mr-2" />
+                                ) : redditConnected ? (
+                                  <>
+                                    <span className="mr-2">✅</span>Reddit
+                                    Connected
+                                  </>
+                                ) : (
+                                  <>
+                                    Connect {""}
+                                    {formData.platform.charAt(0).toUpperCase() +
+                                      formData.platform.slice(1)}
+                                  </>
+                                )}
+                              </Button>
+
+                              {redditLoading && !redditConnected && (
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setRedditLoading(false)}
+                                >
+                                  Cancel
+                                </Button>
                               )}
-                              onClick={() => handleConnectPlatform(formData.platform)}
-                              disabled={redditLoading || redditConnected}
-                              style={redditConnected && !redditLoading ? { pointerEvents: 'none', filter: 'none', opacity: 1 } : {}}
-                            >
-                              {redditLoading ? (
-                                <LoaderCircle className="animate-spin h-5 w-5 mr-2" />
-                              ) : redditConnected ? (
-                                <>
-                                  <span className="mr-2">✅</span>Reddit Connected
-                                </>
-                              ) : (
-                                <>Connect {formData.platform.charAt(0).toUpperCase() + formData.platform.slice(1)}</>
-                              )}
-                            </Button>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -2262,10 +2547,14 @@ export default function AgentsPage() {
                   )}
 
                   <div className="space-y-3">
-                    <Label className="text-base font-medium">Operation Mode</Label>
+                    <Label className="text-base font-medium">
+                      Operation Mode
+                    </Label>
                     <RadioGroup
                       value={formData.mode}
-                      onValueChange={(value) => handleInputChange("mode", value)}
+                      onValueChange={(value) =>
+                        handleInputChange("mode", value)
+                      }
                       className="grid grid-cols-1 md:grid-cols-2 gap-4"
                     >
                       <div
@@ -2274,18 +2563,26 @@ export default function AgentsPage() {
                           "hover:shadow-lg hover:border-cyan-400 hover:-translate-y-0.5",
                           formData.mode === "copilot"
                             ? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 shadow-lg"
-                            : "border-zinc-200 dark:border-zinc-800",
+                            : "border-zinc-200 dark:border-zinc-800"
                         )}
                       >
-                        <RadioGroupItem value="copilot" id="copilot" className="sr-only" />
-                        <Label htmlFor="copilot" className="flex items-start gap-4 cursor-pointer">
+                        <RadioGroupItem
+                          value="copilot"
+                          id="copilot"
+                          className="sr-only"
+                        />
+                        <Label
+                          htmlFor="copilot"
+                          className="flex items-start gap-4 cursor-pointer"
+                        >
                           <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg">
                             <Brain className="h-6 w-6" />
                           </div>
                           <div className="flex-1">
                             <h3 className="font-semibold mb-1">Copilot Mode</h3>
                             <p className="text-sm text-muted-foreground">
-                              Agent suggests actions and waits for your approval before executing
+                              Agent suggests actions and waits for your approval
+                              before executing
                             </p>
                           </div>
                         </Label>
@@ -2297,18 +2594,28 @@ export default function AgentsPage() {
                           "hover:shadow-lg hover:border-cyan-400 hover:-translate-y-0.5",
                           formData.mode === "autopilot"
                             ? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 shadow-lg"
-                            : "border-zinc-200 dark:border-zinc-800",
+                            : "border-zinc-200 dark:border-zinc-800"
                         )}
                       >
-                        <RadioGroupItem value="autopilot" id="autopilot" className="sr-only" />
-                        <Label htmlFor="autopilot" className="flex items-start gap-4 cursor-pointer">
+                        <RadioGroupItem
+                          value="autopilot"
+                          id="autopilot"
+                          className="sr-only"
+                        />
+                        <Label
+                          htmlFor="autopilot"
+                          className="flex items-start gap-4 cursor-pointer"
+                        >
                           <div className="p-3 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg">
                             <Rocket className="h-6 w-6" />
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-semibold mb-1">Autopilot Mode</h3>
+                            <h3 className="font-semibold mb-1">
+                              Autopilot Mode
+                            </h3>
                             <p className="text-sm text-muted-foreground">
-                              Agent works autonomously based on your instructions and guidelines
+                              Agent works autonomously based on your
+                              instructions and guidelines
                             </p>
                           </div>
                         </Label>
@@ -2318,19 +2625,27 @@ export default function AgentsPage() {
                     {formData.mode === "autopilot" && (
                       <div className="mt-4 space-y-2">
                         <div className="flex items-center gap-2">
-                          <Label htmlFor="review-minutes" className="text-sm font-medium">Review period (minutes)</Label>
+                          <Label
+                            htmlFor="review-minutes"
+                            className="text-sm font-medium"
+                          >
+                            Review period (minutes)
+                          </Label>
                           <Input
                             id="review-minutes"
                             type="number"
                             min="0"
                             placeholder="0"
                             value={formData.reviewMinutes}
-                            onChange={(e) => handleInputChange("reviewMinutes", e.target.value)}
+                            onChange={(e) =>
+                              handleInputChange("reviewMinutes", e.target.value)
+                            }
                             className="w-20 h-8"
                           />
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          The agent will wait for you to review content before posting
+                          The agent will wait for you to review content before
+                          posting
                         </p>
                       </div>
                     )}
@@ -2338,7 +2653,9 @@ export default function AgentsPage() {
 
                   <Collapsible className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-base font-medium">Advanced Settings</Label>
+                      <Label className="text-base font-medium">
+                        Advanced Settings
+                      </Label>
                       <CollapsibleTrigger asChild>
                         <Button variant="ghost" size="sm">
                           <ChevronDown className="h-4 w-4" />
@@ -2362,17 +2679,25 @@ export default function AgentsPage() {
                     <div className="md:col-span-2">
                       <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
                         <div className="flex items-start gap-4">
-                          <div className={cn(
-                            "p-3 rounded-xl bg-gradient-to-br text-white shadow-lg",
-                            getPlatformGradient(formData.platform)
-                          )}>
-                            <PlatformIcon platform={formData.platform} className="h-8 w-8" />
+                          <div
+                            className={cn(
+                              "p-3 rounded-xl bg-gradient-to-br text-white shadow-lg",
+                              getPlatformGradient(formData.platform)
+                            )}
+                          >
+                            <PlatformIcon
+                              platform={formData.platform}
+                              className="h-8 w-8"
+                            />
                           </div>
                           <div className="flex-1">
-                            <h3 className="text-xl font-semibold mb-1 text-slate-900 dark:text-slate-200">{formData.name || "Unnamed Agent"}</h3>
+                            <h3 className="text-xl font-semibold mb-1 text-slate-900 dark:text-slate-200">
+                              {formData.name || "Unnamed Agent"}
+                            </h3>
                             <div className="flex items-center gap-3">
                               <Badge variant="secondary" className="capitalize">
-                                {formData.goal.replace("_", " ") || "No goal set"}
+                                {formData.goal.replace("_", " ") ||
+                                  "No goal set"}
                               </Badge>
                               <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
                                 {formData.mode === "copilot" ? (
@@ -2396,19 +2721,31 @@ export default function AgentsPage() {
                     <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
                       <div className="flex items-center gap-2 mb-4">
                         <Clock className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                        <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">Review Settings</h4>
+                        <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">
+                          Review Settings
+                        </h4>
                       </div>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-slate-600 dark:text-slate-400">Schedule</span>
-                          <span className="font-medium text-slate-900 dark:text-slate-300 capitalize">{formData.reviewPeriod}</span>
+                          <span className="text-sm text-slate-600 dark:text-slate-400">
+                            Schedule
+                          </span>
+                          <span className="font-medium text-slate-900 dark:text-slate-300 capitalize">
+                            {formData.reviewPeriod}
+                          </span>
                         </div>
                         {formData.mode === "autopilot" && (
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-slate-600 dark:text-slate-400">Wait Time</span>
+                            <span className="text-sm text-slate-600 dark:text-slate-400">
+                              Wait Time
+                            </span>
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-slate-900 dark:text-slate-300">{formData.reviewMinutes}</span>
-                              <span className="text-sm text-slate-600 dark:text-slate-400">minutes</span>
+                              <span className="font-medium text-slate-900 dark:text-slate-300">
+                                {formData.reviewMinutes}
+                              </span>
+                              <span className="text-sm text-slate-600 dark:text-slate-400">
+                                minutes
+                              </span>
                             </div>
                           </div>
                         )}
@@ -2422,18 +2759,23 @@ export default function AgentsPage() {
                       <div>
                         <div className="flex items-center gap-2 mb-4">
                           <MessageSquare className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                          <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">Instructions & Personality</h4>
+                          <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">
+                            Instructions & Personality
+                          </h4>
                         </div>
                         <div className="bg-white dark:bg-slate-900/40 rounded-lg p-4 border border-slate-200 dark:border-slate-700/30">
                           <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
-                            {formData.instructions || "No instructions provided"}
+                            {formData.instructions ||
+                              "No instructions provided"}
                           </p>
                         </div>
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-4">
                           <Target className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                          <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">Expected Outcomes</h4>
+                          <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">
+                            Expected Outcomes
+                          </h4>
                         </div>
                         <div className="bg-white dark:bg-slate-900/40 rounded-lg p-4 border border-slate-200 dark:border-slate-700/30">
                           <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
@@ -2449,7 +2791,9 @@ export default function AgentsPage() {
                     <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
                       <div className="flex items-center gap-2 mb-4">
                         <Layers className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                        <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">Platform Settings</h4>
+                        <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">
+                          Platform Settings
+                        </h4>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
@@ -2458,11 +2802,15 @@ export default function AgentsPage() {
                             <div>
                               <div className="flex items-center gap-1.5 mb-1">
                                 <MessageSquare className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
-                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Subreddit</span>
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                  Subreddit
+                                </span>
                               </div>
                               <div className="text-xs">
                                 {formData.platformSettings.reddit?.subreddit ? (
-                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.reddit.subreddit}</span>
+                                  <span className="text-slate-600 dark:text-slate-400">
+                                    {formData.platformSettings.reddit.subreddit}
+                                  </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
                                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
@@ -2474,11 +2822,15 @@ export default function AgentsPage() {
                             <div>
                               <div className="flex items-center gap-1.5 mb-1">
                                 <Clock className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
-                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Time Range</span>
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                  Time Range
+                                </span>
                               </div>
                               <div className="text-xs">
                                 {formData.platformSettings.reddit?.timeRange ? (
-                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.reddit.timeRange}</span>
+                                  <span className="text-slate-600 dark:text-slate-400">
+                                    {formData.platformSettings.reddit.timeRange}
+                                  </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
                                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
@@ -2490,11 +2842,19 @@ export default function AgentsPage() {
                             <div>
                               <div className="flex items-center gap-1.5 mb-1">
                                 <Target className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
-                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Relevance</span>
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                  Relevance
+                                </span>
                               </div>
                               <div className="text-xs">
-                                {formData.platformSettings.reddit?.relevanceThreshold ? (
-                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.reddit.relevanceThreshold}</span>
+                                {formData.platformSettings.reddit
+                                  ?.relevanceThreshold ? (
+                                  <span className="text-slate-600 dark:text-slate-400">
+                                    {
+                                      formData.platformSettings.reddit
+                                        .relevanceThreshold
+                                    }
+                                  </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
                                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
@@ -2506,11 +2866,19 @@ export default function AgentsPage() {
                             <div>
                               <div className="flex items-center gap-1.5 mb-1">
                                 <TrendingUp className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
-                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Min Upvotes</span>
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                  Min Upvotes
+                                </span>
                               </div>
                               <div className="text-xs">
-                                {formData.platformSettings.reddit?.minUpvotes ? (
-                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.reddit.minUpvotes}</span>
+                                {formData.platformSettings.reddit
+                                  ?.minUpvotes ? (
+                                  <span className="text-slate-600 dark:text-slate-400">
+                                    {
+                                      formData.platformSettings.reddit
+                                        .minUpvotes
+                                    }
+                                  </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
                                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
@@ -2522,20 +2890,31 @@ export default function AgentsPage() {
                             <div className="col-span-2">
                               <div className="flex items-center gap-1.5 text-xs">
                                 <MessageSquare className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
-                                <span className="font-medium text-slate-700 dark:text-slate-300">Monitor Comments:</span>
-                                <span className={cn(
-                                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium",
-                                  formData.platformSettings.reddit?.monitorComments
-                                    ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
-                                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                                )}>
-                                  <span className={cn(
-                                    "w-1 h-1 rounded-full",
-                                    formData.platformSettings.reddit?.monitorComments
-                                      ? "bg-emerald-500 dark:bg-emerald-400"
-                                      : "bg-slate-400 dark:bg-slate-500"
-                                  )}></span>
-                                  {formData.platformSettings.reddit?.monitorComments ? "Enabled" : "Disabled"}
+                                <span className="font-medium text-slate-700 dark:text-slate-300">
+                                  Monitor Comments:
+                                </span>
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium",
+                                    formData.platformSettings.reddit
+                                      ?.monitorComments
+                                      ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                                  )}
+                                >
+                                  <span
+                                    className={cn(
+                                      "w-1 h-1 rounded-full",
+                                      formData.platformSettings.reddit
+                                        ?.monitorComments
+                                        ? "bg-emerald-500 dark:bg-emerald-400"
+                                        : "bg-slate-400 dark:bg-slate-500"
+                                    )}
+                                  ></span>
+                                  {formData.platformSettings.reddit
+                                    ?.monitorComments
+                                    ? "Enabled"
+                                    : "Disabled"}
                                 </span>
                               </div>
                             </div>
@@ -2546,11 +2925,15 @@ export default function AgentsPage() {
                             <div>
                               <div className="flex items-center gap-1.5 mb-1">
                                 <Hash className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
-                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Keywords</span>
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                  Keywords
+                                </span>
                               </div>
                               <div className="text-xs">
                                 {formData.platformSettings.twitter?.keywords ? (
-                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.twitter.keywords}</span>
+                                  <span className="text-slate-600 dark:text-slate-400">
+                                    {formData.platformSettings.twitter.keywords}
+                                  </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
                                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
@@ -2562,11 +2945,19 @@ export default function AgentsPage() {
                             <div>
                               <div className="flex items-center gap-1.5 mb-1">
                                 <Users className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
-                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Accounts</span>
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                  Accounts
+                                </span>
                               </div>
                               <div className="text-xs">
-                                {formData.platformSettings.twitter?.accountsToMonitor ? (
-                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.twitter.accountsToMonitor}</span>
+                                {formData.platformSettings.twitter
+                                  ?.accountsToMonitor ? (
+                                  <span className="text-slate-600 dark:text-slate-400">
+                                    {
+                                      formData.platformSettings.twitter
+                                        .accountsToMonitor
+                                    }
+                                  </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
                                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
@@ -2578,11 +2969,19 @@ export default function AgentsPage() {
                             <div>
                               <div className="flex items-center gap-1.5 mb-1">
                                 <Clock className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
-                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Time Range</span>
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                  Time Range
+                                </span>
                               </div>
                               <div className="text-xs">
-                                {formData.platformSettings.twitter?.timeRange ? (
-                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.twitter.timeRange}</span>
+                                {formData.platformSettings.twitter
+                                  ?.timeRange ? (
+                                  <span className="text-slate-600 dark:text-slate-400">
+                                    {
+                                      formData.platformSettings.twitter
+                                        .timeRange
+                                    }
+                                  </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
                                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
@@ -2594,11 +2993,19 @@ export default function AgentsPage() {
                             <div>
                               <div className="flex items-center gap-1.5 mb-1">
                                 <TrendingUp className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
-                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Min Engagement</span>
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                  Min Engagement
+                                </span>
                               </div>
                               <div className="text-xs">
-                                {formData.platformSettings.twitter?.minEngagement ? (
-                                  <span className="text-slate-600 dark:text-slate-400">{formData.platformSettings.twitter.minEngagement}</span>
+                                {formData.platformSettings.twitter
+                                  ?.minEngagement ? (
+                                  <span className="text-slate-600 dark:text-slate-400">
+                                    {
+                                      formData.platformSettings.twitter
+                                        .minEngagement
+                                    }
+                                  </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
                                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
@@ -2610,20 +3017,28 @@ export default function AgentsPage() {
                             <div className="col-span-2">
                               <div className="flex items-center gap-1.5 text-xs">
                                 <Smile className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
-                                <span className="font-medium text-slate-700 dark:text-slate-300">Sentiment:</span>
-                                <span className={cn(
-                                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium",
-                                  formData.platformSettings.twitter?.sentiment
-                                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-                                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                                )}>
-                                  <span className={cn(
-                                    "w-1 h-1 rounded-full",
+                                <span className="font-medium text-slate-700 dark:text-slate-300">
+                                  Sentiment:
+                                </span>
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium",
                                     formData.platformSettings.twitter?.sentiment
-                                      ? "bg-blue-500 dark:bg-blue-400"
-                                      : "bg-slate-400 dark:bg-slate-500"
-                                  )}></span>
-                                  {formData.platformSettings.twitter?.sentiment || "Not set"}
+                                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                                  )}
+                                >
+                                  <span
+                                    className={cn(
+                                      "w-1 h-1 rounded-full",
+                                      formData.platformSettings.twitter
+                                        ?.sentiment
+                                        ? "bg-blue-500 dark:bg-blue-400"
+                                        : "bg-slate-400 dark:bg-slate-500"
+                                    )}
+                                  ></span>
+                                  {formData.platformSettings.twitter
+                                    ?.sentiment || "Not set"}
                                 </span>
                               </div>
                             </div>
@@ -2638,7 +3053,11 @@ export default function AgentsPage() {
 
             <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-6 border-t mt-4">
               {currentStep > 1 ? (
-                <Button variant="outline" onClick={goToPrevStep} className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={goToPrevStep}
+                  className="gap-2"
+                >
                   <ChevronLeft className="h-4 w-4" />
                   Back
                 </Button>
@@ -2656,7 +3075,7 @@ export default function AgentsPage() {
                 </Button>
               ) : (
                 <Button
-                  onClick={createAgent}
+                  onClick={createAgentHandler}
                   className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 w-full sm:w-auto"
                 >
                   <Rocket className="h-4 w-4 mr-2" />
@@ -2668,7 +3087,7 @@ export default function AgentsPage() {
         </Dialog>
       </div>
     </Layout>
-  )
+  );
 }
 
 // Add animations
@@ -2679,7 +3098,7 @@ const dataStream = `@keyframes dataStream {
   100% {
     transform: translateX(100%);
   }
-}`
+}`;
 
 const float = `@keyframes float {
   0% {
@@ -2697,7 +3116,7 @@ const float = `@keyframes float {
   100% {
     transform: translateY(0) translateX(0);
   }
-}`
+}`;
 
 // Add this at the end of the file, after the animations
 const scrollbarStyles = `
@@ -2726,11 +3145,11 @@ const scrollbarStyles = `
   .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background-color: rgb(71 85 105);
   }
-`
+`;
 
 // Add the styles to the document
-if (typeof document !== 'undefined') {
-  const style = document.createElement('style')
-  style.textContent = scrollbarStyles
-  document.head.appendChild(style)
+if (typeof document !== "undefined") {
+  const style = document.createElement("style");
+  style.textContent = scrollbarStyles;
+  document.head.appendChild(style);
 }

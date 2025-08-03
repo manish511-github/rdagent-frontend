@@ -6,9 +6,14 @@ import TopNav from "./top-nav";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import Cookies from "js-cookie";
-import { refreshAccessToken } from "@/lib/utils";
-import { getApiUrl } from "../../lib/config";
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState, AppDispatch } from "@/store/store";
+import {
+  fetchCurrentProject,
+  clearCurrentProject,
+  selectCurrentProject,
+  selectCurrentProjectLoading,
+} from "@/store/slices/currentProjectSlice";
 
 interface LayoutProps {
   children: ReactNode;
@@ -22,68 +27,41 @@ interface Project {
 export default function Layout({ children }: LayoutProps) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch<AppDispatch>();
   const pathname = usePathname();
+
+  // Get current project data from Redux store
+  const currentProjectData = useSelector((state: RootState) =>
+    selectCurrentProject(state)
+  );
+  const loading = useSelector((state: RootState) =>
+    selectCurrentProjectLoading(state)
+  );
 
   // Extract project ID from path if we're on a project page
   const projectIdMatch = pathname.match(/\/projects\/([^/]+)/);
   const currentProjectId = projectIdMatch ? projectIdMatch[1] : null;
 
+  // Create a simplified project object for backward compatibility with components
+  const currentProject: Project | null = currentProjectData
+    ? {
+        uuid: currentProjectData.uuid,
+        name: currentProjectData.title,
+      }
+    : null;
+
   // Fetch project data when projectId changes
   useEffect(() => {
-    const fetchProject = async () => {
-      if (!currentProjectId) {
-        setCurrentProject(null);
-        setLoading(false);
-        return;
-      }
+    if (!currentProjectId) {
+      dispatch(clearCurrentProject());
+      return;
+    }
 
-      try {
-        let token = Cookies.get("access_token");
-        let response = await fetch(
-          getApiUrl(`projects/${currentProjectId}`),
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        // If unauthorized, try to refresh the token and retry once
-        if (response.status === 401) {
-          token = await refreshAccessToken();
-          if (token) {
-            response = await fetch(
-              getApiUrl(`projects/${currentProjectId}`),
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
-          }
-        }
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch project details");
-        }
-
-        const data = await response.json();
-        setCurrentProject({
-          uuid: data.uuid,
-          name: data.title,
-        });
-      } catch (err) {
-        console.error("Error fetching project:", err);
-        setCurrentProject(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProject();
-  }, [currentProjectId]);
+    // Only fetch if we don't have the project data or if it's a different project
+    if (!currentProjectData || currentProjectData.uuid !== currentProjectId) {
+      dispatch(fetchCurrentProject(currentProjectId));
+    }
+  }, [currentProjectId, dispatch, currentProjectData]);
 
   // Check if we're on an individual agent page which needs fixed height
   const isAgentPage =
