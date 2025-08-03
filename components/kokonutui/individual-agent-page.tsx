@@ -543,63 +543,11 @@ const ContentManagement = React.memo(function ContentManagement({
   const [selectedPost, setSelectedPost] = React.useState<DisplayPost | null>(
     null
   );
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+
   return (
     <div className="flex flex-col h-full">
-      {/* Header with Search and Filters */}
-      <div className="flex-shrink-0 p-3 border-b border-gray-200 dark:border-gray-800">
-        <div className="flex flex-col md:flex-row items-center gap-2">
-          {/* Search Bar */}
-          <div className="relative flex-grow w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search posts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 h-9 text-sm w-full"
-            />
-          </div>
-
-          {/* Filters and Sort */}
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            {/* Status Filter */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-9 text-xs flex-1 md:flex-none md:w-[140px]">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="needs_review">Needs Review</SelectItem>
-                <SelectItem value="discarded">Discarded</SelectItem>
-                <SelectItem value="escalated">Escalated</SelectItem>
-                <SelectItem value="processed">Processed</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Sort By */}
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="h-9 text-xs flex-1 md:flex-none md:w-[140px]">
-                <div className="flex items-center gap-1.5">
-                  <SlidersHorizontal className="h-3.5 w-3.5" />
-                  <SelectValue placeholder="Sort by" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="relevance">Most Relevant</SelectItem>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="oldest">Oldest First</SelectItem>
-                <SelectItem value="most_comments">Most Comments</SelectItem>
-                <SelectItem value="least_comments">Least Comments</SelectItem>
-                <SelectItem value="most_upvotes">Most Upvotes</SelectItem>
-                <SelectItem value="least_upvotes">Least Upvotes</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-
       {/* Flexbox Layout */}
       <div className="flex flex-1 min-h-0 mx-3 overflow-hidden">
         {/* Left Pane - Content Feed */}
@@ -609,11 +557,138 @@ const ContentManagement = React.memo(function ContentManagement({
             isMobile
               ? "w-full"
               : showDetailPane
-              ? "flex-[2] max-w-[500px]"
+              ? "flex-[2] max-w-[600px]"
               : "flex-1"
           )}
           id="content-list-container"
         >
+          {/* Search Bar - Inside the scrollable container */}
+          <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/60">
+            <div className="flex items-center gap-3">
+              {/* Search Input */}
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  ref={searchInputRef}
+                  placeholder="Search posts, keywords, authors..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
+                  className="pl-10 pr-10 h-9 text-sm bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 transition-colors"
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    <XIcon className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+
+              {/* Status Filter */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 w-9 p-0" title="Filter by Status">
+                    <FilterIcon className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-gray-400" />
+                      All Status
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("pending")}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      Pending
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("approved")}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      Approved
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("needs_review")}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-amber-500" />
+                      Needs Review
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("discarded")}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-gray-500" />
+                      Discarded
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("escalated")}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-purple-500" />
+                      Escalated
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("processed")}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-600" />
+                      Processed
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("failed")}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      Failed
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Sort By */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 w-9 p-0" title="Sort Posts">
+                    <SlidersHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem onClick={() => setSortBy("relevance")}>
+                    <Hash className="h-4 w-4 mr-2" />
+                    Most Relevant
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("newest")}>
+                    <Clock className="h-4 w-4 mr-2" />
+                    Newest First
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("oldest")}>
+                    <Clock className="h-4 w-4 mr-2" />
+                    Oldest First
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("most_comments")}>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Most Comments
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("least_comments")}>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Least Comments
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("most_upvotes")}>
+                    <ArrowUpRight className="h-4 w-4 mr-2" />
+                    Most Upvotes
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("least_upvotes")}>
+                    <ArrowUpRight className="h-4 w-4 mr-2" />
+                    Least Upvotes
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
           {/* Content List - Infinite Scroll */}
           <div
             className="flex-1 overflow-y-auto min-h-0"
@@ -695,15 +770,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(false);
   const [isConfigExpanded, setIsConfigExpanded] = useState(false);
   const [activeView, setActiveView] = useState("content");
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [recentSearches, setRecentSearches] = useState<string[]>([
-    "MDM solutions",
-    "Hexnode",
-    "competitor mention",
-  ]);
-  const searchInputRef = React.useRef<HTMLInputElement>(null);
+
   const [hasInitialData, setHasInitialData] = useState(false);
 
   // Update useEffect to handle loading state and prevent repeated calls
@@ -816,29 +883,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
     };
   }, []);
 
-  React.useEffect(() => {
-    if (isSearchExpanded && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [isSearchExpanded]);
 
-  // Save search to recent when user presses Enter
-  React.useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && searchQuery && isSearchFocused) {
-        setRecentSearches((prev) => {
-          const updated = [
-            searchQuery,
-            ...prev.filter((s) => s !== searchQuery),
-          ].slice(0, 5);
-          return updated;
-        });
-      }
-    };
-
-    window.addEventListener("keypress", handleKeyPress);
-    return () => window.removeEventListener("keypress", handleKeyPress);
-  }, [searchQuery, isSearchFocused]);
 
   // Memoize the filtered content calculation
   const filteredContent = React.useMemo(() => {
@@ -998,64 +1043,151 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
     <Layout>
       <div className="flex flex-col h-full">
         {/* Navigation Header */}
-        <div className="border-b border-gray-200 dark:border-gray-800 px-3 py-2 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-semibold">{agent.name}</h1>
-              <Badge
-                variant="outline"
-                className={cn(
-                  "text-xs px-2 py-0.5",
-                  agent.status === "active"
-                    ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50"
-                    : "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800/50"
-                )}
-              >
-                {agent.status === "active" ? "Active" : "Paused"}
-              </Badge>
+        <div className="border-b border-gray-200 dark:border-gray-800 px-4 py-1 flex-shrink-0 bg-white dark:bg-gray-900/60">
+          <div className="flex items-center justify-between gap-4">
+            {/* Left Side - Agent Info and Search in Same Line */}
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              {/* Agent Name and Status - Compact */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="h-10 w-10 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400">
+                  {agent.platform === "reddit" && (
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+                    </svg>
+                  )}
+                  {agent.platform === "twitter" && (
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                  )}
+                  {agent.platform === "mixed" && (
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-lg font-semibold">{agent.name}</h1>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-xs px-2 py-0.5 h-5",
+                      agent.status === "active"
+                        ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50"
+                        : "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800/50"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-1.5 h-1.5 rounded-full mr-1.5",
+                      agent.status === "active" ? "bg-green-500" : "bg-gray-400"
+                    )} />
+                    {agent.status === "active" ? "Active" : "Paused"}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                    {displayPosts.length} posts
+                  </span>
+                </div>
+              </div>
+
+              {/* Spacer for layout balance */}
+              <div className="flex-1" />
+
+
             </div>
 
-            {/* View Selector */}
-            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-              <Button
-                variant={activeView === "content" ? "default" : "ghost"}
-                size="sm"
-                className={cn(
-                  "h-8 px-3 text-xs",
-                  activeView !== "content" &&
-                    "hover:bg-gray-200 dark:hover:bg-gray-700"
-                )}
-                onClick={() => setActiveView("content")}
-              >
-                <MessageSquare className="h-3.5 w-3.5" />
-                Content
-              </Button>
-              <Button
-                variant={activeView === "performance" ? "default" : "ghost"}
-                size="sm"
-                className={cn(
-                  "h-8 px-3 text-xs",
-                  activeView !== "performance" &&
-                    "hover:bg-gray-200 dark:hover:bg-gray-700"
-                )}
-                onClick={() => setActiveView("performance")}
-              >
-                <BarChart2 className="h-3.5 w-3.5" />
-                Performance
-              </Button>
-              <Button
-                variant={activeView === "config" ? "default" : "ghost"}
-                size="sm"
-                className={cn(
-                  "h-8 px-3 text-xs",
-                  activeView !== "config" &&
-                    "hover:bg-gray-200 dark:hover:bg-gray-700"
-                )}
-                onClick={() => setActiveView("config")}
-              >
-                <Settings className="h-3.5 w-3.5" />
-                Config
-              </Button>
+            {/* Right Side - View Selector and Actions */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              {/* Quick Stats - Only show on larger screens */}
+              <div className="hidden lg:flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>Last active {agent.lastActive}</span>
+                </div>
+              </div>
+
+              {/* View Selector */}
+              <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                <Button
+                  variant={activeView === "content" ? "default" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "h-8 w-8 p-0",
+                    activeView === "content" 
+                      ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary" 
+                      : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                  )}
+                  onClick={() => setActiveView("content")}
+                  title="Content"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={activeView === "performance" ? "default" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "h-8 w-8 p-0",
+                    activeView === "performance" 
+                      ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary" 
+                      : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                  )}
+                  onClick={() => setActiveView("performance")}
+                  title="Analytics"
+                >
+                  <BarChart2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={activeView === "config" ? "default" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "h-8 w-8 p-0",
+                    activeView === "config" 
+                      ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary" 
+                      : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                  )}
+                  onClick={() => setActiveView("config")}
+                  title="Settings"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Agent Actions Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={toggleAgentStatus}>
+                    <div className="flex items-center gap-2">
+                      {agent.status === "active" ? (
+                        <>
+                          <div className="w-2 h-2 rounded-full bg-gray-400" />
+                          Pause Agent
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                          Activate Agent
+                        </>
+                      )}
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh Data
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Agent
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-red-600">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Agent
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

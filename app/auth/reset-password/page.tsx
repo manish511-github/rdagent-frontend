@@ -1,4 +1,5 @@
 'use client'
+export const dynamic = 'force-dynamic'
 
 import { useState, Suspense } from 'react'
 import { z } from 'zod'
@@ -342,20 +343,13 @@ function ResetPasswordContent() {
 }
 
 function ResetPasswordLoading() {
-  const { theme } = useTheme()
-  
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
       {/* Logo at top left */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="absolute top-8 left-8"
-      >
+      <div className="absolute top-8 left-8">
         <Link href="/" className="flex items-center gap-2">
           <Image
-            src={theme === "dark" ? "/logo-light.svg" : "/logo-dark.svg"}
+            src="/logo-dark.svg"
             alt="logo"
             width={32}
             height={32}
@@ -364,7 +358,7 @@ function ResetPasswordLoading() {
             zooptics
           </span>
         </Link>
-      </motion.div>
+      </div>
 
       <div className="w-full max-w-md space-y-8 rounded-lg border bg-card p-8 shadow-lg">
         <div className="text-center">
@@ -373,11 +367,7 @@ function ResetPasswordLoading() {
         </div>
         
         <div className="flex justify-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-            className="size-8 border-2 border-current border-t-transparent rounded-full"
-          />
+          <div className="size-8 border-2 border-current border-t-transparent rounded-full animate-spin" />
         </div>
       </div>
     </div>

@@ -4,26 +4,10 @@ import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { useTheme } from "next-themes"
-import { LoginForm } from "@/components/auth/login-form"
-import { useAuthGuard } from "@/hooks/useAuthGuard"
-import { AuthLoading } from "@/components/auth/auth-loading"
+import { LoginForm } from "@/components/auth/login-form" // Import LoginForm
 
 export default function LoginPage() {
   const { theme } = useTheme()
-  const { isAuthenticated, isLoading } = useAuthGuard({
-    redirectTo: "/projects",
-    requireAuth: false // Redirect authenticated users away from login
-  })
-
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return <AuthLoading message="Checking authentication..." />
-  }
-
-  // If user is authenticated, they will be redirected automatically by the hook
-  if (isAuthenticated) {
-    return null
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
@@ -52,7 +36,7 @@ export default function LoginPage() {
           <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground">Welcome back!</h2>
           <p className="mt-2 text-sm text-muted-foreground">Sign in to your account to continue.</p>
         </div>
-        <LoginForm />
+        <LoginForm /> {/* Use LoginForm component */}
         <div className="text-center text-sm text-muted-foreground">
           Don't have an account?{" "}
           <Link href="/signup" className="font-medium text-primary hover:underline">

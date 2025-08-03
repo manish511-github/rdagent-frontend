@@ -1,12 +1,15 @@
 "use client"
 
+import { use } from "react"
 import { useAuthGuard } from "@/hooks/useAuthGuard"
 import { AuthLoading } from "@/components/auth/auth-loading"
 import { AuthRedirect } from "@/components/auth/auth-redirect"
 import ProjectDashboard from "@/components/kokonutui/project-dashboard"
 import Layout from "@/components/kokonutui/layout"
 
-export default function ProjectPage({ params }: { params: { id: string } }) {
+export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
+  
   const { isAuthenticated, isLoading, showRedirectMessage } = useAuthGuard({
     redirectTo: "/login",
     toastTitle: "Authentication Required",
@@ -37,7 +40,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
 
   return (
     <Layout>
-      <ProjectDashboard projectId={params.id} />
+      <ProjectDashboard projectId={id} />
     </Layout>
   )
 }

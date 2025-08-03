@@ -513,6 +513,9 @@ export default function ProjectsPage() {
         variant: "default",
       });
 
+      // Refetch projects to show the new project instantly
+      dispatch(fetchProjects());
+
     } catch (error: any) {
       console.error("Error creating project:", error);
       toast({

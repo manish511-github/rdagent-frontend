@@ -1,9 +1,5 @@
 "use client"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuthGuard } from "@/hooks/useAuthGuard"
-import { AuthLoading } from "@/components/auth/auth-loading"
 import { Header } from "@/components/landing-page/header"
 import { HeroSection } from "@/components/landing-page/hero-section"
 // import { PartnersSection } from "@/components/partners-section"
@@ -17,25 +13,7 @@ import { FAQSection } from "@/components/landing-page/faq-section" // This impor
 import { Footer } from "@/components/landing-page/footer"
 import UpgradePlan from "@/components/upgrade_plan/upgrade_plan"
 
-export default function HomePage() {
-  const { isAuthenticated, isLoading } = useAuthGuard({
-    redirectTo: "/projects",
-    requireAuth: false, // Redirect if authenticated
-    toastTitle: "Welcome Back!",
-    toastDescription: "Redirecting to your dashboard...",
-    redirectDelay: 1000
-  })
-
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return <AuthLoading message="Checking authentication..." />
-  }
-
-  // If authenticated, don't render the landing page (will redirect)
-  if (isAuthenticated) {
-    return null
-  }
-
+export default function HomeRoutePage() {
   return (
     <div className="container mx-auto">
       <Header />
@@ -56,4 +34,4 @@ export default function HomePage() {
       <Footer />
     </div>
   )
-}
+} 
