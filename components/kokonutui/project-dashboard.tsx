@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   ArrowLeft,
   Clock,
@@ -21,135 +21,134 @@ import {
   Save,
   Loader2,
   Bot,
-} from "lucide-react"
-import SocialMediaCards from "@/components/kokonutui/social-media-cards"
-import MarketingAnalyticsCards from "@/components/kokonutui/marketing-analytics-cards"
-import ContentAnalyticsCards from "@/components/kokonutui/content-analytics-cards"
-import PotentialCustomerAnalytics from "@/components/kokonutui/potential-customer-analytics"
-import { useToast } from "@/components/ui/use-toast"
-import { useRouter } from "next/navigation"
+} from "lucide-react";
+import SocialMediaCards from "@/components/kokonutui/social-media-cards";
+import MarketingAnalyticsCards from "@/components/kokonutui/marketing-analytics-cards";
+import ContentAnalyticsCards from "@/components/kokonutui/content-analytics-cards";
+import PotentialCustomerAnalytics from "@/components/kokonutui/potential-customer-analytics";
+import { useToast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { cn } from "@/lib/utils"
-import Cookies from 'js-cookie'
-import { refreshAccessToken } from "@/lib/utils"
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import Cookies from "js-cookie";
+import { refreshAccessToken } from "@/lib/utils";
 import { getApiUrl } from "../../lib/config";
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState, AppDispatch } from "@/store/store";
+import {
+  fetchCurrentProject,
+  updateCurrentProject,
+  selectCurrentProject,
+  selectCurrentProjectStatus,
+  selectCurrentProjectError,
+  selectCurrentProjectLoading,
+} from "@/store/slices/currentProjectSlice";
 
 interface Project {
-  uuid: string
-  title: string
-  description: string
-  target_audience: string
-  website_url: string
-  category: string
-  priority: string
-  due_date: string
-  budget: number
-  team: any[]
-  tags: string[]
-  competitors: string[]
-  keywords: string[]
-  excluded_keywords: string[]
-  status: string
-  progress: number
-  health: string
-  created_at: string
-  updated_at: string
+  uuid: string;
+  title: string;
+  description: string;
+  target_audience: string;
+  website_url: string;
+  category: string;
+  priority: string;
+  due_date: string;
+  budget: number;
+  team: any[];
+  tags: string[];
+  competitors: string[];
+  keywords: string[];
+  excluded_keywords: string[];
+  status: string;
+  progress: number;
+  health: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function ProjectDashboard({ projectId }: { projectId: string }) {
-  const { toast } = useToast()
-  const router = useRouter()
-  const [project, setProject] = useState<Project | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [isFavorite, setIsFavorite] = useState(false)
+  const { toast } = useToast();
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
 
-  const [isEditing, setIsEditing] = useState(false)
-  const [editedName, setEditedName] = useState("")
-  const [editedDescription, setEditedDescription] = useState("")
-  const [editedTargetAudience, setEditedTargetAudience] = useState("")
-  const [editedWebsiteLink, setEditedWebsiteLink] = useState("")
-  const [editedKeywords, setEditedKeywords] = useState("")
-  const [editedExcludedKeywords, setEditedExcludedKeywords] = useState("")
-  const [keywordInput, setKeywordInput] = useState("")
-  const [excludedKeywordInput, setExcludedKeywordInput] = useState("")
-  const [editedCompetitors, setEditedCompetitors] = useState("")
-  const [competitorInput, setCompetitorInput] = useState("")
+  // Get project data from Redux store
+  const project = useSelector((state: RootState) =>
+    selectCurrentProject(state)
+  );
+  const loading = useSelector((state: RootState) =>
+    selectCurrentProjectLoading(state)
+  );
+  const error = useSelector((state: RootState) =>
+    selectCurrentProjectError(state)
+  );
+
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [editedDescription, setEditedDescription] = useState("");
+  const [editedTargetAudience, setEditedTargetAudience] = useState("");
+  const [editedWebsiteLink, setEditedWebsiteLink] = useState("");
+  const [editedKeywords, setEditedKeywords] = useState("");
+  const [editedExcludedKeywords, setEditedExcludedKeywords] = useState("");
+  const [keywordInput, setKeywordInput] = useState("");
+  const [excludedKeywordInput, setExcludedKeywordInput] = useState("");
+  const [editedCompetitors, setEditedCompetitors] = useState("");
+  const [competitorInput, setCompetitorInput] = useState("");
 
   // Validate project ID format
   useEffect(() => {
-    if (!projectId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) {
+    if (
+      !projectId ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        projectId
+      )
+    ) {
       toast({
         title: "Error",
         description: "Invalid project ID format",
         variant: "destructive",
-      })
-      router.push('/projects')
-      return
+      });
+      router.push("/projects");
+      return;
     }
-  }, [projectId, router, toast])
+  }, [projectId, router, toast]);
 
+  // Fetch project data using Redux when projectId changes
   useEffect(() => {
-  
-    const fetchProjectDetails = async () => {
-      try {
-        let token = Cookies.get("access_token");
-        let response = await fetch(getApiUrl(`projects/${projectId}`), {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        // If unauthorized, try to refresh the token and retry once
-        if (response.status === 401) {
-          token = await refreshAccessToken();
-          if (token) {
-            response = await fetch(getApiUrl(`projects/${projectId}`), {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            });
-          }
-        }
-
-        if (!response.ok) {
-          
-          throw new Error('Failed to fetch project details')
-        }
-
-        const data = await response.json()
-        setProject(data)
-        
-        // Initialize edit form with fetched data
-        setEditedName(data.title)
-        setEditedDescription(data.description)
-        setEditedTargetAudience(data.target_audience)
-        setEditedWebsiteLink(data.website_url)
-        setEditedKeywords(data.keywords.join(", "))
-        setEditedExcludedKeywords(data.excluded_keywords.join(", "))
-        setEditedCompetitors(data.competitors.join(", "))
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(false)
+    if (projectId) {
+      // Only fetch if we don't have the project data or if it's a different project
+      if (!project || project.uuid !== projectId) {
+        dispatch(fetchCurrentProject(projectId));
       }
     }
+  }, [projectId, dispatch, project]);
 
-    fetchProjectDetails()
-  }, [projectId])
+  // Initialize edit form when project data is loaded
+  useEffect(() => {
+    if (project) {
+      setEditedName(project.title);
+      setEditedDescription(project.description);
+      setEditedTargetAudience(project.target_audience);
+      setEditedWebsiteLink(project.website_url);
+      setEditedKeywords(project.keywords.join(", "));
+      setEditedExcludedKeywords(project.excluded_keywords.join(", "));
+      setEditedCompetitors(project.competitors.join(", "));
+    }
+  }, [project]);
 
   if (loading) {
     return (
@@ -158,12 +157,14 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
           <div className="flex items-center justify-center h-[50vh]">
             <div className="text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading project details...</p>
+              <p className="text-muted-foreground">
+                Loading project details...
+              </p>
             </div>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -173,141 +174,165 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
           <div className="flex items-center justify-center h-[50vh]">
             <div className="text-center">
               <p className="text-destructive mb-4">{error}</p>
-              <Button onClick={() => window.history.back()}>Go Back</Button>
+              <div className="space-x-2">
+                <Button
+                  onClick={() => dispatch(fetchCurrentProject(projectId))}
+                >
+                  Try Again
+                </Button>
+                <Button variant="outline" onClick={() => window.history.back()}>
+                  Go Back
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (!project) {
-    return null
+    return null;
   }
 
   const toggleFavorite = () => {
-    setIsFavorite(!isFavorite)
-  }
+    setIsFavorite(!isFavorite);
+  };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
+    const date = new Date(dateString);
     return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
-    }).format(date)
-  }
+    }).format(date);
+  };
 
   const addCompetitor = () => {
     if (competitorInput.trim()) {
-      const competitors = editedCompetitors ? editedCompetitors.split(",").map((k) => k.trim()) : []
+      const competitors = editedCompetitors
+        ? editedCompetitors.split(",").map((k) => k.trim())
+        : [];
       if (!competitors.includes(competitorInput.trim())) {
-        competitors.push(competitorInput.trim())
-        setEditedCompetitors(competitors.join(", "))
+        competitors.push(competitorInput.trim());
+        setEditedCompetitors(competitors.join(", "));
       }
-      setCompetitorInput("")
+      setCompetitorInput("");
     }
-  }
+  };
 
   const removeCompetitor = (competitor: string) => {
     const competitors = editedCompetitors
       .split(",")
       .map((k) => k.trim())
-      .filter((k) => k !== competitor)
-    setEditedCompetitors(competitors.join(", "))
-  }
+      .filter((k) => k !== competitor);
+    setEditedCompetitors(competitors.join(", "));
+  };
 
   const handleSaveChanges = async () => {
     try {
-      const token = Cookies.get("access_token")
-      const response = await fetch(getApiUrl(`projects/${projectId}`), {  
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title: editedName,
-          description: editedDescription,
-          target_audience: editedTargetAudience,
-          website_url: editedWebsiteLink,
-          competitors: editedCompetitors.split(",").map((k) => k.trim()).filter((k) => k),
-          keywords: editedKeywords.split(",").map((k) => k.trim()).filter((k) => k),
-          excluded_keywords: editedExcludedKeywords.split(",").map((k) => k.trim()).filter((k) => k),
-        })
-      })
+      const updates = {
+        title: editedName,
+        description: editedDescription,
+        target_audience: editedTargetAudience,
+        website_url: editedWebsiteLink,
+        competitors: editedCompetitors
+          .split(",")
+          .map((k) => k.trim())
+          .filter((k) => k),
+        keywords: editedKeywords
+          .split(",")
+          .map((k) => k.trim())
+          .filter((k) => k),
+        excluded_keywords: editedExcludedKeywords
+          .split(",")
+          .map((k) => k.trim())
+          .filter((k) => k),
+      };
 
-      if (!response.ok) {
-        throw new Error('Failed to update project')
+      const result = await dispatch(
+        updateCurrentProject({ projectId, updates })
+      );
+
+      if (updateCurrentProject.fulfilled.match(result)) {
+        setIsEditing(false);
+        toast({
+          title: "Success",
+          description: "Project details updated successfully",
+          variant: "default",
+        });
+      } else {
+        throw new Error(
+          (result.payload as string) || "Failed to update project"
+        );
       }
-
-      const updatedProject = await response.json()
-      setProject(updatedProject)
-      setIsEditing(false)
-      
-      toast({
-        title: "Success",
-        description: "Project details updated successfully",
-        variant: "default",
-      })
     } catch (error) {
-      console.error('Error updating project:', error)
+      console.error("Error updating project:", error);
       toast({
         title: "Error",
-        description: "Failed to update project details. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to update project details. Please try again.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const handleCancelEdit = () => {
-    setEditedName(project.title)
-    setEditedDescription(project.description)
-    setEditedTargetAudience(project.target_audience)
-    setEditedWebsiteLink(project.website_url)
-    setEditedKeywords(project.keywords.join(", "))
-    setEditedExcludedKeywords(project.excluded_keywords.join(", "))
-    setEditedCompetitors(project.competitors.join(", "))
-    setIsEditing(false)
-  }
+    if (project) {
+      setEditedName(project.title);
+      setEditedDescription(project.description);
+      setEditedTargetAudience(project.target_audience);
+      setEditedWebsiteLink(project.website_url);
+      setEditedKeywords(project.keywords.join(", "));
+      setEditedExcludedKeywords(project.excluded_keywords.join(", "));
+      setEditedCompetitors(project.competitors.join(", "));
+    }
+    setIsEditing(false);
+  };
 
   const addKeyword = () => {
     if (keywordInput.trim()) {
-      const keywords = editedKeywords ? editedKeywords.split(",").map((k) => k.trim()) : []
+      const keywords = editedKeywords
+        ? editedKeywords.split(",").map((k) => k.trim())
+        : [];
       if (!keywords.includes(keywordInput.trim())) {
-        keywords.push(keywordInput.trim())
-        setEditedKeywords(keywords.join(", "))
+        keywords.push(keywordInput.trim());
+        setEditedKeywords(keywords.join(", "));
       }
-      setKeywordInput("")
+      setKeywordInput("");
     }
-  }
+  };
 
   const removeKeyword = (keyword: string) => {
     const keywords = editedKeywords
       .split(",")
       .map((k) => k.trim())
-      .filter((k) => k !== keyword)
-    setEditedKeywords(keywords.join(", "))
-  }
+      .filter((k) => k !== keyword);
+    setEditedKeywords(keywords.join(", "));
+  };
 
   const addExcludedKeyword = () => {
     if (excludedKeywordInput.trim()) {
-      const excludedKeywords = editedExcludedKeywords ? editedExcludedKeywords.split(",").map((k) => k.trim()) : []
+      const excludedKeywords = editedExcludedKeywords
+        ? editedExcludedKeywords.split(",").map((k) => k.trim())
+        : [];
       if (!excludedKeywords.includes(excludedKeywordInput.trim())) {
-        excludedKeywords.push(excludedKeywordInput.trim())
-        setEditedExcludedKeywords(excludedKeywords.join(", "))
+        excludedKeywords.push(excludedKeywordInput.trim());
+        setEditedExcludedKeywords(excludedKeywords.join(", "));
       }
-      setExcludedKeywordInput("")
+      setExcludedKeywordInput("");
     }
-  }
+  };
 
   const removeExcludedKeyword = (keyword: string) => {
     const excludedKeywords = editedExcludedKeywords
       .split(",")
       .map((k) => k.trim())
-      .filter((k) => k !== keyword)
-    setEditedExcludedKeywords(excludedKeywords.join(", "))
-  }
+      .filter((k) => k !== keyword);
+    setEditedExcludedKeywords(excludedKeywords.join(", "));
+  };
 
   return (
     <div className="flex flex-col min-h-full">
@@ -316,17 +341,31 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-3">
-                <Link href="/projects" className="p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors">
+                <Link
+                  href="/projects"
+                  className="p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
+                >
                   <ArrowLeft size={16} />
                 </Link>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold tracking-tight">{project.title}</h1>
+                  <h1 className="text-2xl font-bold tracking-tight">
+                    {project.title}
+                  </h1>
                   <button
                     onClick={toggleFavorite}
-                    className={`p-1 rounded-full ${isFavorite ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"}`}
-                    aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                    className={`p-1 rounded-full ${
+                      isFavorite
+                        ? "text-amber-500"
+                        : "text-muted-foreground hover:text-amber-500"
+                    }`}
+                    aria-label={
+                      isFavorite ? "Remove from favorites" : "Add to favorites"
+                    }
                   >
-                    <Star size={18} fill={isFavorite ? "currentColor" : "none"} />
+                    <Star
+                      size={18}
+                      fill={isFavorite ? "currentColor" : "none"}
+                    />
                   </button>
                 </div>
               </div>
@@ -357,7 +396,9 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                     <DropdownMenuItem>Export Project</DropdownMenuItem>
                     <DropdownMenuItem>Archive Project</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive">Delete Project</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive">
+                      Delete Project
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -370,7 +411,9 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                   <div className="flex items-center gap-3">
                     <div>
                       <div className="flex items-center gap-2.5 mb-1.5">
-                        <h2 className="text-xl font-semibold tracking-tight">{project.title}</h2>
+                        <h2 className="text-xl font-semibold tracking-tight">
+                          {project.title}
+                        </h2>
                         <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100/80 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800/30">
                           <span className="relative flex h-1.5 w-1.5 mr-1.5">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
@@ -381,7 +424,8 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                       </div>
                       <p className="text-sm text-muted-foreground flex items-center">
                         <Clock className="h-3.5 w-3.5 mr-1.5 inline-block" />
-                        Last updated {new Date(project.updated_at).toLocaleDateString()}
+                        Last updated{" "}
+                        {new Date(project.updated_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -411,15 +455,19 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         <div className="pl-8">
                           <div className="p-4 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm space-y-4">
                             <div>
-                              <h4 className="text-sm font-medium text-foreground/90 mb-2">Description</h4>
+                              <h4 className="text-sm font-medium text-foreground/90 mb-2">
+                                Description
+                              </h4>
                               <p className="text-sm leading-relaxed text-foreground/80">
                                 {project.description}
                               </p>
                             </div>
-                            
+
                             <div className="grid grid-cols-1 gap-4 pt-2 border-t border-border/10">
                               <div>
-                                <h4 className="text-xs font-medium text-muted-foreground mb-1.5">Category</h4>
+                                <h4 className="text-xs font-medium text-muted-foreground mb-1.5">
+                                  Category
+                                </h4>
                                 <Badge variant="secondary" className="text-xs">
                                   {project.category}
                                 </Badge>
@@ -466,9 +514,12 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                                 <span
                                   className={cn(
                                     "inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-medium text-white shadow-sm",
-                                    index % 3 === 0 && "bg-blue-500/90 dark:bg-blue-600/90",
-                                    index % 3 === 1 && "bg-green-500/90 dark:bg-green-600/90",
-                                    index % 3 === 2 && "bg-amber-500/90 dark:bg-amber-600/90",
+                                    index % 3 === 0 &&
+                                      "bg-blue-500/90 dark:bg-blue-600/90",
+                                    index % 3 === 1 &&
+                                      "bg-green-500/90 dark:bg-green-600/90",
+                                    index % 3 === 2 &&
+                                      "bg-amber-500/90 dark:bg-amber-600/90"
                                   )}
                                 >
                                   {competitor.charAt(0)}
@@ -560,7 +611,9 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2"
                       >
                         Project Name
-                        <span className="text-xs text-muted-foreground font-normal">(Required)</span>
+                        <span className="text-xs text-muted-foreground font-normal">
+                          (Required)
+                        </span>
                       </label>
                       <Input
                         id="project-name"
@@ -577,7 +630,9 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2"
                       >
                         Website URL
-                        <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+                        <span className="text-xs text-muted-foreground font-normal">
+                          (Optional)
+                        </span>
                       </label>
                       <Input
                         id="website-link"
@@ -596,7 +651,9 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                       className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2"
                     >
                       Description
-                      <span className="text-xs text-muted-foreground font-normal">(Required)</span>
+                      <span className="text-xs text-muted-foreground font-normal">
+                        (Required)
+                      </span>
                     </label>
                     <Textarea
                       id="project-description"
@@ -614,7 +671,9 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                       className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2"
                     >
                       Target Audience
-                      <span className="text-xs text-muted-foreground font-normal">(Required)</span>
+                      <span className="text-xs text-muted-foreground font-normal">
+                        (Required)
+                      </span>
                     </label>
                     <Textarea
                       id="target-audience"
@@ -632,7 +691,9 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                       className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2"
                     >
                       Competitors
-                      <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+                      <span className="text-xs text-muted-foreground font-normal">
+                        (Optional)
+                      </span>
                     </label>
                     <div className="flex flex-wrap gap-1.5 mb-2 min-h-[40px] p-3 border rounded-md bg-background/60 dark:bg-card/60 backdrop-blur-sm">
                       {editedCompetitors
@@ -664,8 +725,8 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         className="h-10 text-sm bg-background/60 dark:bg-card/60 backdrop-blur-sm"
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
-                            e.preventDefault()
-                            addCompetitor()
+                            e.preventDefault();
+                            addCompetitor();
                           }
                         }}
                       />
@@ -688,7 +749,9 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2"
                       >
                         Keywords
-                        <span className="text-xs text-muted-foreground font-normal">(Required)</span>
+                        <span className="text-xs text-muted-foreground font-normal">
+                          (Required)
+                        </span>
                       </label>
                       <div className="flex flex-wrap gap-1.5 mb-2 min-h-[40px] p-3 border rounded-md bg-background/60 dark:bg-card/60 backdrop-blur-sm">
                         {editedKeywords
@@ -720,8 +783,8 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                           className="h-10 text-sm bg-background/60 dark:bg-card/60 backdrop-blur-sm"
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
-                              e.preventDefault()
-                              addKeyword()
+                              e.preventDefault();
+                              addKeyword();
                             }
                           }}
                         />
@@ -743,7 +806,9 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2"
                       >
                         Excluded Keywords
-                        <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+                        <span className="text-xs text-muted-foreground font-normal">
+                          (Optional)
+                        </span>
                       </label>
                       <div className="flex flex-wrap gap-1.5 mb-2 min-h-[40px] p-3 border rounded-md bg-background/60 dark:bg-card/60 backdrop-blur-sm">
                         {editedExcludedKeywords
@@ -770,13 +835,15 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         <Input
                           id="excluded-keywords"
                           value={excludedKeywordInput}
-                          onChange={(e) => setExcludedKeywordInput(e.target.value)}
+                          onChange={(e) =>
+                            setExcludedKeywordInput(e.target.value)
+                          }
                           placeholder="Add an excluded keyword"
                           className="h-10 text-sm bg-background/60 dark:bg-card/60 backdrop-blur-sm"
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
-                              e.preventDefault()
-                              addExcludedKeyword()
+                              e.preventDefault();
+                              addExcludedKeyword();
                             }
                           }}
                         />
@@ -837,5 +904,5 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
