@@ -4,6 +4,7 @@ import Cookies from "js-cookie";
 import { createSelector } from "@reduxjs/toolkit";
 import { fetchAgentResults, AgentPostsParams } from "../../lib/api";
 import { getApiUrl } from "../../lib/config";
+import type { ApiAgent } from "../slices/agentsSlice";
 
 // Types
 export type AgentType = "twitter" | "reddit" | "mixed";
@@ -131,6 +132,9 @@ export interface AgentState {
       generating: boolean;
     }
   >;
+  // Details view/state
+  agentDetails: AgentDetails | null;
+  agentDetailsStatus: "idle" | "loading" | "succeeded" | "failed";
 }
 
 // Unified interface for displaying posts in the UI
@@ -184,10 +188,45 @@ const initialState: AgentState = {
   },
   // Post-specific reply drafts
   replyDrafts: {},
+  // Details state
+  agentDetails: null,
+  agentDetailsStatus: "idle",
 };
 
 interface AgentConnection {
   eventSource: EventSource;
+}
+
+// Details types aligned with backend GET /agents/{agent_id}/details
+export interface AgentScheduleDetails {
+  schedule_type: string; // daily | weekly | monthly | cron | manual
+  schedule_time: string | null; // ISO or time string
+  days_of_week: string[] | null;
+  day_of_month: number | null;
+  id?: number;
+  agent_id?: number;
+  created_at?: string;
+}
+
+export interface AgentDetails {
+  id: number;
+  agent_name: string;
+  description: string | null;
+  agent_platform: string; // reddit | twitter | ...
+  agent_status: string; // active | paused | etc
+  goals: string; // e.g., lead_generation
+  instructions: string | null;
+  expectations: string | null;
+  agent_keywords: string[];
+  project_id: string;
+  mode: string; // copilot | assisted | autonomous
+  review_minutes: number | null;
+  oauth_account_id: string | number | null;
+  advanced_settings: Record<string, any>;
+  platform_settings: Record<string, any>;
+  created_at: string;
+  last_run: string | null;
+  schedule: AgentScheduleDetails | null;
 }
 
 // Helper function to transform posts to DisplayPost format
@@ -386,15 +425,16 @@ export const fetchAgentData = createAsyncThunk(
         throw new Error("Authentication required");
       }
       console.log("Fetching agent data for agentId:", agentId);
+      const idNum = Number(agentId);
+      if (Number.isNaN(idNum)) {
+        throw new Error("Invalid agentId");
+      }
 
-      const response = await fetch(
-        getApiUrl(`agents/${agentId}/results`),
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(getApiUrl(`agents/${idNum}/results`), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch agent data");
@@ -462,6 +502,96 @@ export const fetchAgentData = createAsyncThunk(
   }
 );
 
+// Fetch agent details (/agents/{agent_id}/details)
+export const fetchAgentDetails = createAsyncThunk(
+  "agent/fetchDetails",
+  async (agentId: string, { rejectWithValue }) => {
+    try {
+      const token = Cookies.get("access_token");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      const idNum = Number(agentId);
+      if (Number.isNaN(idNum)) {
+        throw new Error("Invalid agentId");
+      }
+
+      const response = await fetch(getApiUrl(`agents/${idNum}/details`), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        return rejectWithValue(
+          err.detail || err.message || "Failed to fetch agent details"
+        );
+      }
+
+      const details: AgentDetails = await response.json();
+      return details;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to fetch agent details"
+      );
+    }
+  }
+);
+
+// Update agent details (PUT /agents/{agent_id}) - payload inspired by create model
+export type ApiAgentUpdate = Partial<ApiAgent> & {
+  // allow status updates with details
+  agent_status?: string;
+  schedule?: Partial<AgentScheduleDetails> & { schedule_type?: string };
+};
+
+export const updateAgentDetails = createAsyncThunk(
+  "agent/updateDetails",
+  async (
+    { agentId, updates }: { agentId: string; updates: ApiAgentUpdate },
+    { rejectWithValue }
+  ) => {
+    try {
+      const token = Cookies.get("access_token");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      const idNum = Number(agentId);
+      if (Number.isNaN(idNum)) {
+        throw new Error("Invalid agentId");
+      }
+
+      const response = await fetch(getApiUrl(`agents/${idNum}`), {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        return rejectWithValue(
+          err.detail || err.message || "Failed to update agent details"
+        );
+      }
+
+      return (await response.json()) as AgentDetails;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to update agent details"
+      );
+    }
+  }
+);
+
 export const connectToAgent = createAsyncThunk(
   "agent/connect",
   async (
@@ -510,17 +640,19 @@ export const updateAgentStatus = createAsyncThunk(
         throw new Error("Authentication required");
       }
 
-      const response = await fetch(
-        getApiUrl(`agents/${agentId}/status`),
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ status }),
-        }
-      );
+      const idNum = Number(agentId);
+      if (Number.isNaN(idNum)) {
+        throw new Error("Invalid agentId");
+      }
+
+      const response = await fetch(getApiUrl(`agents/${idNum}/status`), {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to update agent status");
@@ -711,6 +843,39 @@ const agentSlice = createSlice({
       .addCase(updateAgentStatus.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload as string;
+      })
+      // Agent details reducers
+      .addCase(fetchAgentDetails.pending, (state) => {
+        state.agentDetailsStatus = "loading";
+        state.error = null;
+      })
+      .addCase(fetchAgentDetails.fulfilled, (state, action) => {
+        state.agentDetailsStatus = "succeeded";
+        state.agentDetails = action.payload as AgentDetails;
+      })
+      .addCase(fetchAgentDetails.rejected, (state, action) => {
+        state.agentDetailsStatus = "failed";
+        state.error = action.payload as string;
+      })
+      .addCase(updateAgentDetails.pending, (state) => {
+        // reuse status to show progress if needed
+        state.agentDetailsStatus = "loading";
+        state.error = null;
+      })
+      .addCase(updateAgentDetails.fulfilled, (state, action) => {
+        state.agentDetailsStatus = "succeeded";
+        state.agentDetails = action.payload as AgentDetails;
+        // keep high-level name/status in sync if relevant
+        if (state.agentDetails?.agent_name) {
+          state.name = state.agentDetails.agent_name;
+        }
+        if (state.agentDetails?.agent_status) {
+          state.agentStatus = state.agentDetails.agent_status as any;
+        }
+      })
+      .addCase(updateAgentDetails.rejected, (state, action) => {
+        state.agentDetailsStatus = "failed";
+        state.error = action.payload as string;
       });
   },
 });
@@ -743,6 +908,10 @@ export const selectTwitterPosts = (state: RootState) =>
 export const selectAgentState = (state: RootState) => state.agent.agentStatus;
 export const selectLastUpdated = (state: RootState) => state.agent.lastUpdated;
 export const selectAgentData = (state: RootState) => state.agent.agentData;
+export const selectAgentDetails = (state: RootState) =>
+  state.agent.agentDetails;
+export const selectAgentDetailsStatus = (state: RootState) =>
+  state.agent.agentDetailsStatus;
 export const selectPostById = (postId: string) => (state: RootState) => {
   const index = state.agent.redditPosts.findIndex(
     (post) => post.post_id === postId

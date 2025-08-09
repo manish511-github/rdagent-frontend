@@ -74,6 +74,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import React from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { selectPostById } from "@/store/features/agentSlice";
+import {
+  fetchAgentDetails,
+  selectAgentDetails,
+  selectAgentDetailsStatus,
+  updateAgentDetails,
+  type AgentDetails,
+} from "@/store/features/agentSlice";
 import MarkdownRender from "../markdown-render";
 import ResponseComposer from "./response-generator";
 import { InfinitePostsList } from "./infinite-posts-list";
@@ -761,172 +768,468 @@ const PerformanceMetrics = React.memo(function PerformanceMetrics({
   );
 });
 
-// Configuration Component
+// Configuration Component (re-built to use backend details shape)
 const ConfigurationSection = React.memo(function ConfigurationSection({
-  agent,
+  agentId,
   setActiveView,
 }: {
-  agent: any;
+  agentId: string;
   setActiveView: (view: string) => void;
 }) {
-  return (
-    <div className="p-3 space-y-4 overflow-y-auto">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold">Agent Configuration</h2>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 text-xs"
-          onClick={() => setActiveView("content")}
-        >
-          <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-          Back to Content
-        </Button>
+  const dispatch = useDispatch<AppDispatch>();
+  const details = useSelector(selectAgentDetails);
+  const detailsStatus = useSelector(selectAgentDetailsStatus);
+
+  const [form, setForm] = React.useState<Partial<AgentDetails> | null>(null);
+  const [saving, setSaving] = React.useState(false);
+  const [newKeyword, setNewKeyword] = React.useState("");
+
+  React.useEffect(() => {
+    if (!agentId) return;
+    dispatch(fetchAgentDetails(agentId));
+  }, [agentId, dispatch]);
+
+  React.useEffect(() => {
+    if (details) {
+      setForm(details);
+    }
+  }, [details]);
+
+  const onChange = <K extends keyof AgentDetails>(
+    key: K,
+    value: AgentDetails[K]
+  ) => {
+    setForm((prev) => ({ ...(prev || {}), [key]: value } as AgentDetails));
+  };
+
+  const onNestedChange = (path: string[], value: any) => {
+    setForm((prev) => {
+      const next: any = { ...(prev || {}) };
+      let ptr = next;
+      for (let i = 0; i < path.length - 1; i++) {
+        const k = path[i];
+        ptr[k] = ptr[k] ? { ...ptr[k] } : {};
+        ptr = ptr[k];
+      }
+      ptr[path[path.length - 1]] = value;
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    if (!form) return;
+    setSaving(true);
+    try {
+      const payload = {
+        agent_name: form.agent_name,
+        agent_platform: form.agent_platform,
+        agent_status: form.agent_status,
+        goals: form.goals,
+        instructions: form.instructions || "",
+        expectations: form.expectations || "",
+        project_id: form.project_id,
+        mode: form.mode,
+        review_minutes: form.review_minutes || 0,
+        advanced_settings: form.advanced_settings || {},
+        platform_settings: form.platform_settings || {},
+        agent_keywords: form.agent_keywords || [],
+        schedule: form.schedule || undefined,
+      } as any;
+
+      await dispatch(
+        updateAgentDetails({ agentId, updates: payload }) as any
+      ).unwrap();
+    } catch (e) {
+      // handled by slice error
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (detailsStatus === "loading" || !form) {
+    return (
+      <div className="p-3 overflow-y-auto">
+        <div className="max-w-3xl mx-auto space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">Agent Configuration</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => setActiveView("content")}
+            >
+              <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+              Back to Content
+            </Button>
+          </div>
+          <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
+            <div className="space-y-3">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-11 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          </div>
+        </div>
       </div>
+    );
+  }
 
-      <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
-        <CardContent className="p-4 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="agent-name" className="text-sm">
-              Agent Name
-            </Label>
-            <Input id="agent-name" defaultValue={agent.name} className="h-9" />
+  return (
+    <div className="p-3 overflow-y-auto">
+      <div className="max-w-3xl mx-auto space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold">Agent Configuration</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setActiveView("content")}
+          >
+            <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+            Back to Content
+          </Button>
+        </div>
+
+        {/* Basic Settings */}
+        <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="agent_name" className="text-sm">
+                  Agent Name
+                </Label>
+                <Input
+                  id="agent_name"
+                  className="h-11"
+                  value={form.agent_name || ""}
+                  onChange={(e) => onChange("agent_name", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Platform</Label>
+                <Input
+                  id="agent_platform"
+                  className="h-11"
+                  value={form.agent_platform || ""}
+                  disabled
+                  readOnly
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Status</Label>
+                <Select
+                  value={form.agent_status || "active"}
+                  onValueChange={(v) => onChange("agent_status", v as any)}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="paused">Paused</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Mode</Label>
+                <Select
+                  value={form.mode || "copilot"}
+                  onValueChange={(v) => onChange("mode", v as any)}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="copilot">Copilot</SelectItem>
+                    <SelectItem value="assisted">Assisted</SelectItem>
+                    <SelectItem value="autonomous">Autonomous</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="review_minutes" className="text-sm">
+                  Review Minutes
+                </Label>
+                <Input
+                  id="review_minutes"
+                  type="number"
+                  className="h-11"
+                  value={form.review_minutes ?? 0}
+                  onChange={(e) =>
+                    onChange("review_minutes", Number(e.target.value))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-sm">
+                Description
+              </Label>
+              <Textarea
+                id="description"
+                className="min-h-[100px]"
+                value={form.description || ""}
+                onChange={(e) => onChange("description", e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="instructions" className="text-sm">
+                  Instructions
+                </Label>
+                <Textarea
+                  id="instructions"
+                  className="min-h-[100px]"
+                  value={form.instructions || ""}
+                  onChange={(e) => onChange("instructions", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="expectations" className="text-sm">
+                  Expectations
+                </Label>
+                <Textarea
+                  id="expectations"
+                  className="min-h-[100px]"
+                  value={form.expectations || ""}
+                  onChange={(e) => onChange("expectations", e.target.value)}
+                />
+              </div>
+            </div>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="agent-description" className="text-sm">
-              Description
-            </Label>
-            <Textarea
-              id="agent-description"
-              defaultValue={agent.description}
-              className="min-h-[100px]"
-            />
+        {/* Keywords */}
+        <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Agent Keywords</Label>
+            <div className="flex flex-wrap gap-2 mb-2 min-h-[40px] p-3 border rounded-md bg-background/60 dark:bg-card/60">
+              {(form.agent_keywords || []).map((kw: string) => (
+                <Badge
+                  key={kw}
+                  variant="secondary"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full"
+                >
+                  {kw}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-4 w-4 p-0 ml-1 text-muted-foreground hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive"
+                    onClick={() =>
+                      onChange(
+                        "agent_keywords",
+                        (form.agent_keywords || []).filter((k) => k !== kw)
+                      )
+                    }
+                    tabIndex={-1}
+                  >
+                    <span className="sr-only">Remove</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3 w-3"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </Button>
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={newKeyword}
+                onChange={(e) => setNewKeyword(e.target.value)}
+                placeholder="Add keyword"
+                className="h-11 flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newKeyword.trim()) {
+                    e.preventDefault();
+                    const currentKeywords = form.agent_keywords || [];
+                    if (!currentKeywords.includes(newKeyword.trim())) {
+                      onChange("agent_keywords", [
+                        ...currentKeywords,
+                        newKeyword.trim(),
+                      ]);
+                    }
+                    setNewKeyword("");
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                onClick={() => {
+                  if (newKeyword.trim()) {
+                    const currentKeywords = form.agent_keywords || [];
+                    if (!currentKeywords.includes(newKeyword.trim())) {
+                      onChange("agent_keywords", [
+                        ...currentKeywords,
+                        newKeyword.trim(),
+                      ]);
+                    }
+                    setNewKeyword("");
+                  }
+                }}
+                className="h-11 px-4"
+              >
+                Add
+              </Button>
+            </div>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm">Platform</Label>
-            <Select defaultValue={agent.platform}>
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="Select platform" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="reddit">Reddit</SelectItem>
-                <SelectItem value="twitter">Twitter</SelectItem>
-                <SelectItem value="linkedin">LinkedIn</SelectItem>
-                <SelectItem value="facebook">Facebook</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Platform Settings (Reddit) */}
+        {form.platform_settings?.reddit !== undefined && (
+          <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
+            <h3 className="text-sm font-medium">Reddit Settings</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+              <div className="space-y-2">
+                <Label className="text-sm">Subreddit</Label>
+                <Input
+                  className="h-11"
+                  value={form.platform_settings.reddit.subreddit || ""}
+                  onChange={(e) =>
+                    onNestedChange(
+                      ["platform_settings", "reddit", "subreddit"],
+                      e.target.value
+                    )
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Time Range</Label>
+                <Select
+                  value={form.platform_settings.reddit.timeRange || ""}
+                  onValueChange={(v) =>
+                    onNestedChange(
+                      ["platform_settings", "reddit", "timeRange"],
+                      v
+                    )
+                  }
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Day</SelectItem>
+                    <SelectItem value="week">Week</SelectItem>
+                    <SelectItem value="month">Month</SelectItem>
+                    <SelectItem value="year">Year</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Min Upvotes</Label>
+                <Input
+                  type="number"
+                  className="h-11"
+                  value={form.platform_settings.reddit.minUpvotes || 0}
+                  onChange={(e) =>
+                    onNestedChange(
+                      ["platform_settings", "reddit", "minUpvotes"],
+                      Number(e.target.value)
+                    )
+                  }
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+              <div className="space-y-2">
+                <Label className="text-sm">Relevance Threshold</Label>
+                <Input
+                  type="number"
+                  className="h-11"
+                  value={form.platform_settings.reddit.relevanceThreshold || 0}
+                  onChange={(e) =>
+                    onNestedChange(
+                      ["platform_settings", "reddit", "relevanceThreshold"],
+                      Number(e.target.value)
+                    )
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between mt-8">
+                <Label className="text-sm">Monitor Comments</Label>
+                <Switch
+                  checked={Boolean(
+                    form.platform_settings.reddit.monitorComments
+                  )}
+                  onCheckedChange={(v) =>
+                    onNestedChange(
+                      ["platform_settings", "reddit", "monitorComments"],
+                      v
+                    )
+                  }
+                />
+              </div>
+            </div>
           </div>
+        )}
 
-          <div className="space-y-2">
-            <Label className="text-sm">Agent Mode</Label>
-            <Select defaultValue="assisted">
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="Select mode" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="assisted">
-                  Assisted (Requires Approval)
-                </SelectItem>
-                <SelectItem value="autonomous">Autonomous</SelectItem>
-                <SelectItem value="learning">Learning Mode</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Schedule */}
+        <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
+          <h3 className="text-sm font-medium">Schedule</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+            <div className="space-y-2">
+              <Label className="text-sm">Type</Label>
+              <Select
+                value={form.schedule?.schedule_type || "daily"}
+                onValueChange={(v) =>
+                  onNestedChange(["schedule", "schedule_type"], v)
+                }
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manual">Manual</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm">Time</Label>
+              <Input
+                type="datetime-local"
+                className="h-11"
+                value={
+                  form.schedule?.schedule_time
+                    ? form.schedule.schedule_time.toString().slice(0, 16)
+                    : ""
+                }
+                onChange={(e) =>
+                  onNestedChange(["schedule", "schedule_time"], e.target.value)
+                }
+              />
+            </div>
           </div>
+        </div>
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="auto-respond" className="text-sm cursor-pointer">
-              Auto-Respond to Mentions
-            </Label>
-            <Switch id="auto-respond" defaultChecked={true} />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Label htmlFor="notifications" className="text-sm cursor-pointer">
-              Email Notifications
-            </Label>
-            <Switch id="notifications" defaultChecked={true} />
-          </div>
-
-          <div className="pt-2">
-            <Button className="w-full">Save Changes</Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
-        <CardContent className="p-4 space-y-4">
-          <h3 className="text-sm font-medium">Advanced Settings</h3>
-
-          <div className="space-y-2">
-            <Label htmlFor="max-responses" className="text-sm">
-              Maximum Daily Responses
-            </Label>
-            <Input
-              id="max-responses"
-              type="number"
-              defaultValue="50"
-              className="h-9"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="confidence-threshold" className="text-sm">
-              Confidence Threshold (%)
-            </Label>
-            <Input
-              id="confidence-threshold"
-              type="number"
-              defaultValue="75"
-              className="h-9"
-            />
-            <p className="text-xs text-muted-foreground">
-              Minimum confidence score required for auto-approval
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm">Response Tone</Label>
-            <Select defaultValue="professional">
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="Select tone" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="professional">Professional</SelectItem>
-                <SelectItem value="friendly">Friendly</SelectItem>
-                <SelectItem value="casual">Casual</SelectItem>
-                <SelectItem value="technical">Technical</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800 border-red-200 dark:border-red-800/30">
-        <CardContent className="p-4">
-          <h3 className="text-sm font-medium text-red-600 dark:text-red-400">
-            Danger Zone
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1 mb-3">
-            These actions cannot be undone. Please be certain.
-          </p>
-          <div className="flex flex-col gap-2">
-            <Button
-              variant="outline"
-              className="border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
-            >
-              Reset Agent
-            </Button>
-            <Button
-              variant="outline"
-              className="border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
-            >
-              Delete Agent
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Save */}
+        <div className="pt-1">
+          <Button
+            className="w-full sm:w-auto"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 });
@@ -1690,7 +1993,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
           {activeView === "config" && (
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <ConfigurationSection
-                agent={agent}
+                agentId={agentId}
                 setActiveView={setActiveView}
               />
             </div>

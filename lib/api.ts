@@ -49,6 +49,10 @@ export async function fetchAgentResults({
   status,
   search,
 }: AgentPostsParams): Promise<PaginatedResponse<any>> {
+  const agentIdNum = Number(agentId);
+  if (Number.isNaN(agentIdNum)) {
+    throw new Error("Invalid agentId");
+  }
   const token = Cookies.get("access_token");
   if (!token) {
     throw new Error("Authentication required");
@@ -72,7 +76,7 @@ export async function fetchAgentResults({
   }
 
   const response = await fetch(
-    getApiUrl(`agents/${agentId}/results?${searchParams}`),
+    getApiUrl(`agents/${agentIdNum}/results?${searchParams}`),
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -127,8 +131,12 @@ export async function fetchAgentInfo(agentId: string) {
   if (!token) {
     throw new Error("Authentication required");
   }
+  const agentIdNum = Number(agentId);
+  if (Number.isNaN(agentIdNum)) {
+    throw new Error("Invalid agentId");
+  }
 
-  const response = await fetch(getApiUrl(`agents/${agentId}`), {
+  const response = await fetch(getApiUrl(`agents/${agentIdNum}`), {
     headers: {
       Authorization: `Bearer ${token}`,
     },
