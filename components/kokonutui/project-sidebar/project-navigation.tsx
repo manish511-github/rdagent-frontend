@@ -6,7 +6,7 @@ import {
   MessageSquare,
   Target,
   TrendingUp,
-  Bot,
+  BrainCircuit,
   Twitter,
   Linkedin,
   Instagram,
@@ -113,7 +113,7 @@ export const ProjectNavigation: FC<ProjectNavigationProps> = ({
           href={
             currentProject ? `/projects/${currentProject.uuid}/agents` : "#"
           }
-          icon={Bot}
+          icon={BrainCircuit}
           isActive={pathname === `/projects/${currentProject?.uuid}/agents`}
           isCollapsed={isCollapsed}
           isMounted={isMounted}
