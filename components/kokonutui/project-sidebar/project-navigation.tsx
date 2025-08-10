@@ -1,4 +1,17 @@
-import { Home, BarChart2, Calendar, Users2, MessageSquare, Target, TrendingUp, Bot, Twitter, Linkedin, Instagram, Mail } from "lucide-react";
+import {
+  Home,
+  BarChart2,
+  Calendar,
+  Users2,
+  MessageSquare,
+  Target,
+  TrendingUp,
+  Bot,
+  Twitter,
+  Linkedin,
+  Instagram,
+  Mail,
+} from "lucide-react";
 import { NavItem } from "./nav-item";
 import type { FC } from "react";
 
@@ -9,7 +22,12 @@ interface ProjectNavigationProps {
   pathname: string;
 }
 
-export const ProjectNavigation: FC<ProjectNavigationProps> = ({ currentProject, isCollapsed, isMounted, pathname }) => (
+export const ProjectNavigation: FC<ProjectNavigationProps> = ({
+  currentProject,
+  isCollapsed,
+  isMounted,
+  pathname,
+}) => (
   <>
     <div className="stagger-1">
       {!isCollapsed && (
@@ -27,7 +45,7 @@ export const ProjectNavigation: FC<ProjectNavigationProps> = ({ currentProject, 
         >
           Overview
         </NavItem>
-        <NavItem
+        {/* <NavItem
           href={currentProject ? `/projects/${currentProject.uuid}/analytics` : "#"}
           icon={BarChart2}
           isActive={pathname === `/projects/${currentProject?.uuid}/analytics`}
@@ -53,7 +71,7 @@ export const ProjectNavigation: FC<ProjectNavigationProps> = ({ currentProject, 
           isMounted={isMounted}
         >
           Audience
-        </NavItem>
+        </NavItem> */}
       </div>
     </div>
 
@@ -64,7 +82,7 @@ export const ProjectNavigation: FC<ProjectNavigationProps> = ({ currentProject, 
         </div>
       )}
       <div className="space-y-1">
-        <NavItem
+        {/* <NavItem
           href={currentProject ? `/projects/${currentProject.uuid}/content` : "#"}
           icon={MessageSquare}
           isActive={pathname === `/projects/${currentProject?.uuid}/content`}
@@ -90,9 +108,11 @@ export const ProjectNavigation: FC<ProjectNavigationProps> = ({ currentProject, 
           isMounted={isMounted}
         >
           Ad Optimizer
-        </NavItem>
+        </NavItem> */}
         <NavItem
-          href={currentProject ? `/projects/${currentProject.uuid}/agents` : "#"}
+          href={
+            currentProject ? `/projects/${currentProject.uuid}/agents` : "#"
+          }
           icon={Bot}
           isActive={pathname === `/projects/${currentProject?.uuid}/agents`}
           isCollapsed={isCollapsed}
@@ -103,7 +123,7 @@ export const ProjectNavigation: FC<ProjectNavigationProps> = ({ currentProject, 
       </div>
     </div>
 
-    <div className="stagger-3">
+    {/* <div className="stagger-3">
       {!isCollapsed && (
         <div className="px-2 mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 animate-fade-in">
           Channels
@@ -147,6 +167,6 @@ export const ProjectNavigation: FC<ProjectNavigationProps> = ({ currentProject, 
           Email
         </NavItem>
       </div>
-    </div>
+    </div> */}
   </>
-); 
+);

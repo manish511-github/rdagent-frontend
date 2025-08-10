@@ -1,4 +1,14 @@
 // Utility functions for project display and formatting
+import { 
+  Megaphone, 
+  Code, 
+  Package, 
+  Palette, 
+  PenTool, 
+  Briefcase, 
+  Activity 
+} from "lucide-react";
+import { LucideIcon } from "lucide-react";
 
 export const getStatusColor = (status: string | undefined) => {
   if (!status) {
@@ -80,4 +90,25 @@ export const formatRelativeDate = (dateString: string) => {
   if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
   if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}; 
+};
+
+export const getCategoryIcon = (category: string): LucideIcon => {
+  switch (category.toLowerCase()) {
+    case "marketing":
+      return Megaphone;
+    case "saas":
+      return Code;
+    case "ecommerce":
+      return Package;
+    case "design":
+      return Palette;
+    case "content":
+      return PenTool;
+    case "business":
+      return Briefcase;
+    default:
+      return Activity;
+  }
+};
+
+ 

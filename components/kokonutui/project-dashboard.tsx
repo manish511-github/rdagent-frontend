@@ -885,7 +885,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
             )}
 
             {/* Analytics sections */}
-            <div className="mt-4" id="marketing-analytics">
+            {/* <div className="mt-4" id="marketing-analytics">
               <MarketingAnalyticsCards />
             </div>
 
@@ -899,7 +899,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
 
             <div className="mt-6">
               <PotentialCustomerAnalytics />
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
