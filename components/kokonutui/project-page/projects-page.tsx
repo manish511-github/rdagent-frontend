@@ -1,334 +1,229 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef, useMemo } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
-import { Card, CardContent } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+} from "@/components/ui/dropdown-menu";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import {
-  Calendar,
-  ChevronDown,
-  Clock,
   Filter,
   Grid3X3,
   List,
-  MoreHorizontal,
   Plus,
   Search,
   SlidersHorizontal,
   Star,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle2,
-  Archive,
-  Trash2,
-  Copy,
-  ExternalLink,
-  Download,
-  ArrowUpDown,
+  Clock,
   ArrowUp,
   ArrowDown,
-  Palette,
-  Code,
-  Megaphone,
-  PenTool,
-  Package,
-  FileText,
-  Hash,
-  Target,
-  Briefcase,
+  Calendar,
+  TrendingUp,
   Flag,
-  Activity,
   Layers,
-  MessageSquare,
-  DollarSign,
-  PieChart,
-  TrendingDown,
-  Lightbulb,
-  CalendarDays,
-  Globe,
   Loader2,
-  X,
-} from "lucide-react"
-import Link from "next/link"
-import { cn } from "@/lib/utils"
-import React from "react"
-import Cookies from 'js-cookie';
-import { useToast } from "@/components/ui/use-toast"
-import { useDispatch, useSelector } from 'react-redux';
-import { AppDispatch, RootState } from '@/store/store';
-import { fetchProjects } from '@/store/slices/projectsSlice';
-import { LucideIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation'
-import { refreshAccessToken } from "@/lib/utils";
+  AlertCircle,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store";
+import {
+  fetchProjects,
+  fetchProjectSummary,
+} from "@/store/slices/projectsSlice";
+import { useRouter } from "next/navigation";
 import { ProjectCard } from "./ProjectCard";
 import { ProjectStats } from "./ProjectStats";
-import { Project } from "./projectTypes";
-import { getStatusColor, getPriorityColor, getHealthColor, formatCurrency, getDaysUntilDue, formatRelativeDate } from "./projectUtils";
-import { projectCategories, projectStatuses, priorityLevels, healthStatuses } from "./projectConstants";
-import { CreateProjectDialog } from "./CreateProjectDialog";
-import { getApiUrl } from "../../../lib/config";
-
-
-interface WebsiteAnalysisResult {
-  url: string;
-  title: string;
-  description: string;
-  target_audience: string;
-  keywords: string[];
-  main_category: string;
-}
-
-// Replace mock function with API call
-const analyzeWebsite = async (url: string) => {
-  try {
-    const response = await fetch(getApiUrl("scraper/scrape-website"), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url }),
-    });
-
-    if (!response.ok) {
-      // Attempt to read error message from response body if available
-      const errorBody = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
-      throw new Error(errorBody.message || `HTTP error! status: ${response.status}`);
-    }
-
-    const data: WebsiteAnalysisResult = await response.json();
-
-    // Map API response to the expected project structure
-    return {
-      title: data.title,
-      description: data.description,
-      targetAudience: data.target_audience,
-      // The API does not provide competitors, excludedKeywords, or priority.
-      // We will initialize them as empty or default values.
-      competitors: [],
-      keywords: data.keywords,
-      excludedKeywords: [],
-      category: data.main_category || 'marketing', // Default to 'marketing' if category is missing
-      priority: 'medium', // Default to 'medium' if priority is missing
-    };
-  } catch (error: any) {
-    console.error("Error analyzing website:", error);
-    throw new Error(`Failed to analyze website: ${error.message || 'Unknown error'}`);
-  }
-};
+import {
+  projectCategories,
+  projectStatuses,
+  priorityLevels,
+  healthStatuses,
+} from "./projectConstants";
+import { CreateProjectDialogWrapper } from "./CreateProjectDialogWrapper";
 
 export default function ProjectsPage() {
-  const router = useRouter()
-  const [loadingProjectId, setLoadingProjectId] = useState<string | null>(null)
+  const router = useRouter();
+  const [loadingProjectId, setLoadingProjectId] = useState<string | null>(null);
   // Redux hooks
   const dispatch = useDispatch<AppDispatch>();
-  const { items: projects, status, error } = useSelector((state: RootState) => state.projects);
-  
+  const {
+    items: projects,
+    status,
+    error,
+    summary,
+    summaryStatus,
+    summaryError,
+  } = useSelector((state: RootState) => state.projects);
+
   // All state declarations
-  const [view, setView] = useState<"grid" | "list" | "kanban">("grid")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("all")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [priorityFilter, setPriorityFilter] = useState("all")
-  const [healthFilter, setHealthFilter] = useState("all")
-  const [sort, setSort] = useState("newest")
-  const [showStarredOnly, setShowStarredOnly] = useState(false)
-  const [selectedProjects, setSelectedProjects] = useState<string[]>([])
-  const [isSelectionMode, setIsSelectionMode] = useState(false)
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [animateIn, setAnimateIn] = useState(false)
-  const searchInputRef = useRef<HTMLInputElement>(null)
-
-  // New project form state
-  const [newProject, setNewProject] = useState({
-    title: "",
-    description: "",
-    targetAudience: "",
-    websiteUrl: "",
-    category: "marketing",
-    priority: "medium",
-    dueDate: "",
-    budget: "",
-    team: [],
-    tags: "",
-    competitors: [] as string[],
-    keywords: [] as string[],
-    excludedKeywords: [] as string[],
-  })
-
-  // URL analysis state
-  const [websiteUrl, setWebsiteUrl] = useState("")
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisError, setAnalysisError] = useState("")
-  const [activeTab, setActiveTab] = useState("url")
-
-  // Competitor, keyword, and excluded keyword input states
-  const [competitorInput, setCompetitorInput] = useState("")
-  const [keywordInput, setKeywordInput] = useState("")
-  const [excludedKeywordInput, setExcludedKeywordInput] = useState("")
+  const [view, setView] = useState<"grid" | "list" | "kanban">("grid");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [healthFilter, setHealthFilter] = useState("all");
+  const [sort, setSort] = useState("newest");
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [animateIn, setAnimateIn] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Toast hook
-  const { toast } = useToast()
+  const { toast } = useToast();
 
-  // Fetch projects on component mount
+  // Fetch projects and summary on component mount
   useEffect(() => {
-    if (status === 'idle') {
+    if (status === "idle") {
       dispatch(fetchProjects());
     }
-  }, [status, dispatch]);
+    if (summaryStatus === "idle") {
+      dispatch(fetchProjectSummary());
+    }
+  }, [status, summaryStatus, dispatch]);
 
   // Animation effect
   useEffect(() => {
-    const timer = setTimeout(() => setAnimateIn(true), 100)
-    return () => clearTimeout(timer)
-  }, [])
+    const timer = setTimeout(() => setAnimateIn(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault()
-        searchInputRef.current?.focus()
+        e.preventDefault();
+        searchInputRef.current?.focus();
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "n") {
-        e.preventDefault()
-        setShowCreateDialog(true)
+        e.preventDefault();
+        setShowCreateDialog(true);
       }
-    }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [])
-
-  // Reset form when dialog is opened/closed
-  useEffect(() => {
-    if (showCreateDialog) {
-      setNewProject({
-        title: "",
-        description: "",
-        targetAudience: "",
-        websiteUrl: "",
-        category: "marketing",
-        priority: "medium",
-        dueDate: "",
-        budget: "",
-        team: [],
-        tags: "",
-        competitors: [],
-        keywords: [],
-        excludedKeywords: [],
-      })
-      setWebsiteUrl("")
-      setIsAnalyzing(false)
-      setAnalysisError("")
-      setActiveTab("url")
-    }
-  }, [showCreateDialog])
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Filter and sort projects
   const filteredProjects = useMemo(() => {
-    let filtered = [...projects]
+    let filtered = [...projects];
 
     // Search filter
     if (searchQuery) {
       filtered = filtered.filter(
         (project) =>
           project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (Array.isArray(project.tags) ? project.tags : []).some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())),
-      )
+          project.description
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          (Array.isArray(project.tags) ? project.tags : []).some((tag) =>
+            tag.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+      );
     }
 
     // Category filter
     if (categoryFilter !== "all") {
-      filtered = filtered.filter((project) => project.category.toLowerCase() === categoryFilter)
+      filtered = filtered.filter(
+        (project) => project.category.toLowerCase() === categoryFilter
+      );
     }
 
     // Status filter
     if (statusFilter !== "all") {
-      filtered = filtered.filter((project) => project.status.toLowerCase().replace(" ", "-") === statusFilter)
+      filtered = filtered.filter(
+        (project) =>
+          project.status.toLowerCase().replace(" ", "-") === statusFilter
+      );
     }
 
     // Priority filter
     if (priorityFilter !== "all") {
-      filtered = filtered.filter((project) => project.priority.toLowerCase() === priorityFilter)
+      filtered = filtered.filter(
+        (project) => project.priority.toLowerCase() === priorityFilter
+      );
     }
 
     // Health filter
     if (healthFilter !== "all") {
-      filtered = filtered.filter((project) => project.health === healthFilter)
+      filtered = filtered.filter((project) => project.health === healthFilter);
     }
 
     // Starred filter
     if (showStarredOnly) {
-      filtered = filtered.filter((project) => project.starred)
+      filtered = filtered.filter((project) => project.starred);
     }
 
     // Sorting
     filtered.sort((a, b) => {
       switch (sort) {
         case "newest":
-          return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
-        case "oldest":
-          return new Date(a.lastUpdated).getTime() - new Date(b.lastUpdated).getTime()
-        case "name-asc":
-          return a.title.localeCompare(b.title)
-        case "name-desc":
-          return b.title.localeCompare(a.title)
-        case "due-date":
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
-        case "progress":
-          return b.progress - a.progress
-        case "priority":
-          const priorityOrder = { high: 0, medium: 1, low: 2 }
           return (
-            priorityOrder[a.priority.toLowerCase() as keyof typeof priorityOrder] -
-            priorityOrder[b.priority.toLowerCase() as keyof typeof priorityOrder]
-          )
+            new Date(b.lastUpdated).getTime() -
+            new Date(a.lastUpdated).getTime()
+          );
+        case "oldest":
+          return (
+            new Date(a.lastUpdated).getTime() -
+            new Date(b.lastUpdated).getTime()
+          );
+        case "name-asc":
+          return a.title.localeCompare(b.title);
+        case "name-desc":
+          return b.title.localeCompare(a.title);
+        case "due-date":
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        case "progress":
+          return b.progress - a.progress;
+        case "priority":
+          const priorityOrder = { high: 0, medium: 1, low: 2 };
+          return (
+            priorityOrder[
+              a.priority.toLowerCase() as keyof typeof priorityOrder
+            ] -
+            priorityOrder[
+              b.priority.toLowerCase() as keyof typeof priorityOrder
+            ]
+          );
         default:
-          return 0
+          return 0;
       }
-    })
+    });
 
-    return filtered
-  }, [projects, searchQuery, categoryFilter, statusFilter, priorityFilter, healthFilter, showStarredOnly, sort])
+    return filtered;
+  }, [
+    projects,
+    searchQuery,
+    categoryFilter,
+    statusFilter,
+    priorityFilter,
+    healthFilter,
+    showStarredOnly,
+    sort,
+  ]);
 
-  // Project statistics
-  const projectStats = useMemo(() => {
-    const total = projects.length
-    const active = projects.filter((p) => p.status !== "Completed").length
-    const completed = projects.filter((p) => p.status === "Completed").length
-    const atRisk = projects.filter((p) => p.health === "at-risk").length
-    const totalBudget = projects.reduce((sum, p) => sum + p.budget, 0)
-    const totalSpent = projects.reduce((sum, p) => sum + p.budgetSpent, 0)
-
-    return { total, active, completed, atRisk, totalBudget, totalSpent }
-  }, [projects])
+  // No longer needed - using summary from API
 
   // Loading state
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
         <div className="p-6 max-w-[1600px] mx-auto">
@@ -344,7 +239,7 @@ export default function ProjectsPage() {
   }
 
   // Error state
-  if (status === 'failed') {
+  if (status === "failed") {
     return (
       <div className="bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
         <div className="p-6 max-w-[1600px] mx-auto">
@@ -353,7 +248,14 @@ export default function ProjectsPage() {
               <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-4" />
               <p className="text-destructive mb-2">Failed to load projects</p>
               <p className="text-muted-foreground mb-4">{error}</p>
-              <Button onClick={() => dispatch(fetchProjects())}>Try Again</Button>
+              <Button
+                onClick={() => {
+                  dispatch(fetchProjects());
+                  dispatch(fetchProjectSummary());
+                }}
+              >
+                Try Again
+              </Button>
             </div>
           </div>
         </div>
@@ -361,220 +263,54 @@ export default function ProjectsPage() {
     );
   }
 
-  // Handle website URL analysis
-  const handleAnalyzeWebsite = async () => {
-    if (!websiteUrl) {
-      setAnalysisError("Please enter a website URL")
-      return
-    }
-
-    try {
-      setIsAnalyzing(true)
-      setAnalysisError("")
-
-      // Call the mock API function
-      const result = await analyzeWebsite(websiteUrl)
-
-      // Update the form with the results
-      setNewProject({
-        ...newProject,
-        title: result.title,
-        description: result.description,
-        targetAudience: result.targetAudience,
-        websiteUrl: websiteUrl,
-        category: result.category,
-        priority: result.priority,
-        competitors: result.competitors,
-        keywords: result.keywords,
-        excludedKeywords: result.excludedKeywords,
-      })
-    } catch (error) {
-      setAnalysisError("Failed to analyze website. Please try again or enter details manually.")
-    } finally {
-      setIsAnalyzing(false)
-    }
-  }
-
-  // Handle adding a competitor
-  const addCompetitor = () => {
-    if (competitorInput.trim() && !newProject.competitors.includes(competitorInput.trim())) {
-      setNewProject({
-        ...newProject,
-        competitors: [...newProject.competitors, competitorInput.trim()],
-      })
-      setCompetitorInput("")
-    }
-  }
-
-  // Handle removing a competitor
-  const removeCompetitor = (competitor: string) => {
-    setNewProject({
-      ...newProject,
-      competitors: newProject.competitors.filter((c) => c !== competitor),
-    })
-  }
-
-  // Handle adding a keyword
-  const addKeyword = () => {
-    if (keywordInput.trim() && !newProject.keywords.includes(keywordInput.trim())) {
-      setNewProject({
-        ...newProject,
-        keywords: [...newProject.keywords, keywordInput.trim()],
-      })
-      setKeywordInput("")
-    }
-  }
-
-  // Handle removing a keyword
-  const removeKeyword = (keyword: string) => {
-    setNewProject({
-      ...newProject,
-      keywords: newProject.keywords.filter((k) => k !== keyword),
-    })
-  }
-
-  // Handle adding an excluded keyword
-  const addExcludedKeyword = () => {
-    if (excludedKeywordInput.trim() && !newProject.excludedKeywords.includes(excludedKeywordInput.trim())) {
-      setNewProject({
-        ...newProject,
-        excludedKeywords: [...newProject.excludedKeywords, excludedKeywordInput.trim()],
-      })
-      setExcludedKeywordInput("")
-    }
-  }
-
-  // Handle removing an excluded keyword
-  const removeExcludedKeyword = (keyword: string) => {
-    setNewProject({
-      ...newProject,
-      excludedKeywords: newProject.excludedKeywords.filter((k) => k !== keyword),
-    })
-  }
-
-  // Handle creating a new project
-  const handleCreateProject = async () => {
-    try {
-      // Prepare project data matching the backend model
-      const projectData = {
-        title: newProject.title,
-        description: newProject.description || null,
-        target_audience: newProject.targetAudience || null,
-        website_url: newProject.websiteUrl || null,
-        category: newProject.category || null,
-        priority: newProject.priority || null,
-        due_date: newProject.dueDate || null,
-        budget: newProject.budget || null,
-        team: newProject.team || null,
-        tags: newProject.tags || null,
-        competitors: newProject.competitors || null,
-        keywords: newProject.keywords || null,
-        excluded_keywords: newProject.excludedKeywords || null,
-      };
-
-      console.log("Creating new project:", projectData);
-      let token = Cookies.get("access_token");
-
-      let response = await fetch(getApiUrl("projects"), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(projectData),
-      });
-
-      // If unauthorized, try to refresh the token and retry once
-      if (response.status === 401) {
-        token = await refreshAccessToken();
-        if (token) {
-          response = await fetch(getApiUrl("projects"), {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(projectData),
-          });
-        }
-      }
-
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
-        throw new Error(errorBody.message || `HTTP error! status: ${response.status}`);
-      }
-
-      const createdProject = await response.json();
-      console.log("Project created successfully:", createdProject);
-
-      toast({
-        title: "Project Created",
-        description: `Project "${createdProject.title}" created successfully.`,
-        variant: "default",
-      });
-
-      // Refetch projects to show the new project instantly
-      dispatch(fetchProjects());
-
-    } catch (error: any) {
-      console.error("Error creating project:", error);
-      toast({
-        title: "Failed to Create Project",
-        description: error.message || "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setShowCreateDialog(false);
-    }
-  }
-
   // Toggle project selection
   const toggleProjectSelection = (projectId: string) => {
     setSelectedProjects((prev) =>
-      prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId],
-    )
-  }
+      prev.includes(projectId)
+        ? prev.filter((id) => id !== projectId)
+        : [...prev, projectId]
+    );
+  };
 
   // Select all projects
   const selectAllProjects = () => {
     if (selectedProjects.length === filteredProjects.length) {
-      setSelectedProjects([])
+      setSelectedProjects([]);
     } else {
-      setSelectedProjects(filteredProjects.map((p) => p.uuid))
+      setSelectedProjects(filteredProjects.map((p) => p.uuid));
     }
-  }
+  };
 
   // Bulk actions
   const handleBulkAction = (action: string) => {
     switch (action) {
       case "archive":
-        console.log("Archiving projects:", selectedProjects)
-        break
+        console.log("Archiving projects:", selectedProjects);
+        break;
       case "delete":
-        console.log("Deleting projects:", selectedProjects)
-        break
+        console.log("Deleting projects:", selectedProjects);
+        break;
       case "export":
-        console.log("Exporting projects:", selectedProjects)
-        break
+        console.log("Exporting projects:", selectedProjects);
+        break;
     }
-    setSelectedProjects([])
-    setIsSelectionMode(false)
-  }
+    setSelectedProjects([]);
+    setIsSelectionMode(false);
+  };
 
   // Handle project click
   const handleProjectClick = (projectId: string) => {
-    
     if (!projectId) {
       toast({
         title: "Error",
         description: "Invalid project ID",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
-    setLoadingProjectId(projectId)
-    router.push(`/projects/${projectId}`)
-  }
+    setLoadingProjectId(projectId);
+    router.push(`/projects/${projectId}`);
+  };
 
   return (
     <div className=" bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
@@ -586,10 +322,15 @@ export default function ProjectsPage() {
               <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                 Projects
               </h1>
-              <p className="text-muted-foreground mt-1">Manage and track all your projects in one place</p>
+              <p className="text-muted-foreground mt-1">
+                Manage and track all your projects in one place
+              </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+              <Button
+                onClick={() => setShowCreateDialog(true)}
+                className="gap-2"
+              >
                 <Plus className="h-4 w-4" />
                 New Project
               </Button>
@@ -597,13 +338,16 @@ export default function ProjectsPage() {
           </div>
 
           {/* Statistics */}
-          <ProjectStats projectStats={projectStats} />
+          <ProjectStats
+            summary={summary}
+            isLoading={summaryStatus === "loading"}
+          />
         </div>
 
         {/* Filters and Search */}
         <div className="flex flex-wrap md:flex-nowrap items-center gap-2 mb-4 w-full">
           {/* Search */}
-          <div className="relative flex-1 min-w-0 max-w-3xl">
+          <div className="relative flex-1 min-w-0 w-full">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               ref={searchInputRef}
@@ -618,15 +362,29 @@ export default function ProjectsPage() {
           {/* Filters Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 px-2.5 text-xs">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2.5 text-xs"
+              >
                 <Filter className="mr-1.5 h-3 w-3" />
                 Filters
                 {(categoryFilter !== "all" ||
                   statusFilter !== "all" ||
                   priorityFilter !== "all" ||
                   healthFilter !== "all") && (
-                  <Badge variant="secondary" className="ml-1.5 px-1 py-0 text-[10px]">
-                    {[categoryFilter, statusFilter, priorityFilter, healthFilter].filter((f) => f !== "all").length}
+                  <Badge
+                    variant="secondary"
+                    className="ml-1.5 px-1 py-0 text-[10px]"
+                  >
+                    {
+                      [
+                        categoryFilter,
+                        statusFilter,
+                        priorityFilter,
+                        healthFilter,
+                      ].filter((f) => f !== "all").length
+                    }
                   </Badge>
                 )}
               </Button>
@@ -636,7 +394,10 @@ export default function ProjectsPage() {
                 {/* Category Filter */}
                 <div className="space-y-1">
                   <Label className="text-xs font-medium">Category</Label>
-                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <Select
+                    value={categoryFilter}
+                    onValueChange={setCategoryFilter}
+                  >
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue />
                     </SelectTrigger>
@@ -644,7 +405,10 @@ export default function ProjectsPage() {
                       {projectCategories.map((category) => {
                         const Icon = category.icon;
                         return (
-                          <SelectItem key={category.value} value={category.value}>
+                          <SelectItem
+                            key={category.value}
+                            value={category.value}
+                          >
                             <div className="flex items-center gap-2">
                               <Icon className="h-4 w-4" />
                               {category.label}
@@ -682,7 +446,10 @@ export default function ProjectsPage() {
                 {/* Priority Filter */}
                 <div className="space-y-1">
                   <Label className="text-xs font-medium">Priority</Label>
-                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                  <Select
+                    value={priorityFilter}
+                    onValueChange={setPriorityFilter}
+                  >
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue />
                     </SelectTrigger>
@@ -690,7 +457,10 @@ export default function ProjectsPage() {
                       {priorityLevels.map((priority) => {
                         const Icon = priority.icon;
                         return (
-                          <SelectItem key={priority.value} value={priority.value}>
+                          <SelectItem
+                            key={priority.value}
+                            value={priority.value}
+                          >
                             <div className="flex items-center gap-2">
                               <Icon className="h-4 w-4" />
                               {priority.label}
@@ -733,10 +503,10 @@ export default function ProjectsPage() {
                   size="sm"
                   className="w-full h-7 text-xs"
                   onClick={() => {
-                    setCategoryFilter("all")
-                    setStatusFilter("all")
-                    setPriorityFilter("all")
-                    setHealthFilter("all")
+                    setCategoryFilter("all");
+                    setStatusFilter("all");
+                    setPriorityFilter("all");
+                    setHealthFilter("all");
                   }}
                 >
                   Reset Filters
@@ -748,37 +518,62 @@ export default function ProjectsPage() {
           {/* Sort */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 px-2.5 text-xs">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2.5 text-xs"
+              >
                 <SlidersHorizontal className="mr-1.5 h-3 w-3" />
                 Sort
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onClick={() => setSort("newest")} className="text-xs">
+              <DropdownMenuItem
+                onClick={() => setSort("newest")}
+                className="text-xs"
+              >
                 <Clock className="mr-2 h-3 w-3" />
                 Newest First
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSort("oldest")} className="text-xs">
+              <DropdownMenuItem
+                onClick={() => setSort("oldest")}
+                className="text-xs"
+              >
                 <Clock className="mr-2 h-3 w-3" />
                 Oldest First
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSort("name-asc")} className="text-xs">
+              <DropdownMenuItem
+                onClick={() => setSort("name-asc")}
+                className="text-xs"
+              >
                 <ArrowUp className="mr-2 h-3 w-3" />
                 Name (A-Z)
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSort("name-desc")} className="text-xs">
+              <DropdownMenuItem
+                onClick={() => setSort("name-desc")}
+                className="text-xs"
+              >
                 <ArrowDown className="mr-2 h-3 w-3" />
                 Name (Z-A)
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSort("due-date")} className="text-xs">
+              <DropdownMenuItem
+                onClick={() => setSort("due-date")}
+                className="text-xs"
+              >
                 <Calendar className="mr-2 h-3 w-3" />
                 Due Date
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSort("progress")} className="text-xs">
+              <DropdownMenuItem
+                onClick={() => setSort("progress")}
+                className="text-xs"
+              >
                 <TrendingUp className="mr-2 h-3 w-3" />
                 Progress
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSort("priority")} className="text-xs">
+              <DropdownMenuItem
+                onClick={() => setSort("priority")}
+                className="text-xs"
+              >
                 <Flag className="mr-2 h-3 w-3" />
                 Priority
               </DropdownMenuItem>
@@ -792,7 +587,10 @@ export default function ProjectsPage() {
             className="h-8 px-2.5 text-xs"
             onClick={() => setShowStarredOnly(!showStarredOnly)}
           >
-            <Star className="mr-1.5 h-3 w-3" fill={showStarredOnly ? "currentColor" : "none"} />
+            <Star
+              className="mr-1.5 h-3 w-3"
+              fill={showStarredOnly ? "currentColor" : "none"}
+            />
             {showStarredOnly ? "Starred" : "All"}
           </Button>
 
@@ -833,16 +631,18 @@ export default function ProjectsPage() {
                 <Search className="h-6 w-6 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold mb-2">No projects found</h3>
-              <p className="text-muted-foreground mb-4">Try adjusting your filters or search query</p>
+              <p className="text-muted-foreground mb-4">
+                Try adjusting your filters or search query
+              </p>
               <Button
                 variant="outline"
                 onClick={() => {
-                  setSearchQuery("")
-                  setCategoryFilter("all")
-                  setStatusFilter("all")
-                  setPriorityFilter("all")
-                  setHealthFilter("all")
-                  setShowStarredOnly(false)
+                  setSearchQuery("");
+                  setCategoryFilter("all");
+                  setStatusFilter("all");
+                  setPriorityFilter("all");
+                  setHealthFilter("all");
+                  setShowStarredOnly(false);
                 }}
               >
                 Clear all filters
@@ -850,11 +650,14 @@ export default function ProjectsPage() {
             </div>
           </Card>
         ) : (
-          <div className={cn(
-            view === "grid" && "grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3",
-            view === "list" && "flex flex-col w-full",
-            view === "kanban" && "grid-cols-1",
-          )}>
+          <div
+            className={cn(
+              view === "grid" &&
+                "grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3",
+              view === "list" && "flex flex-col w-full",
+              view === "kanban" && "grid-cols-1"
+            )}
+          >
             {view === "kanban" ? (
               <Card className="p-6">
                 <div className="text-center text-muted-foreground">
@@ -866,11 +669,13 @@ export default function ProjectsPage() {
               <>
                 {view === "list" && (
                   <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 text-xs font-semibold text-muted-foreground border-b bg-background/80 sticky top-0 z-10">
-                    <div className="col-span-3 flex items-center gap-1">Name</div>
-                    <div className="col-span-1">Status</div>
+                    <div className="col-span-3 flex items-center gap-1">
+                      Name
+                    </div>
+                    {/* <div className="col-span-1">Status</div> */}
                     <div className="col-span-3">About</div>
-                    <div className="col-span-2">Members</div>
-                    <div className="col-span-2">Progress</div>
+                    <div className="col-span-2">Agents</div>
+                    <div className="col-span-2">Last Activity</div>
                     <div className="col-span-1 text-right">Actions</div>
                   </div>
                 )}
@@ -895,36 +700,11 @@ export default function ProjectsPage() {
         )}
 
         {/* Create Project Dialog */}
-        <CreateProjectDialog
+        <CreateProjectDialogWrapper
           open={showCreateDialog}
           onOpenChange={setShowCreateDialog}
-          newProject={newProject}
-          setNewProject={setNewProject}
-          websiteUrl={websiteUrl}
-          setWebsiteUrl={setWebsiteUrl}
-          isAnalyzing={isAnalyzing}
-          setIsAnalyzing={setIsAnalyzing}
-          analysisError={analysisError}
-          setAnalysisError={setAnalysisError}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          competitorInput={competitorInput}
-          setCompetitorInput={setCompetitorInput}
-          keywordInput={keywordInput}
-          setKeywordInput={setKeywordInput}
-          excludedKeywordInput={excludedKeywordInput}
-          setExcludedKeywordInput={setExcludedKeywordInput}
-          addCompetitor={addCompetitor}
-          removeCompetitor={removeCompetitor}
-          addKeyword={addKeyword}
-          removeKeyword={removeKeyword}
-          addExcludedKeyword={addExcludedKeyword}
-          removeExcludedKeyword={removeExcludedKeyword}
-          handleAnalyzeWebsite={handleAnalyzeWebsite}
-          handleCreateProject={handleCreateProject}
-          canCreate={!!newProject.title && !!newProject.description && !!newProject.targetAudience && newProject.keywords.length > 0}
         />
       </div>
     </div>
-  )
+  );
 }

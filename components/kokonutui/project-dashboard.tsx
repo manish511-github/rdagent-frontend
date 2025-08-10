@@ -20,7 +20,7 @@ import {
   Ban,
   Save,
   Loader2,
-  Bot,
+  BrainCircuit,
 } from "lucide-react";
 import SocialMediaCards from "@/components/kokonutui/social-media-cards";
 import MarketingAnalyticsCards from "@/components/kokonutui/marketing-analytics-cards";
@@ -373,7 +373,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
               <div className="flex items-center gap-2 self-end sm:self-auto">
                 <Link href={`/projects/${projectId}/agents`} passHref>
                   <Button variant="outline" size="sm" className="gap-1.5">
-                    <Bot size={16} />
+                    <BrainCircuit size={16} />
                     Agents
                   </Button>
                 </Link>
@@ -885,7 +885,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
             )}
 
             {/* Analytics sections */}
-            <div className="mt-4" id="marketing-analytics">
+            {/* <div className="mt-4" id="marketing-analytics">
               <MarketingAnalyticsCards />
             </div>
 
@@ -899,7 +899,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
 
             <div className="mt-6">
               <PotentialCustomerAnalytics />
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
