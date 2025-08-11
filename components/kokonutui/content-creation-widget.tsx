@@ -73,16 +73,16 @@ export default function ContentCreationWidget({ className }: ContentCreationWidg
     <div
       className={cn(
         "w-full max-w-xl mx-auto",
-        "bg-white dark:bg-[#0A0A0C]",
-        "border border-zinc-100 dark:border-zinc-800/80",
+        "bg-card",
+        "border border-blue-100 dark:border-border",
         "rounded-xl shadow-sm backdrop-blur-xl",
         className,
       )}
     >
-      <div className="p-4 border-b border-zinc-100 dark:border-zinc-800">
+      <div className="p-4 border-b border-blue-100 dark:border-border">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-          <p className="text-[11px] font-medium text-zinc-900 dark:text-zinc-100">AI Content Assistant</p>
+          <p className="text-[11px] font-medium text-foreground">AI Content Assistant</p>
         </div>
         <Textarea
           placeholder="Describe the content you want to create (e.g., 'Write a Twitter thread about AI marketing trends')"
@@ -94,7 +94,7 @@ export default function ContentCreationWidget({ className }: ContentCreationWidg
           <Button
             onClick={handleGenerate}
             disabled={isGenerating || !prompt.trim()}
-            className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:hover:bg-zinc-100 dark:text-zinc-900"
+            className="bg-foreground hover:opacity-90 text-background dark:bg-foreground dark:text-background"
           >
             {isGenerating ? "Generating..." : "Generate Content"}
             <Sparkles className="ml-2 h-4 w-4" />
@@ -104,7 +104,7 @@ export default function ContentCreationWidget({ className }: ContentCreationWidg
 
       <div className="p-3">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-[11px] font-medium text-zinc-900 dark:text-zinc-100">Recent Content</h2>
+          <h2 className="text-[11px] font-medium text-foreground">Recent Content</h2>
         </div>
 
         <div className="space-y-2">
@@ -125,7 +125,7 @@ export default function ContentCreationWidget({ className }: ContentCreationWidg
                   <Icon className="w-3.5 h-3.5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-zinc-900 dark:text-zinc-100 line-clamp-2">{item.content}</p>
+                  <p className="text-xs text-foreground line-clamp-2">{item.content}</p>
                   <div className="flex items-center mt-1 gap-2">
                     <span
                       className={cn(
@@ -140,7 +140,7 @@ export default function ContentCreationWidget({ className }: ContentCreationWidg
                       {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                     </span>
                     {item.scheduledFor && (
-                      <span className="text-[10px] text-zinc-500 dark:text-zinc-400">{item.scheduledFor}</span>
+                      <span className="text-[10px] text-muted-foreground">{item.scheduledFor}</span>
                     )}
                   </div>
                 </div>
@@ -150,18 +150,16 @@ export default function ContentCreationWidget({ className }: ContentCreationWidg
         </div>
       </div>
 
-      <div className="p-2 border-t border-zinc-100 dark:border-zinc-800">
+      <div className="p-2 border-t border-blue-100 dark:border-border">
         <button
           type="button"
           className={cn(
             "w-full flex items-center justify-center gap-2",
             "py-2 px-3 rounded-lg",
             "text-xs font-medium",
-            "bg-gradient-to-r from-zinc-900 to-zinc-800",
-            "dark:from-zinc-50 dark:to-zinc-200",
-            "text-zinc-50 dark:text-zinc-900",
-            "hover:from-zinc-800 hover:to-zinc-700",
-            "dark:hover:from-zinc-200 dark:hover:to-zinc-300",
+            "bg-gradient-to-r from-foreground to-foreground",
+            "text-background",
+            "hover:opacity-90",
             "shadow-sm hover:shadow",
             "transform transition-all duration-200",
             "hover:-translate-y-0.5",

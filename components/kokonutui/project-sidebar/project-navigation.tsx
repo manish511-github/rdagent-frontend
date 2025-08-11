@@ -82,33 +82,16 @@ export const ProjectNavigation: FC<ProjectNavigationProps> = ({
         </div>
       )}
       <div className="space-y-1">
-        {/* <NavItem
-          href={currentProject ? `/projects/${currentProject.uuid}/content` : "#"}
-          icon={MessageSquare}
-          isActive={pathname === `/projects/${currentProject?.uuid}/content`}
-          isCollapsed={isCollapsed}
-          isMounted={isMounted}
-        >
-          Content Creator
-        </NavItem>
+        {/* Optional future items: Content Creator, Leads, Ads */}
         <NavItem
-          href={currentProject ? `/projects/${currentProject.uuid}/leads` : "#"}
-          icon={Target}
-          isActive={pathname === `/projects/${currentProject?.uuid}/leads`}
+          href={currentProject ? `/projects/${currentProject.uuid}/competitors` : "#"}
+          icon={Users2}
+          isActive={pathname === `/projects/${currentProject?.uuid}/competitors`}
           isCollapsed={isCollapsed}
           isMounted={isMounted}
         >
-          Lead Generator
+          Competitors
         </NavItem>
-        <NavItem
-          href={currentProject ? `/projects/${currentProject.uuid}/ads` : "#"}
-          icon={TrendingUp}
-          isActive={pathname === `/projects/${currentProject?.uuid}/ads`}
-          isCollapsed={isCollapsed}
-          isMounted={isMounted}
-        >
-          Ad Optimizer
-        </NavItem> */}
         <NavItem
           href={
             currentProject ? `/projects/${currentProject.uuid}/agents` : "#"

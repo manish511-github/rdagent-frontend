@@ -6,7 +6,7 @@ import { Bell, ChevronRight } from "lucide-react"
 import Profile01 from "./profile-01"
 import Link from "next/link"
 import ThemeToggle from "../theme-toggle"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 
 interface Project {
   uuid: string
@@ -24,26 +24,44 @@ interface BreadcrumbItem {
 
 export default function TopNav({ currentProject }: TopNavProps) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const isProjectsPage = pathname === "/projects"
   const isSettingsPage = pathname.startsWith("/settings")
+  const isCompanyAnalysisPage = pathname.includes("/company-analysis")
+  const isCompetitorsPage = pathname.includes("/competitors")
+  const companySlug = searchParams.get("company") || ""
+  const companyDisplay = companySlug
+    ? decodeURIComponent(companySlug)
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+    : "Selected Company"
 
   // Define breadcrumbs based on current page
   let breadcrumbs: BreadcrumbItem[] = []
 
   if (isSettingsPage) {
     breadcrumbs = [{ label: "Settings" }]
-  } else if (currentProject) {
-    breadcrumbs = [
-      { label: "Projects", href: "/projects" },
-      { label: currentProject.name, href: `/projects/${currentProject.uuid}` },
-    ]
   } else {
-    breadcrumbs = [{ label: "Projects", href: "/projects" }]
+    // Always start with Projects
+    breadcrumbs.push({ label: "Projects", href: "/projects" })
+
+    if (currentProject) {
+      // Project name
+      breadcrumbs.push({ label: currentProject.name, href: `/projects/${currentProject.uuid}` })
+
+      // Competitors and Company chain
+      if (isCompetitorsPage || isCompanyAnalysisPage) {
+        breadcrumbs.push({ label: "Competitors", href: `/projects/${currentProject.uuid}/competitors` })
+        if (isCompanyAnalysisPage) {
+          breadcrumbs.push({ label: companyDisplay })
+        }
+      }
+    }
   }
 
   return (
-    <nav className="px-2 sm:px-4 flex items-center justify-between bg-white dark:bg-[#0F0F12] border-b border-gray-200 dark:border-[#1F1F23] h-full">
-      <div className="font-medium text-xs hidden sm:flex items-center space-x-1 truncate max-w-[250px]">
+    <nav className="px-2 sm:px-4 flex items-center justify-between bg-white dark:bg-black border-b border-gray-200 dark:border-[#1F1F23] h-full">
+      <div className="font-medium text-xs flex items-center space-x-1 flex-1 min-w-0 overflow-x-auto whitespace-nowrap pr-2">
         {breadcrumbs.map((item, index) => (
           <div key={item.label} className="flex items-center">
             {index > 0 && <ChevronRight className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 mx-1" />}
