@@ -38,21 +38,21 @@ export default function HomePage() {
 
   return (
     <div className="container mx-auto">
-      <Header />
-      <main>
-        <HeroSection />
-        {/* <PartnersSection /> */}
-        <FeaturesSection />
-        <AdaptiveWorkflowsSection />
-        <OptimizedSchedulingSection />
-        <AcceleratePlanningSection />
-        {/* <TestimonialsSection /> */}
-        {/* <SimplifiedPricingSection /> */}
+        <Header />
+        <main>
+          <HeroSection />
+          {/* <PartnersSection /> */}
+          <FeaturesSection />
+          <AdaptiveWorkflowsSection />
+          <OptimizedSchedulingSection />
+          <AcceleratePlanningSection />
+          {/* <TestimonialsSection /> */}
+          {/* <SimplifiedPricingSection /> */}
         <div className="border-x [&>*:last-child]:pb-20 [&>div>div:first-child]:!pt-20 lg:pt-0 pb-0">
             <UpgradePlan />
           </div>
-        <FAQSection /> {/* This component is still rendered here */}
-      </main>
+          <FAQSection /> {/* This component is still rendered here */}
+        </main>
       <Footer />
     </div>
   )

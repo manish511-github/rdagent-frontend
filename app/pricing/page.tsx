@@ -1,6 +1,6 @@
 import { Header } from "@/components/landing-page/header"
-import { PricingSection } from "@/components/landing-page/pricing-section"
 import { Footer } from "@/components/landing-page/footer"
+import { UpgradePlan } from "@/components/upgrade_plan"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -14,8 +14,7 @@ export default function PricingPage() {
       <div className="min-h-screen bg-background">
         <Header />
         <main className="py-14 md:py-20 lg:py-24">
-          {/* The PricingSection is now only rendered once */}
-          <PricingSection />
+          <UpgradePlan showCurrentPlan={false} />
         </main>
         <Footer />
       </div>
