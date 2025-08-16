@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import competitorAnalysisReducer from "./slices/competitorAnalysisSlice";
 import agentReducer from "./features/agentSlice";
 import projectsReducer from "./slices/projectsSlice";
 import currentProjectReducer from "./slices/currentProjectSlice";
@@ -12,6 +13,7 @@ export const store = configureStore({
     currentProject: currentProjectReducer,
     agents: agentsReducer,
     user: userReducer,
+    competitorAnalysis: competitorAnalysisReducer,
   },
 });
 

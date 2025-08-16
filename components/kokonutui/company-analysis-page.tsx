@@ -3,6 +3,8 @@
 import type React from "react"
 
 import { useEffect, useRef, useState } from "react"
+import { useSelector } from "react-redux"
+import { selectOverviewByKey, selectNewsByKey } from "@/store/slices/competitorAnalysisSlice"
 import { Tabs } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
@@ -218,6 +220,9 @@ export default function CompanyAnalysisPage({
   youtubeAnalysis,
   newsAnalysis,
 }: CompanyAnalysisPageProps) {
+  const key = `${projectId}:${companySlug ?? ""}`
+  const overviewFromStore = useSelector(selectOverviewByKey(key)) as any
+  const newsFromStore = useSelector(selectNewsByKey(key)) as any
   const [activeTab, setActiveTab] = useState<string>("overview")
   const [activeSection, setActiveSection] = useState<string | null>(null)
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
@@ -285,7 +290,7 @@ export default function CompanyAnalysisPage({
         <div className="mb-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Hexnode</h1>
+              <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{overviewFromStore?.company_name || "Company"}</h1>
               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Company Analysis Dashboard</p>
             </div>
             <TooltipProvider>
@@ -446,7 +451,7 @@ export default function CompanyAnalysisPage({
                 locations: ["San Francisco, CA, USA", "London, UK"],
               }
 
-              const ov = overviewProp ?? overviewSample
+              const ov = (overviewFromStore as CompanyOverviewData) ?? overviewProp ?? overviewSample
 
                 const sectionIcons: Record<string, React.ReactElement> = {
                   mission: <Target className="h-4 w-4 text-gray-500 dark:text-gray-400" />,
@@ -779,7 +784,7 @@ export default function CompanyAnalysisPage({
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">News Analysis</h3>
                           <p className="mt-2 text-gray-700 dark:text-gray-300 leading-relaxed">
-                            {(newsAnalysis ?? SAMPLE_NEWS).summary}
+                            {(newsFromStore?.summary ?? newsAnalysis ?? SAMPLE_NEWS).summary}
                           </p>
                           </div>
                         </div>
@@ -790,7 +795,7 @@ export default function CompanyAnalysisPage({
                     <CardContent className="p-6">
                       <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Themes</h4>
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {(newsAnalysis ?? SAMPLE_NEWS).themes.map((t: { name: string; evidence_titles: string[] }) => (
+                        {(newsFromStore?.themes ?? (newsAnalysis ?? SAMPLE_NEWS).themes).map((t: { name: string; evidence_titles: string[] }) => (
                           <div key={t.name} className="rounded border border-gray-200 dark:border-[#1A1A1A] bg-transparent dark:bg-transparent p-3">
                             <div className="flex items-center justify-between">
                               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{t.name}</span>
@@ -814,7 +819,7 @@ export default function CompanyAnalysisPage({
                       <CardContent className="p-6">
                         <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Opportunities</h4>
                         <ul className="list-disc pl-5 text-xs text-gray-700 dark:text-gray-300 space-y-1">
-                          {(newsAnalysis ?? SAMPLE_NEWS).opportunities.map((o: string) => (
+                          {(newsFromStore?.opportunities ?? (newsAnalysis ?? SAMPLE_NEWS).opportunities).map((o: string) => (
                             <li key={o}>{o}</li>
                               ))}
                             </ul>
@@ -825,7 +830,7 @@ export default function CompanyAnalysisPage({
                       <CardContent className="p-6">
                         <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Risks</h4>
                         <ul className="list-disc pl-5 text-xs text-gray-700 dark:text-gray-300 space-y-1">
-                          {(newsAnalysis ?? SAMPLE_NEWS).risks.map((r: string) => (
+                          {(newsFromStore?.risks ?? (newsAnalysis ?? SAMPLE_NEWS).risks).map((r: string) => (
                             <li key={r}>{r}</li>
                               ))}
                             </ul>
