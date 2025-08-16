@@ -18,7 +18,6 @@ import { ArrowRight, Building2, Globe, Loader2, Plus, Sparkles, LayoutGrid, List
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useSelector } from "react-redux"
 import { useDispatch } from "react-redux"
-import { setAnalysis } from "@/store/slices/competitorAnalysisSlice"
 import { useRouter } from "next/navigation"
 import { selectUserInfo } from "@/store/slices/userSlice"
 import { selectCurrentProject } from "@/store/slices/currentProjectSlice"
@@ -263,8 +262,7 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
     onSuccess: (data) => {
       // Refetch competitors after triggering analysis
       queryClient.invalidateQueries({ queryKey })
-      const key = `${resolvedProjectId}:${bodySlugFromUrl(data?.data?.competitor?.source_id)}`
-      dispatch(setAnalysisFromApi({ key, api: data }))
+      dispatch(setAnalysisFromApi({ api: data }))
     },
   })
 

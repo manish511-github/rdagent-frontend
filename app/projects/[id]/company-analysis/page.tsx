@@ -36,13 +36,13 @@ import { OverviewCard } from "@/components/overview/overview-card"
 import { MetricsDashboard } from "@/components/overview/metrics-dashboard"
 import { TimelineView } from "@/components/overview/timeline-view"
 import { FeatureComparison } from "@/components/website/feature-comparison"
-import { CompetitiveOverview } from "@/components/website/competitive-overview"
 import { SwotAnalysis } from "@/components/website/swot-analysis"
-import { HeadToHead } from "@/components/website/head-to-head"
-import { Recommendations } from "@/components/website/recommendations"
+ 
 import { PricingPlans } from "@/components/website/pricing-plans"
-import { MarketAnalysis } from "@/components/website/market-analysis"
+ 
 import Layout from "@/components/kokonutui/layout"
+import { useSelector } from "react-redux"
+import { selectFeatures } from "@/store/slices/competitorAnalysisSlice"
 
 type FeatureItem = {
   feature_name: string
@@ -181,6 +181,7 @@ export default function CompanyAnalysisPage({
   facebookAnalysis,
   newsAnalysis,
 }: CompanyAnalysisPageProps) {
+  const featuresFromStore = useSelector(selectFeatures) as any
   const [activeTab, setActiveTab] = useState<string>("overview")
   const [activeSection, setActiveSection] = useState<string | null>(null)
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
@@ -954,16 +955,16 @@ export default function CompanyAnalysisPage({
 
           {activeTab === "website" && (
             <div className="mt-0 h-full flex flex-col min-h-0">
-              <Tabs defaultValue="competitive" className="flex-1 min-h-0 flex flex-col">
-                <div className="flex justify-center mb-4">
-                  <TabsList className="inline-flex h-9 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 p-1 text-gray-500 dark:text-gray-400">
-                    <TabsTrigger
-                      value="competitive"
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm dark:ring-offset-gray-950 dark:focus-visible:ring-gray-300 dark:data-[state=active]:bg-gray-950 dark:data-[state=active]:text-gray-100"
-                    >
-                      <BarChart2 className="h-4 w-4 mr-1.5" />
-                      Competitive
-                    </TabsTrigger>
+                          <Tabs defaultValue="features" className="flex-1 min-h-0 flex flex-col">
+              <div className="flex justify-center mb-4">
+                <TabsList className="inline-flex h-9 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 p-1 text-gray-500 dark:text-gray-400">
+                  <TabsTrigger
+                    value="features"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm dark:ring-offset-gray-950 dark:focus-visible:ring-gray-300 dark:data-[state=active]:bg-gray-950 dark:data-[state=active]:text-gray-100"
+                  >
+                    <BarChart2 className="h-4 w-4 mr-1.5" />
+                    Features
+                  </TabsTrigger>
                     <TabsTrigger
                       value="pricing"
                       className="inline-flex items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm dark:ring-offset-gray-950 dark:focus-visible:ring-gray-300 dark:data-[state=active]:bg-gray-950 dark:data-[state=active]:text-gray-100"
@@ -975,100 +976,14 @@ export default function CompanyAnalysisPage({
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-hidden">
-                  <TabsContent value="competitive" className="mt-0 h-full">
+                  <TabsContent value="features" className="mt-0 h-full">
                     <ScrollArea className="h-full">
                       <div className="pr-4 pb-20 space-y-6">
                         <div>
                           <div className="flex items-center gap-2 mb-4">
                             <Globe className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                              Competitive Overview
-                            </h2>
-                          </div>
-                          <CompetitiveOverview
-                            data={{
-                              ours: {
-                                name: "hexnode",
-                                features: [
-                                  {
-                                    feature_name: "Restricted Browsing",
-                                    description:
-                                      "Restrict access to URLs by blacklisting or whitelisting them within the Hexnode Kiosk Browser.",
-                                    category: "Kiosk Browser",
-                                    technical_depth: "Intermediate",
-                                    implementation_scale: "Partial",
-                                  },
-                                  {
-                                    feature_name: "Auto Launch Web Apps",
-                                    description:
-                                      "Set a specific website as the default to automatically open upon device boot in the Hexnode Kiosk Browser.",
-                                    category: "Kiosk Browser",
-                                    technical_depth: "Intermediate",
-                                    implementation_scale: "Complete",
-                                  },
-                                  {
-                                    feature_name: "Unified Endpoint Management",
-                                    description:
-                                      "Centralize management of mobiles, PCs and wearables in the enterprise.",
-                                    category: "Unified Endpoint Management",
-                                    technical_depth: "Surface-level",
-                                    implementation_scale: "Enterprise-grade",
-                                  },
-                                ],
-                              },
-                              competitor: {
-                                name: "scalefusion",
-                                features: [
-                                  {
-                                    feature_name: "Authentication",
-                                    description: "Validates user credentials through IdP integration.",
-                                    category: "Zero Trust Access",
-                                    technical_depth: "Intermediate",
-                                    implementation_scale: "Enterprise-grade",
-                                  },
-                                  {
-                                    feature_name: "Web Content Filtering",
-                                    description:
-                                      "Enforces granular access controls over internet usage, leveraging category-based filtering and custom policy rules.",
-                                    category: "Security",
-                                    technical_depth: "Intermediate",
-                                    implementation_scale: "Enterprise-grade",
-                                  },
-                                ],
-                              },
-                            }}
-                            report={{
-                              unique_to_ours: [
-                                {
-                                  name: "Kiosk Browser Features",
-                                  reason: "Scalefusion doesn't explicitly list Kiosk Browser capabilities.",
-                                },
-                                {
-                                  name: "XR Management",
-                                  reason: "Scalefusion does not explicitly list XR management capabilities.",
-                                },
-                              ],
-                              unique_to_competitor: [
-                                {
-                                  name: "Zero Trust Access",
-                                  reason: "Hexnode does not explicitly list this specific authentication approach.",
-                                },
-                              ],
-                              common_features: [
-                                {
-                                  name: "Unified Endpoint Management",
-                                  notes: "Both offer UEM capabilities with different focus areas.",
-                                },
-                              ],
-                            }}
-                          />
-                        </div>
-
-                        <div>
-                          <div className="flex items-center gap-2 mb-4">
-                            <Globe className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                              Feature Comparison
+                              Feature
                             </h2>
                           </div>
                           <FeatureComparison />
@@ -1082,104 +997,38 @@ export default function CompanyAnalysisPage({
                           <SwotAnalysis
                             report={{
                               swot_ours: {
-                                strengths: [
-                                  "Comprehensive feature set covering Kiosk, App, Expense, Patch, XR, and Security Management.",
-                                  "Strong Kiosk browser capabilities.",
-                                  "Extensive reporting and auditing features.",
-                                ],
-                                weaknesses: [
-                                  "Surface-level description of UEM capabilities may not convey depth.",
-                                  "Lacks explicit focus on Authentication and Authorization compared to Scalefusion's Zero Trust Access features.",
-                                ],
-                                opportunities: [
-                                  "Highlight depth of UEM features with case studies or more detailed descriptions.",
-                                  "Integrate with IdPs to enhance authentication capabilities.",
-                                ],
-                                threats: [
-                                  "Scalefusion's focused Zero Trust Access offering could be appealing to security-conscious customers.",
-                                ],
+                                strengths: (featuresFromStore?.summary_analysis?.strengths ?? []) as string[],
+                                weaknesses: (featuresFromStore?.summary_analysis?.weaknesses ?? []) as string[],
+                                opportunities: (featuresFromStore?.summary_analysis?.opportunities ?? []) as string[],
+                                threats: (featuresFromStore?.summary_analysis?.threats ?? []) as string[],
                               },
                               swot_competitor: {
-                                strengths: [
-                                  "Strong Zero Trust Access offering with Authentication, Authorization, and Conditional SSO.",
-                                  "Web Content Filtering provides granular control over internet usage.",
-                                ],
-                                weaknesses: [
-                                  "Limited feature set compared to Hexnode.",
-                                  "Lacks explicit features in Kiosk Management, XR Management and extensive reporting.",
-                                  "Does not explicitly address patch management",
-                                ],
-                                opportunities: [
-                                  "Expand feature set to include Kiosk and XR management.",
-                                  "Develop more detailed reporting capabilities.",
-                                ],
-                                threats: [
-                                  "Hexnode's broader feature set may be more attractive to organizations with diverse needs.",
-                                ],
+                                strengths: (
+                                  featuresFromStore?.summary_analysis?.competitor_strengths ??
+                                  featuresFromStore?.summary_analysis?.strengths ??
+                                  []
+                                ) as string[],
+                                weaknesses: (
+                                  featuresFromStore?.summary_analysis?.competitor_weaknesses ??
+                                  featuresFromStore?.summary_analysis?.weaknesses ??
+                                  []
+                                ) as string[],
+                                opportunities: (
+                                  featuresFromStore?.summary_analysis?.competitor_opportunities ??
+                                  featuresFromStore?.summary_analysis?.opportunities ??
+                                  []
+                                ) as string[],
+                                threats: (
+                                  featuresFromStore?.summary_analysis?.competitor_threats ??
+                                  featuresFromStore?.summary_analysis?.threats ??
+                                  []
+                                ) as string[],
                               },
                             }}
                           />
                         </div>
 
-                        <div>
-                          <div className="flex items-center gap-2 mb-4">
-                            <Globe className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                              Head-to-Head Comparison
-                            </h2>
-                          </div>
-                          <HeadToHead
-                            report={{
-                              head_to_head: {
-                                areas_we_lead: [
-                                  "Kiosk Management (Browser, Lockdown)",
-                                  "XR Management",
-                                  "Expense Management",
-                                  "Comprehensive Reporting and Auditing",
-                                  "Patch Management",
-                                ],
-                                areas_competitor_leads: [
-                                  "Zero Trust Access (Authentication, Authorization, Conditional SSO)",
-                                  "Web Content Filtering",
-                                ],
-                                parity: ["Unified Endpoint Management (basic)"],
-                              },
-                            }}
-                          />
-                        </div>
-
-                        <div>
-                          <div className="flex items-center gap-2 mb-4">
-                            <Globe className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                              Strategic Recommendations
-                            </h2>
-                          </div>
-                          <Recommendations
-                            report={{
-                              recommendations: [
-                                {
-                                  priority: "medium",
-                                  item: "Emphasize the depth of existing UEM features in marketing materials.",
-                                  rationale:
-                                    "Counteract the 'surface-level' perception and showcase the full capabilities of Hexnode's UEM offering.",
-                                },
-                                {
-                                  priority: "medium",
-                                  item: "Integrate with popular Identity Providers (IdPs) to enhance authentication capabilities.",
-                                  rationale:
-                                    "Address the competitive advantage of Scalefusion's Authentication feature within Zero Trust Access.",
-                                },
-                                {
-                                  priority: "low",
-                                  item: "Consider adding a broader web content filtering feature.",
-                                  rationale:
-                                    "While restricted browsing exists, category-based filtering could be a valuable addition.",
-                                },
-                              ],
-                            }}
-                          />
-                        </div>
+                        
                       </div>
                     </ScrollArea>
                   </TabsContent>
@@ -1293,21 +1142,7 @@ export default function CompanyAnalysisPage({
                           />
                         </div>
 
-                        <div>
-                          <div className="flex items-center gap-2 mb-4">
-                            <TrendingUp className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Market Analysis</h2>
-                          </div>
-                          <MarketAnalysis
-                            data={{
-                              price_ranges: {
-                                low: 2.2,
-                                median: 2.7,
-                                high: 3.2,
-                              },
-                            }}
-                          />
-                        </div>
+                        
                       </div>
                     </ScrollArea>
                   </TabsContent>
