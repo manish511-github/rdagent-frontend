@@ -39,12 +39,13 @@ import { FeatureComparison } from "@/components/website/feature-comparison"
 import { SwotAnalysis } from "@/components/website/swot-analysis"
  
 import { PricingPlans } from "@/components/website/pricing-plans"
+import MarkdownRender from "@/components/markdown-render"
  
 import Layout from "@/components/kokonutui/layout"
 import { useDispatch, useSelector } from "react-redux"
 import type { RootState } from "@/store/store";
 
-import { selectFeatures, selectYouTube, loadCompetitorAnalysis, selectTwitter, selectFacebook, selectNews, selectPricing } from "@/store/slices/competitorAnalysisSlice"
+import { selectFeatures, selectYouTube, loadCompetitorAnalysis, selectTwitter, selectFacebook, selectNews, selectPricing, selectOverview } from "@/store/slices/competitorAnalysisSlice"
 import { useParams, useSearchParams } from "next/navigation"
 import type { AppDispatch } from "@/store/store"
 
@@ -119,6 +120,7 @@ export default function CompanyAnalysisPage() {
 
   const dispatch = useDispatch<AppDispatch>()
   const featuresFromStore = useSelector(selectFeatures) as any
+  const overviewFromStore = useSelector(selectOverview) as any
   const pricingFromStore = useSelector(selectPricing) as any
   const pricingAnalysis = pricingFromStore || undefined
   const youtubeFromStore = useSelector(selectYouTube) as any
@@ -321,7 +323,7 @@ export default function CompanyAnalysisPage() {
           {activeTab === "overview" && (
             <div className="mt-0 flex-1 min-h-0 flex flex-col">
               {(() => {
-                const overviewSample: CompanyOverviewData = {
+                {/* const overviewSample: CompanyOverviewData = {
                   mission_statement:
                     "To empower businesses with cutting-edge mobile device management solutions that enhance productivity and security.",
                   vision:
@@ -388,140 +390,24 @@ export default function CompanyAnalysisPage() {
                   locations: ["San Francisco, CA, USA", "London, UK"],
                 }
 
-                const ov = overviewProp ?? overviewSample
+                const ov = overviewProp ?? overviewSample */}
 
                 return (
                   <ScrollArea className="flex-1 min-h-0">
                     <div className="space-y-6 pr-4 pb-20">
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <OverviewCard
-                          title="Mission"
-                          icon={<Target className="h-4 w-4 text-gray-500 dark:text-gray-400" />}
-                        >
-                          {ov.mission_statement}
-                        </OverviewCard>
-                        <OverviewCard
-                          title="Vision"
-                          icon={<Eye className="h-4 w-4 text-gray-500 dark:text-gray-400" />}
-                        >
-                          {ov.vision}
-                        </OverviewCard>
-                      </div>
+                      {/* Other overview sections are temporarily commented out */}
 
-                      {ov.growth_metrics && Object.values(ov.growth_metrics).some(Boolean) && (
+                      {/* Report (Markdown) */}
+                      {overviewFromStore?.markdown_report && (
                         <div>
-                          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                            Growth Metrics
-                          </h2>
-                          <MetricsDashboard metrics={ov.growth_metrics} />
+                          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Report</h2>
+                          <div className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-black p-4">
+                            <MarkdownRender content={overviewFromStore.markdown_report as string} />
+                          </div>
                         </div>
                       )}
 
-                      {ov.key_milestones && ov.key_milestones.length > 0 && (
-                        <TimelineView milestones={ov.key_milestones} />
-                      )}
-
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {ov.core_values && ov.core_values.length > 0 && (
-                          <OverviewCard
-                            title="Core Values"
-                            icon={<Heart className="h-4 w-4 text-gray-500 dark:text-gray-400" />}
-                          >
-                            <div className="flex flex-wrap gap-2">
-                              {ov.core_values.map((v: string) => (
-                                <span
-                                  key={v}
-                                  className="inline-flex items-center rounded-none bg-gray-100 dark:bg-[#0F0F0F] px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
-                                >
-                                  {v}
-                                </span>
-                              ))}
-                            </div>
-                          </OverviewCard>
-                        )}
-
-                        {ov.business_model && (
-                          <OverviewCard
-                            title="Business Model"
-                            icon={<Briefcase className="h-4 w-4 text-gray-500 dark:text-gray-400" />}
-                          >
-                            {ov.business_model}
-                          </OverviewCard>
-                        )}
-
-                        {ov.value_proposition && (
-                          <OverviewCard
-                            title="Value Proposition"
-                            icon={<Lightbulb className="h-4 w-4 text-gray-500 dark:text-gray-400" />}
-                          >
-                            {ov.value_proposition}
-                          </OverviewCard>
-                        )}
-
-                        {ov.target_market && (
-                          <OverviewCard
-                            title="Target Market"
-                            icon={<Target className="h-4 w-4 text-gray-500 dark:text-gray-400" />}
-                          >
-                            {ov.target_market}
-                          </OverviewCard>
-                        )}
-                      </div>
-
-                      {ov.customer_segments && ov.customer_segments.length > 0 && (
-                        <OverviewCard
-                          title="Customer Segments"
-                          icon={<Users className="h-4 w-4 text-gray-500 dark:text-gray-400" />}
-                          className="lg:col-span-2"
-                        >
-                          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                            {ov.customer_segments.map((s: string) => (
-                              <div
-                                key={s}
-                                className="rounded-none border border-gray-200 dark:border-[#1A1A1A] bg-gray-50 dark:bg-gray-900 p-2 text-center"
-                              >
-                                <span className="text-xs font-medium text-gray-900 dark:text-gray-100">{s}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </OverviewCard>
-                      )}
-
-                      {ov.leadership_team && ov.leadership_team.length > 0 && (
-                        <OverviewCard
-                          title="Leadership Team"
-                          icon={<Users className="h-4 w-4 text-gray-500 dark:text-gray-400" />}
-                        >
-                          <div className="space-y-2">
-                            {ov.leadership_team.map((l: string) => (
-                              <div key={l} className="flex items-center gap-2 text-sm">
-                                <div className="h-1.5 w-1.5 rounded-full bg-gray-400 dark:bg-gray-500" />
-                                {l}
-                              </div>
-                            ))}
-                          </div>
-                        </OverviewCard>
-                      )}
-
-                      <div className="space-y-4">
-                        {ov.founding_history && (
-                          <OverviewCard
-                            title="Founding History"
-                            icon={<History className="h-4 w-4 text-gray-500 dark:text-gray-400" />}
-                          >
-                            {ov.founding_history}
-                          </OverviewCard>
-                        )}
-
-                        {ov.competitive_positioning && (
-                          <OverviewCard
-                            title="Competitive Positioning"
-                            icon={<TrendingUp className="h-4 w-4 text-gray-500 dark:text-gray-400" />}
-                          >
-                            {ov.competitive_positioning}
-                          </OverviewCard>
-                        )}
-                      </div>
+                      {/* Remaining overview cards commented out */}
                     </div>
                   </ScrollArea>
                 )

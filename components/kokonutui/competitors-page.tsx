@@ -24,6 +24,7 @@ import { selectCurrentProject } from "@/store/slices/currentProjectSlice"
 import DataTable from "@/components/kokonutui/competitors-table/data-table"
 import { columns as competitorColumns, type CompetitorRow } from "@/components/kokonutui/competitors-table/columns"
 import { setAnalysisFromApi } from "@/store/slices/competitorAnalysisSlice"
+import { getApiUrl } from "@/lib/config"
 
 type Competitor = {
   name: string
@@ -35,6 +36,7 @@ type Competitor = {
   imageUrl?: string
   metrics?: { score?: number }
   status?: string
+  competitorSourceId?: string
 }
 
 const COMPETITORS: Competitor[] = [
@@ -77,7 +79,7 @@ const COMPETITORS: Competitor[] = [
 
 // API helpers
 async function fetchCompetitors(userId: number, projectId: string, signal?: AbortSignal) {
-  const res = await fetch(`http://localhost:8001/company/competitor?user_id=${userId}&project_id=${projectId}`, { signal })
+  const res = await fetch(getApiUrl(`/company/competitor?user_id=${userId}&project_id=${projectId}`), { signal })
   if (!res.ok) throw new Error('Failed to fetch competitors')
   const json = await res.json()
   return (json?.data ?? []) as Array<{
@@ -91,8 +93,25 @@ async function fetchCompetitors(userId: number, projectId: string, signal?: Abor
   }>
 }
 
-async function postCompetitor(body: { our_url: string; competitor_url: string; project_id: string; user_id: number; run_now: boolean; }) {
-  const res = await fetch(`http://localhost:8001/company/competitor`, {
+async function postCompetitor(body: {
+  our_url: string
+  competitor_url: string
+  project_id: string
+  user_id: number
+  run_now: boolean
+  scrape: boolean
+  overview: boolean
+  features: boolean
+  pricing: boolean
+  compare_features: boolean
+  compare_pricing: boolean
+  social_media: boolean
+  youtube: boolean
+  twitter: boolean
+  facebook: boolean
+  news: boolean
+}) {
+  const res = await fetch(getApiUrl(`/company/competitor`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -124,7 +143,32 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "archived">("all")
 
+  const suggested: Array<{ name: string; website: string; industry: string; founded: string; headline: string }> = [
+    { name: "Globex", website: "https://globex.com", industry: "Analytics", founded: "2016", headline: "AI-powered marketing analytics for modern teams" },
+    { name: "Initech", website: "https://initech.com", industry: "Automation", founded: "2012", headline: "Workflow automation to scale operations faster" },
+    { name: "Umbrella", website: "https://umbrella.com", industry: "Security", founded: "2010", headline: "Security-first platform for critical infrastructure" },
+  ]
+
+  // Server data via TanStack Query
+  const userId = user?.id
+  const resolvedProjectId = currentProject?.uuid ?? projectId
+  const queryKey = ["competitors", userId, resolvedProjectId]
+  const competitorsQuery = useQuery({
+    queryKey,
+    enabled: !!userId && !!resolvedProjectId,
+    queryFn: ({ signal }) => fetchCompetitors(userId as number, resolvedProjectId as string, signal),
+    refetchInterval: (data) => (Array.isArray(data) && data.some((c: any) => c.status === 'running') ? 5000 : false),
+  })
+ 
+   const isEnabled = !!userId && !!resolvedProjectId
+   const isPending = !isEnabled || competitorsQuery.isLoading
+
   const filteredAndSorted = useMemo(() => {
+    // Don't compute if data is still loading
+    if (isPending) {
+      return []
+    }
+    
     let data = [...competitors]
     if (query.trim()) {
       const q = query.toLowerCase()
@@ -144,24 +188,7 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
       return (a.industry || "").localeCompare(b.industry || "") * dir
     })
     return data
-  }, [competitors, query, sortBy, sortDirection, statusFilter])
-
-  const suggested: Array<{ name: string; website: string; industry: string; founded: string; headline: string }> = [
-    { name: "Globex", website: "https://globex.com", industry: "Analytics", founded: "2016", headline: "AI-powered marketing analytics for modern teams" },
-    { name: "Initech", website: "https://initech.com", industry: "Automation", founded: "2012", headline: "Workflow automation to scale operations faster" },
-    { name: "Umbrella", website: "https://umbrella.com", industry: "Security", founded: "2010", headline: "Security-first platform for critical infrastructure" },
-  ]
-
-  // Server data via TanStack Query
-  const userId = user?.id
-  const resolvedProjectId = currentProject?.uuid ?? projectId
-  const queryKey = ["competitors", userId, resolvedProjectId]
-  const competitorsQuery = useQuery({
-    queryKey,
-    enabled: !!userId && !!resolvedProjectId,
-    queryFn: ({ signal }) => fetchCompetitors(userId as number, resolvedProjectId as string, signal),
-    refetchInterval: (data) => (Array.isArray(data) && data.some((c: any) => c.status === 'running') ? 3000 : false),
-  })
+  }, [competitors, query, sortBy, sortDirection, statusFilter, isPending])
 
   useEffect(() => {
     if (competitorsQuery.data) {
@@ -175,6 +202,7 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
         website: undefined,
         metrics: undefined,
         status: row.status,
+        competitorSourceId: row.competitor_source_id,
       }))
       setCompetitors(mapped)
     }
@@ -189,7 +217,7 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
   // Delete competitor mutation
   const deleteMutation = useMutation({
     mutationFn: async (competitorId: number) => {
-      const res = await fetch(`http://localhost:8001/company/competitor/${competitorId}`, {
+      const res = await fetch(getApiUrl(`/company/competitor/${competitorId}`), {
         method: 'DELETE',
       })
       if (!res.ok) throw new Error('Failed to delete competitor')
@@ -205,8 +233,36 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
   // Refresh competitor mutation
   const refreshMutation = useMutation({
     mutationFn: async (competitorId: number) => {
-      const res = await fetch(`http://localhost:8001/company/competitor/${competitorId}/refresh`, {
+      // Get the competitor data from TanStack query
+      const competitor = competitorsQuery.data?.find((c: any) => c.id === competitorId)
+      if (!competitor) throw new Error('Competitor not found')
+      
+      // Build competitor URL from source_id (same logic as in handleOpen)
+      const competitorUrl = competitor.competitor_source_id
+        ? `https://${competitor.competitor_source_id.replace(/_/g, ".").replace(/\.com$/i, ".com")}/`
+        : `https://${competitor.competitor_name.toLowerCase().replace(/[^a-z0-9]+/g, '')}.com/`
+      
+      const res = await fetch(getApiUrl(`/company/competitor`), {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          our_url: currentProject?.website_url || '',
+          competitor_url: competitorUrl,
+          project_id: resolvedProjectId,
+          user_id: userId,
+          run_now: true,
+          scrape: true,
+          overview: true,
+          features: true,
+          pricing: true,
+          compare_features: true,
+          compare_pricing: true,
+          social_media: true,
+          youtube: true,
+          twitter: true,
+          facebook: true,
+          news: true
+        }),
       })
       if (!res.ok) throw new Error('Failed to refresh competitor')
       return res.json()
@@ -257,7 +313,7 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
 
   const analysisMutation = useMutation({
     mutationFn: async (body: { user_id: number; project_id: string; our_url: string; competitor_url: string }) => {
-      const res = await fetch(`http://localhost:8001/company/competitor/analysis`, {
+      const res = await fetch(getApiUrl(`/company/competitor/analysis`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -279,13 +335,23 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
 
   function handleCreateCompetitor() {
     if (!userId || !resolvedProjectId || !websiteUrl.trim()) return
-    const { hostname } = deriveSlugFromUrl(websiteUrl.trim())
     createMutation.mutate({
       our_url: currentProject?.website_url || '',
-      competitor_url: `https://${hostname}`,
+      competitor_url: websiteUrl.trim(),
       project_id: resolvedProjectId,
       user_id: userId,
       run_now: true,
+      scrape: true,
+      overview: true,
+      features: true,
+      pricing: true,
+      compare_features: true,
+      compare_pricing: true,
+      social_media: true,
+      youtube: true,
+      twitter: true,
+      facebook: true,
+      news: true,
     })
     setShowAddDialog(false)
     setWebsiteUrl("")
@@ -409,7 +475,9 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
         <div className="mt-8">
           <div className="flex items-center gap-2 mb-3">
             <h2 className="text-sm font-medium">All competitors</h2>
-            <span className="text-xs text-muted-foreground opacity-80">({competitors.length} total)</span>
+            {!isPending && (
+              <span className="text-xs text-muted-foreground opacity-80">({competitors.length} total)</span>
+            )}
           </div>
           
           <div className="flex items-center justify-between gap-2 pb-2 w-full">
@@ -494,75 +562,88 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
           </div>
 
           {/* Loading / Error / Empty states */}
-          {competitorsQuery.isLoading && (
+          {isPending && (
             <div className="space-y-2 border-t py-4">
               <Skeleton className="h-5 w-full" />
               <Skeleton className="h-5 w-5/6" />
               <Skeleton className="h-5 w-4/6" />
-                </div>
+            </div>
           )}
           {competitorsQuery.isError && (
             <div className="text-sm text-destructive border-t py-4">Failed to load competitors.</div>
           )}
-          {!competitorsQuery.isLoading && !competitorsQuery.isError && filteredAndSorted.length === 0 && (
+          {!isPending && !competitorsQuery.isError && filteredAndSorted.length === 0 && (
             <div className="text-sm text-muted-foreground border-t py-6">No competitors yet. Add one to get started.</div>
           )}
 
-          {view === 'list' ? (
-          <div className="mt-2">
-            <DataTable
-              columns={competitorColumns}
-              data={filteredAndSorted.map<CompetitorRow>((c) => ({
-                name: c.name,
-                category: c.industry,
-                description: c.headline,
-                status: c.status,
-                id: competitorsQuery.data?.find((apiItem: any) => apiItem.competitor_name === c.name)?.id,
-                competitorSourceId: competitorsQuery.data?.find((apiItem: any) => apiItem.competitor_name === c.name)?.competitor_source_id,
-                ourSourceId: competitorsQuery.data?.find((apiItem: any) => apiItem.competitor_name === c.name)?.our_source_id,
-                onDelete: handleDelete,
-                onRefresh: handleRefresh,
-                onOpen: handleOpen,
-              }))}
-            />
-          </div>
-           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
-              {filteredAndSorted.map((c, idx) => {
-                const apiItem = competitorsQuery.data?.find((apiItem: any) => apiItem.competitor_name === c.name)
-                const sourceId = apiItem?.competitor_source_id as string | undefined
-                const compUrl = sourceId
-                  ? `https://${sourceId.replace(/_/g, ".").replace(/\.com$/i, ".com")}/`
-                  : `https://${c.slug.replace(/-/g, '')}.com/`
-                const q = new URLSearchParams({
-                  company: c.slug,
-                  ...(sourceId ? { source_id: sourceId } : {}),
-                  ...(currentProject?.website_url ? { our_url: currentProject.website_url } : {}),
-                  competitor_url: compUrl,
-                })
-                return (
-                  <Link key={`${c.slug}-${idx}`} href={`/projects/${projectId}/company-analysis?${q.toString()}`} className="block">
-                    <Card className="hover:bg-accent/40 transition">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="font-medium flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    {c.name}
-                  </div>
-                          {c.status && (
-                            <Badge variant={c.status === 'completed' ? 'secondary' : 'outline'} className="text-[10px]">
-                              {c.status}
-                            </Badge>
-                          )}
+          {/* Only show table/grid when data is loaded and not empty */}
+          {!isPending && !competitorsQuery.isError && filteredAndSorted.length > 0 && (
+            <>
+              {view === 'list' ? (
+                <div className="mt-2">
+                  <DataTable
+                    columns={competitorColumns}
+                    data={filteredAndSorted.map<CompetitorRow>((c) => {
+                      const apiItem = competitorsQuery.data?.find((apiItem: any) => apiItem.competitor_source_id === c.competitorSourceId)
+                      const website = apiItem?.competitor_source_id
+                        ? `https://www.${apiItem.competitor_source_id.replace(/_/g, ".").replace(/\.com$/i, ".com")}/`
+                        : undefined
+                      
+                      return {
+                        name: c.name,
+                        category: c.industry,
+                        description: c.headline,
+                        website: website,
+                        status: c.status,
+                        id: apiItem?.id,
+                        competitorSourceId: apiItem?.competitor_source_id,
+                        ourSourceId: apiItem?.our_source_id,
+                        onDelete: handleDelete,
+                        onRefresh: handleRefresh,
+                        onOpen: handleOpen,
+                      }
+                    })}
+                  />
                 </div>
-                        <div className="text-sm text-muted-foreground mt-1">{c.industry}</div>
-                        <div className="text-sm text-muted-foreground line-clamp-2 mt-1">{c.headline}</div>
-                      </CardContent>
-                    </Card>
-                </Link>
-                )
-              })}
-            </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+                  {filteredAndSorted.map((c, idx) => {
+                    const apiItem = competitorsQuery.data?.find((apiItem: any) => apiItem.competitor_name === c.name)
+                    const sourceId = apiItem?.competitor_source_id as string | undefined
+                    const compUrl = sourceId
+                      ? `https://${sourceId.replace(/_/g, ".").replace(/\.com$/i, ".com")}/`
+                      : `https://${c.slug.replace(/-/g, '')}.com/`
+                    const q = new URLSearchParams({
+                      company: c.slug,
+                      ...(sourceId ? { source_id: sourceId } : {}),
+                      ...(currentProject?.website_url ? { our_url: currentProject.website_url } : {}),
+                      competitor_url: compUrl,
+                    })
+                    return (
+                      <Link key={`${c.slug}-${idx}`} href={`/projects/${projectId}/company-analysis?${q.toString()}`} className="block">
+                        <Card className="hover:bg-accent/40 transition">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="font-medium flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        {c.name}
+                      </div>
+                              {c.status && (
+                                <Badge variant={c.status === 'completed' ? 'secondary' : 'outline'} className="text-[10px]">
+                                  {c.status}
+                                </Badge>
+                              )}
+                    </div>
+                            <div className="text-sm text-muted-foreground mt-1">{c.industry}</div>
+                            <div className="text-sm text-muted-foreground line-clamp-2 mt-1">{c.headline}</div>
+                          </CardContent>
+                        </Card>
+                    </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

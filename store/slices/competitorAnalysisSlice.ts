@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit"
+import { getApiUrl } from "@/lib/config"
 
 export type CompetitorAnalysisApi = any
 
@@ -33,7 +34,7 @@ export const loadCompetitorAnalysis = createAsyncThunk<
 >(
   "competitorAnalysis/load",
   async ({ projectId, ourUrl, competitorUrl, userId }, { signal }) => {
-    const res = await fetch(`http://localhost:8001/company/competitor/analysis`, {
+    const res = await fetch(getApiUrl(`/company/competitor/analysis`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

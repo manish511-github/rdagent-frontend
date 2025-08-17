@@ -9,6 +9,7 @@ export type CompetitorRow = {
   name: string
   category: string
   description: string
+  website?: string
   status?: string
   id?: number
   onDelete?: (id: number) => void
@@ -37,6 +38,26 @@ export const columns: ColumnDef<CompetitorRow>[] = [
     accessorKey: "category",
     header: () => <span className="text-sm font-medium text-foreground">Category</span>,
     cell: ({ row }) => <div className="text-xs text-muted-foreground">{row.original.category}</div>,
+  },
+  {
+    accessorKey: "website",
+    header: () => <span className="text-sm font-medium text-foreground">Website</span>,
+    cell: ({ row }) => (
+      <div className="text-xs text-muted-foreground">
+        {row.original.website ? (
+          <a 
+            href={row.original.website} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-700 underline"
+          >
+            {row.original.website}
+          </a>
+        ) : (
+          "—"
+        )}
+      </div>
+    ),
   },
   {
     accessorKey: "description",

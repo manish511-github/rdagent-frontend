@@ -50,11 +50,11 @@ export function PricingPlans({ plans }: PricingPlansProps) {
                 <>
                   <div className="text-center">
                     <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                      ${plan.pricing.monthly.amount}
+                      ${plan.pricing.monthly?.amount || 'N/A'}
                     </span>
-                    <span className="text-xs text-gray-500 ml-1">{plan.pricing.monthly.unit}</span>
+                    <span className="text-xs text-gray-500 ml-1">{plan.pricing.monthly?.unit || ''}</span>
                   </div>
-                  {plan.pricing.annual.effective_discount && (
+                  {plan.pricing.annual?.effective_discount && (
                     <div className="text-center">
                       <Badge variant="secondary" className="text-xs">
                         {plan.pricing.annual.effective_discount} off annually
