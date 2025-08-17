@@ -44,8 +44,8 @@ import MarkdownRender from "@/components/markdown-render"
 import Layout from "@/components/kokonutui/layout"
 import { useDispatch, useSelector } from "react-redux"
 import type { RootState } from "@/store/store";
-
-import { selectFeatures, selectYouTube, loadCompetitorAnalysis, selectTwitter, selectFacebook, selectNews, selectPricing, selectOverview } from "@/store/slices/competitorAnalysisSlice"
+import SeoTraffic from "@/components/website/seo-traffic"
+import { selectSEO, selectFeatures, selectYouTube, loadCompetitorAnalysis, selectTwitter, selectFacebook, selectNews, selectPricing, selectOverview } from "@/store/slices/competitorAnalysisSlice"
 import { useParams, useSearchParams } from "next/navigation"
 import type { AppDispatch } from "@/store/store"
 
@@ -131,6 +131,7 @@ export default function CompanyAnalysisPage() {
   const facebookAnalysis = facebookFromStore || undefined
   const newsFromStore = useSelector(selectNews) as any
   const newsAnalysis = newsFromStore || undefined
+  const seoFromStore = useSelector(selectSEO) as any
   const [activeTab, setActiveTab] = useState<string>("overview")
   const [activeSection, setActiveSection] = useState<string | null>(null)
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
@@ -417,9 +418,16 @@ export default function CompanyAnalysisPage() {
 
           {activeTab === "website" && (
             <div className="mt-0 h-full flex flex-col min-h-0">
-                          <Tabs defaultValue="features" className="flex-1 min-h-0 flex flex-col">
+                          <Tabs defaultValue="seo" className="flex-1 min-h-0 flex flex-col">
                 <div className="flex justify-center mb-4">
                   <TabsList className="inline-flex h-9 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 p-1 text-gray-500 dark:text-gray-400">
+                    <TabsTrigger
+                      value="seo"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm dark:ring-offset-gray-950 dark:focus-visible:ring-gray-300 dark:data-[state=active]:bg-gray-950 dark:data-[state=active]:text-gray-100"
+                    >
+                      <Globe className="h-4 w-4 mr-1.5" />
+                      SEO
+                    </TabsTrigger>
                     <TabsTrigger
                     value="features"
                       className="inline-flex items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm dark:ring-offset-gray-950 dark:focus-visible:ring-gray-300 dark:data-[state=active]:bg-gray-950 dark:data-[state=active]:text-gray-100"
@@ -438,6 +446,23 @@ export default function CompanyAnalysisPage() {
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-hidden">
+                  <TabsContent value="seo" className="mt-0 h-full">
+                    <ScrollArea className="h-full">
+                      <div className="pr-4 pb-20 space-y-6">
+                        <div>
+                          <div className="flex items-center gap-2 mb-4">
+                            <Globe className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">SEO Traffic</h2>
+                          </div>
+                          {/* Replace this sample with real data source once connected */}
+                          <SeoTraffic
+                            data={seoFromStore}
+                          />
+                        </div>
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+
                   <TabsContent value="features" className="mt-0 h-full">
                     <ScrollArea className="h-full">
                       <div className="pr-4 pb-20 space-y-6">

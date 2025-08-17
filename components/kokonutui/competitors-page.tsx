@@ -255,6 +255,7 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
           overview: true,
           features: true,
           pricing: true,
+          seo: true,
           compare_features: true,
           compare_pricing: true,
           social_media: true,
@@ -573,7 +574,15 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
             <div className="text-sm text-destructive border-t py-4">Failed to load competitors.</div>
           )}
           {!isPending && !competitorsQuery.isError && filteredAndSorted.length === 0 && (
-            <div className="text-sm text-muted-foreground border-t py-6">No competitors yet. Add one to get started.</div>
+            <div className="col-span-full flex flex-col items-center justify-center py-12">
+              <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
+                <Building2 className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No competitors yet</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-sm">
+                Add a competitor to start analyzing your market position and gain valuable insights.
+              </p>
+            </div>
           )}
 
           {/* Only show table/grid when data is loaded and not empty */}

@@ -13,6 +13,7 @@ interface CompetitorAnalysisState {
   sourceIds: any | null
   twitter: any | null
   facebook: any | null
+  seo: any | null
 }
 
 const initialState: CompetitorAnalysisState = {
@@ -25,6 +26,7 @@ const initialState: CompetitorAnalysisState = {
   sourceIds: null,
   twitter: null,
   facebook: null,
+  seo: null,
 }
 
 // Thunk to load competitor analysis from API
@@ -61,7 +63,7 @@ function applyApiToState(state: CompetitorAnalysisState, api: CompetitorAnalysis
   const youtube = analyses?.social_media?.youtube ?? data?.social_media?.youtube
   const news = analyses?.news?.report ?? data?.news?.report
   const pricing = analyses?.pricing ?? data?.pricing
-
+  const seo = analyses?.seo ?? data?.seo
   const analysisInfo = data?.analysis_info
   const sourceIds = data?.source_ids
   const twitter = analyses?.social_media?.twitter ?? data?.social_media?.twitter
@@ -72,6 +74,7 @@ function applyApiToState(state: CompetitorAnalysisState, api: CompetitorAnalysis
   state.youtube = youtube ?? null
   state.news = news ?? null
   state.pricing = pricing ?? null
+  state.seo = seo ?? null
   state.analysisInfo = analysisInfo ?? null
   state.sourceIds = sourceIds ?? null
   state.twitter = twitter ?? null
@@ -115,4 +118,4 @@ export const selectNews = (state: RootStateLike) => state.competitorAnalysis.new
 export const selectPricing = (state: RootStateLike) => state.competitorAnalysis.pricing
 export const selectTwitter = (state: RootStateLike) => state.competitorAnalysis.twitter
 export const selectFacebook = (state: RootStateLike) => state.competitorAnalysis.facebook
-
+export const selectSEO = (state: RootStateLike) => state.competitorAnalysis.seo

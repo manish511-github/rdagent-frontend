@@ -141,65 +141,6 @@ type NewsAnalysis = {
   notable_entities: string[]
 }
 
-const SAMPLE_NEWS: NewsAnalysis = {
-  summary:
-    "Hexnode has been active in the last six months, focusing on expansion, partnerships, and product development. Key activities include the announcement of their annual user conference, HexCon25, a partnership with Quokka to enhance mobile app security, the launch of a new data center in the UAE to support Middle East digital transformation, a distribution deal with Kite in the UK, and the launch of UEM MSP for managed service providers. The CEO has also been vocal about Apple's shortcomings in IT and supply chain security challenges.",
-  themes: [
-    {
-      name: "Expansion",
-      evidence_titles: [
-        "Hexnode Empowers Middle East Digital Transformation with New UAE Data Centre",
-        "Hexnode expands in the Middle East with new UAE data centre",
-        "Hexnode’s UEM solutions take flight in UK with Kite distribution deal",
-      ],
-    },
-    {
-      name: "Partnerships",
-      evidence_titles: [
-        "Hexnode UEM Partners With Quokka to Double Down on Mobile App Security for Businesses",
-        "Hexnode’s UEM solutions take flight in UK with Kite distribution deal",
-        ],
-      },
-      {
-      name: "Product Development/Launches",
-      evidence_titles: ["Hexnode Launches UEM MSP: Purpose-Built for Managed Service Providers"],
-    },
-    {
-      name: "Industry Commentary",
-      evidence_titles: [
-        "Hexnode CEO sees 3 pain points Apple should fix for IT",
-        "Hexnode CEO: The supply chain still doesn’t know how to protect itself",
-      ],
-    },
-    {
-      name: "User Conference",
-      evidence_titles: [
-        "Hexnode Announces HexCon25: The Annual User Conference Set for September 17–18, 2025, in Atlanta",
-      ],
-    },
-  ],
-  sentiment: {
-    overall: "positive",
-    by_theme: [
-      { theme: "Expansion", sentiment: "positive" },
-      { theme: "Partnerships", sentiment: "positive" },
-      { theme: "Product Development/Launches", sentiment: "positive" },
-      { theme: "Industry Commentary", sentiment: "neutral" },
-      { theme: "User Conference", sentiment: "positive" },
-    ],
-  },
-  risks: [
-    "Supply chain security vulnerabilities highlighted by the CEO could impact Hexnode's clients and require ongoing security enhancements.",
-    "Apple's failure to address the pain points identified by Hexnode's CEO could limit the effectiveness of Hexnode's solutions for Apple devices.",
-  ],
-  opportunities: [
-    "Expansion into new markets like the Middle East and UK presents growth opportunities.",
-    "Partnerships, like the one with Quokka, can enhance product offerings and attract new customers.",
-    "The launch of UEM MSP caters to the growing demand from managed service providers.",
-    "HexCon25 provides a platform to engage with users, gather feedback, and showcase new developments.",
-  ],
-  notable_entities: ["Hexnode", "Mitsogo Inc.", "Apu Pavithran", "Quokka", "Kite", "Apple"],
-}
 
 type CompanyAnalysisPageProps = {
   projectId: string
