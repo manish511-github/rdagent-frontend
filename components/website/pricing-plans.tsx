@@ -25,7 +25,7 @@ interface PricingPlansProps {
 
 export function PricingPlans({ plans }: PricingPlansProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 gap-4">
       {plans.map((plan) => (
         <Card key={plan.name} className="rounded-none border border-gray-200 dark:border-gray-800 p-4">
           <div className="space-y-3">
@@ -67,16 +67,13 @@ export function PricingPlans({ plans }: PricingPlansProps) {
 
             <div className="space-y-2">
               <h4 className="text-xs font-medium text-gray-700 dark:text-gray-300">Key Features</h4>
-              <div className="space-y-1">
-                {plan.feature_matrix.core.slice(0, 4).map((feature, index) => (
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {plan.feature_matrix.core.map((feature, index) => (
                   <div key={index} className="flex items-start gap-2">
                     <Check className="h-3 w-3 text-green-600 mt-0.5 flex-shrink-0" />
                     <span className="text-xs text-gray-600 dark:text-gray-400">{feature}</span>
                   </div>
                 ))}
-                {plan.feature_matrix.core.length > 4 && (
-                  <div className="text-xs text-gray-500">+{plan.feature_matrix.core.length - 4} more features</div>
-                )}
               </div>
             </div>
 

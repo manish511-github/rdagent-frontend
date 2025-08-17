@@ -234,6 +234,7 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
       : `https://${row.name.toLowerCase().replace(/[^a-z0-9]+/g, '')}.com/`
 
     const companySlug = row.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    const sourceIdParam = row.competitorSourceId || new URL(competitorUrl).hostname.replace(/^www\./, '').replace(/\./g, '_')
     analysisMutation.mutate(
       {
         user_id: userId as number,
@@ -243,7 +244,12 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
       },
       {
         onSettled: () => {
-          router.push(`/projects/${projectId}/company-analysis?company=${companySlug}`)
+          const q = new URLSearchParams({
+            source_id: sourceIdParam,
+            our_url: ourUrl,
+            competitor_url: competitorUrl,
+          })
+          router.push(`/projects/${projectId}/company-analysis?${q.toString()}`)
         },
       },
     )
@@ -522,28 +528,41 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
           </div>
            ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
-              {filteredAndSorted.map((c, idx) => (
-                <Link key={`${c.slug}-${idx}`} href={`/projects/${projectId}/company-analysis?company=${c.slug}`} className="block">
-                  <Card className="hover:bg-accent/40 transition">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="font-medium flex items-center gap-2">
+              {filteredAndSorted.map((c, idx) => {
+                const apiItem = competitorsQuery.data?.find((apiItem: any) => apiItem.competitor_name === c.name)
+                const sourceId = apiItem?.competitor_source_id as string | undefined
+                const compUrl = sourceId
+                  ? `https://${sourceId.replace(/_/g, ".").replace(/\.com$/i, ".com")}/`
+                  : `https://${c.slug.replace(/-/g, '')}.com/`
+                const q = new URLSearchParams({
+                  company: c.slug,
+                  ...(sourceId ? { source_id: sourceId } : {}),
+                  ...(currentProject?.website_url ? { our_url: currentProject.website_url } : {}),
+                  competitor_url: compUrl,
+                })
+                return (
+                  <Link key={`${c.slug}-${idx}`} href={`/projects/${projectId}/company-analysis?${q.toString()}`} className="block">
+                    <Card className="hover:bg-accent/40 transition">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
                     {c.name}
                   </div>
-                        {c.status && (
-                          <Badge variant={c.status === 'completed' ? 'secondary' : 'outline'} className="text-[10px]">
-                            {c.status}
-                          </Badge>
-                        )}
+                          {c.status && (
+                            <Badge variant={c.status === 'completed' ? 'secondary' : 'outline'} className="text-[10px]">
+                              {c.status}
+                            </Badge>
+                          )}
                 </div>
-                      <div className="text-sm text-muted-foreground mt-1">{c.industry}</div>
-                      <div className="text-sm text-muted-foreground line-clamp-2 mt-1">{c.headline}</div>
-                    </CardContent>
-                  </Card>
-              </Link>
-            ))}
-          </div>
+                        <div className="text-sm text-muted-foreground mt-1">{c.industry}</div>
+                        <div className="text-sm text-muted-foreground line-clamp-2 mt-1">{c.headline}</div>
+                      </CardContent>
+                    </Card>
+                </Link>
+                )
+              })}
+            </div>
           )}
         </div>
       </div>

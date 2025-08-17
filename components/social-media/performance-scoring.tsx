@@ -22,7 +22,7 @@ export function PerformanceScoring({ scoring }: PerformanceScoringProps) {
   ].filter((item) => item.data)
 
   return (
-    <Card className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 rounded-none">
+    <Card className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-black p-4 rounded-none">
       <div className="flex items-center gap-2 mb-3">
         <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Performance Score</h4>
         <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">{scoring.total_channel_score}/100</span>

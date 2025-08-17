@@ -18,14 +18,14 @@ export function PerformanceInsights({
 }: PerformanceInsightsProps) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <Card className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
+      <Card className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-black p-4">
         <div className="flex items-center gap-2 mb-3">
           <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
           <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{topTitle}</h4>
         </div>
         <div className="space-y-2">
           {topPerformers.slice(0, 2).map((performer, index) => (
-            <div key={index} className="p-2 bg-gray-50 dark:bg-gray-800">
+            <div key={index} className="p-2 bg-gray-50 dark:bg-[#0A0A0A]">
               <div className="text-xs font-medium text-gray-900 dark:text-gray-100 mb-1 line-clamp-1">
                 {performer.title}
               </div>
@@ -37,14 +37,14 @@ export function PerformanceInsights({
         </div>
       </Card>
 
-      <Card className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
+      <Card className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-black p-4">
         <div className="flex items-center gap-2 mb-3">
           <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
           <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{bottomTitle}</h4>
         </div>
         <div className="space-y-2">
           {bottomPerformers.slice(0, 2).map((performer, index) => (
-            <div key={index} className="p-2 bg-gray-50 dark:bg-gray-800">
+            <div key={index} className="p-2 bg-gray-50 dark:bg-[#0A0A0A]">
               <div className="text-xs font-medium text-gray-900 dark:text-gray-100 mb-1 line-clamp-1">
                 {performer.title}
               </div>
