@@ -7,7 +7,7 @@ import { getApiUrl } from "../../lib/config";
 import type { ApiAgent } from "../slices/agentsSlice";
 
 // Types
-export type AgentType = "twitter" | "reddit" | "mixed";
+export type AgentType = "twitter" | "reddit" | "hackernews" | "mixed";
 
 export type PostStatus =
   | "pending"
@@ -140,7 +140,7 @@ export interface AgentState {
 // Unified interface for displaying posts in the UI
 export interface DisplayPost {
   id: string;
-  platform: "reddit" | "twitter";
+  platform: "reddit" | "twitter" | "hackernews";
   author: string;
   time: string;
   status: PostStatus;
@@ -283,6 +283,28 @@ const transformPostsToDisplayPosts = (
         upvotes: post.favorite_count || 0,
         url: `https://twitter.com/${post.user_screen_name}/status/${post.tweet_id}`,
         created_at: post.created_at || "",
+      };
+    } else if (platform === "hackernews") {
+      // Hacker News normalized post (expects HN-like fields)
+      return {
+        id: String(post.id ?? `hn_${index}`),
+        platform: "hackernews" as const,
+        author: post.by || "Unknown",
+        time: post.time ? new Date(post.time * 1000).toLocaleString() : "Unknown",
+        status: "processed",
+        title: post.title || "",
+        content: post.text || post.story_text || post.comment_text || "",
+        tag: ((): string => { try { return new URL(post.url).hostname; } catch { return "news.ycombinator.com"; } })(),
+        relevance: post.score || 0,
+        sentiment: "neutral",
+        keywords: [],
+        intent: "Unknown",
+        aiResponse: "",
+        aiConfidence: 0,
+        comments: post.descendants || 0,
+        upvotes: post.score || 0,
+        url: post.url || `https://news.ycombinator.com/item?id=${post.id}`,
+        created_at: post.time ? String(post.time) : "",
       };
     }
 
@@ -452,6 +474,8 @@ export const fetchAgentData = createAsyncThunk(
         agentType = "twitter";
       } else if (agentData.results?.agent_platform === "reddit") {
         agentType = "reddit";
+      } else if (agentData.results?.agent_platform === "hackernews") {
+        agentType = "hackernews";
       }
 
       // Transform posts based on agent type

@@ -96,6 +96,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import HackerNewsView from "./hackernews-view";
+import { final_stories_output as HN_FINAL } from "./hackernews_dummy_data";
 
 // Add this utility function to hide scrollbars
 const scrollbarHideClass = "scrollbar-hide";
@@ -1782,6 +1784,30 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
             <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
             <p className="text-muted-foreground">Loading agent details...</p>
           </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // If this is a HackerNews agent, render the HN view with dummy data for now
+  if (agentType === "hackernews") {
+    const dummyStories = (HN_FINAL as any[]).map((it) => ({
+      id: Number(it.id),
+      title: typeof it.title === "string" ? it.title : "(no title)",
+      url: it.url ?? null,
+      score: typeof it.score === "number" ? it.score : 0,
+      time: typeof it.time === "number" ? it.time : undefined,
+    	descendants: Array.isArray(it.children) ? it.children.length : 0,
+    	children: Array.isArray(it.children) ? it.children : [],
+    	relevant_comment_ids: Array.isArray(it.relevant_comment_ids)
+    	  ? it.relevant_comment_ids
+    	  : [],
+    }));
+
+    return (
+      <Layout>
+        <div className="h-[calc(100vh-80px)]">
+          <HackerNewsView stories={dummyStories} />
         </div>
       </Layout>
     );

@@ -66,6 +66,8 @@ export default function Layout({ children }: LayoutProps) {
   // Check if we're on an individual agent page which needs fixed height
   const isAgentPage =
     pathname.includes("/agents/") && pathname.split("/").length > 4;
+  // Company analysis page should behave like fixed-height app view
+  const isCompanyAnalysisPage = pathname.includes("/company-analysis");
 
   useEffect(() => {
     setMounted(true);
@@ -84,8 +86,8 @@ export default function Layout({ children }: LayoutProps) {
         </header>
         <main
           className={`flex-1 ${
-            isAgentPage ? "overflow-hidden" : "overflow-auto"
-          } bg-white dark:bg-[#09090B]`}
+            isAgentPage || isCompanyAnalysisPage ? "overflow-hidden" : "overflow-auto"
+          } bg-white dark:bg-black`}
         >
           {mounted ? (
             children
