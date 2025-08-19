@@ -320,20 +320,7 @@ export default function UpgradePlan({
               );
             })}
           </StaggerContainer>
-          {!isAuthenticated && (
-            <div className="mt-8 text-center">
-              <p className="text-muted-foreground mb-4">
-                Already have an account? 
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto font-normal"
-                  onClick={() => router.push("/login")}
-                >
-                  Sign in
-                </Button>
-              </p>
-            </div>
-          )}
+          
         </div>
       </div>
     </div>

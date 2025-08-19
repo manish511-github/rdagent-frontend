@@ -15,10 +15,17 @@ const config = {
       center: true,
       padding: {
         DEFAULT: "1rem", // Reduced from 1.5rem
-        md: "1.5rem", // Reduced from 2rem
-        lg: "3rem", // Reduced from 4rem
-        xl: "4rem", // Reduced from 5rem
+        md: "5.5rem", // Reduced from 2rem
+        lg: "6rem", // Reduced from 4rem
+        xl: "5rem", // Reduced from 5rem
         "2xl": "5rem", // Reduced from 6rem
+      },
+      screens: {
+        sm: "600px",
+        md: "960px",
+        lg: "1140px",
+        xl: "1240px",
+        "2xl": "1320px",
       },
     },
     extend: {

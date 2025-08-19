@@ -1,9 +1,6 @@
 "use client"
-import { Badge } from "@/components/ui/badge"
+import Link from "next/link"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { MessageCircle } from "lucide-react" // Changed MessageCircleQuestion to MessageCircle
-import { motion } from "framer-motion" // Added motion import for animations
-import { FadeIn } from "@/components/animations/fade-in" // Added FadeIn import
 
 const faqs = [
   {
@@ -24,7 +21,7 @@ const faqs = [
   {
     question: "Can I review and approve posts before they go live?",
     answer:
-      "While our AI agents can automatically engage, you have full control. You can review, edit, or approve any automated responses before they’re posted, ensuring your brand voice remains authentic.",
+      "While our AI agents can automatically engage, you have full control. You can review, edit, or approve any automated responses before they're posted, ensuring your brand voice remains authentic.",
   },
   {
     question: "Which platforms does Market-Agent work with?",
@@ -52,60 +49,38 @@ export function FAQSection() {
   return (
     <section>
       <div className="container border-x">
-        <div className="mx-auto max-w-3xl flex flex-col gap-6 py-8 md:py-12 lg:py-16">
-          <FadeIn>
-            <motion.div whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 400, damping: 17 }}>
-              <Badge variant="outline" className="w-fit gap-1 px-3 font-normal tracking-tight shadow-sm text-lg">
-                <motion.div
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, delay: 0.5 }}
-                >
-                  <MessageCircle className="size-6" /> {/* Changed to MessageCircle */}
-                </motion.div>
-                <span>FAQ</span>
-              </Badge>
-            </motion.div>
-          </FadeIn>
-          <FadeIn delay={0.2}>
-            <h2 className="text-3xl leading-tight tracking-tight md:text-4xl lg:text-6xl font-medium">
+        <section className="mx-auto max-w-7xl space-y-10 px-4 py-16">
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-sm font-medium w-fit">
+              Frequently Asked Questions
+            </span>
+            <h1 className="mt-4 text-balance text-4xl font-bold tracking-tighter md:text-5xl">
               Everything You Need to Know
-            </h2>
-          </FadeIn>
-          <FadeIn delay={0.4}>
-            <p className="text-muted-foreground max-w-[600px] tracking-[-0.32px] font-light text-lg">
-              Looking for quick answers? Check out our <span className="underline">FAQ section</span>.
+            </h1>
+            <p className="mt-2 text-balance text-lg text-muted-foreground">
+              Looking for quick answers? Check out our FAQ section.
             </p>
-          </FadeIn>
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.8 }}
-          >
-            <Accordion type="single" collapsible className="space-y-4">
-              {faqs.map((faq, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 + 0.8, duration: 0.5 }}
-                  whileHover={{ scale: 1.01, boxShadow: "0 5px 15px rgba(0,0,0,0.05)" }}
-                >
-                  <AccordionItem
-                    value={`item-${index}`}
-                    className="text-primary rounded-[7px] border px-6 data-[state=open]:pb-2 transition-all duration-300"
-                  >
-                    <AccordionTrigger className="tracking-[-0.32px] hover:no-underline py-2.5 text-lg">
-                      {faq.question}
-                    </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground text-base tracking-[-0.32px]">
-                      {faq.answer}
-                    </AccordionContent>
-                  </AccordionItem>
-                </motion.div>
-              ))}
-            </Accordion>
-          </motion.div>
-        </div>
+          </div>
+
+          <Accordion type="single" collapsible className="mx-auto w-full max-w-2xl text-base">
+            {faqs.map((faq, index) => (
+              <AccordionItem key={faq.question} value={`item-${index + 1}`} className="border-b last:border-b-0">
+                <AccordionTrigger className="flex items-start justify-between gap-4 rounded-md py-6 text-left text-base font-medium hover:underline">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-base">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+
+          <div className="text-center">
+            <Link href="#" className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90">
+              View all FAQs →
+            </Link>
+          </div>
+        </section>
       </div>
       <div className="h-8 w-full border-y md:h-12 lg:h-[112px]">
         <div className="container h-full w-full border-x" />

@@ -8,6 +8,23 @@ module.exports = {
     "*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: "1rem",
+        md: "1.5rem",
+        lg: "3rem",
+        xl: "4rem",
+        "2xl": "5rem",
+      },
+      screens: {
+        sm: "600px",
+        md: "960px",
+        lg: "1140px",
+        xl: "1240px",
+        "2xl": "1320px",
+      },
+    },
     extend: {
       fontFamily: {
         inter: ["var(--font-inter)", "sans-serif"],

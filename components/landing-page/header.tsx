@@ -84,16 +84,16 @@ export function Header() {
   return (
     <>
       {/* Spacer to prevent content jump */}
-      <div className="h-20" />
+      {/* <div className="h-20" /> */}
 
       <motion.header
         ref={headerRef}
-        className={`fixed top-4 z-50 w-full transition-all duration-500`}
+        className={`sticky top-0 z-50 w-full transition-all duration-500`}
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
-        <div className="container">
+        <div className="container px-0">
           <motion.div
             className={`relative backdrop-blur-xl bg-background/80 border border-border/50 rounded-2xl shadow-lg transition-all duration-500 ${
               isScrolled ? "shadow-xl bg-background/90 border-border/80" : "shadow-md"
@@ -107,7 +107,7 @@ export function Header() {
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
 
             <div className="py-3 px-0 leading-7">
-              <div className="flex items-center justify-between mx-5">
+              <div className="flex items-center justify-between px-4 md:px-6 lg:px-8">
                 {/* Logo */}
                 <motion.div
                   whileHover={{ scale: 1.05 }}
@@ -127,8 +127,8 @@ export function Header() {
                   </Link>
                 </motion.div>
 
-                {/* Desktop Navigation - Centered */}
-                <nav className="hidden lg:flex items-center absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                {/* Desktop Navigation - Centered within container */}
+                <nav className="hidden lg:flex items-center justify-center">
                   <div className="flex items-center gap-1 bg-muted/50 rounded-full p-1">
                     {navItems.map((item, index) => (
                       <motion.div
