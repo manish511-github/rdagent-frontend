@@ -30,8 +30,12 @@ const initialState: ProjectsState = {
 const transformApiProject = (apiProject: ApiProject): Project => {
   // Generate some default values for UI fields that don't exist in API
   const defaultTeam = apiProject.team || [];
+
+  // Handle tags - filter out single characters and invalid entries
   const defaultTags = apiProject.tags
-    ? apiProject.tags.split(",").map((tag) => tag.trim())
+    ? apiProject.tags.filter(
+        (tag) => tag.length > 1 && tag !== "," && tag !== "{" && tag !== "}"
+      )
     : [];
 
   // Determine status based on agent_count and activity
@@ -53,6 +57,27 @@ const transformApiProject = (apiProject: ApiProject): Project => {
     else if (daysSinceActivity > 3) health = "warning";
   }
 
+  // Convert team strings to team objects for UI compatibility
+  const teamObjects = defaultTeam.map((member, index) => ({
+    name: member,
+    avatar: `/placeholder-user.jpg`,
+    initials: member
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase(),
+    role: "Team Member",
+  }));
+
+  // Convert budget string to number (extract first number from range like "$10000-$20000")
+  let budgetNumber = 0;
+  if (apiProject.budget) {
+    const budgetMatch = apiProject.budget.match(/\$?(\d+)/);
+    if (budgetMatch) {
+      budgetNumber = parseInt(budgetMatch[1], 10);
+    }
+  }
+
   return {
     uuid: apiProject.uuid,
     title: apiProject.title,
@@ -64,9 +89,9 @@ const transformApiProject = (apiProject: ApiProject): Project => {
     lastUpdated: apiProject.last_activity || apiProject.created_at,
     priority: apiProject.priority,
     category: apiProject.category,
-    budget: apiProject.budget || 0,
+    budget: budgetNumber,
     budgetSpent: 0, // Not provided by API
-    team: defaultTeam,
+    team: teamObjects,
     tags: defaultTags,
     metrics: {
       tasks: 0, // Not provided by API

@@ -12,14 +12,9 @@ export interface ApiProject {
   category: string;
   priority: string;
   due_date: string | null;
-  budget: number | null;
-  team: Array<{
-    name: string;
-    avatar: string;
-    initials: string;
-    role: string;
-  }>;
-  tags: string | null;
+  budget: string | null;
+  team: string[];
+  tags: string[];
   competitors: string[];
   keywords: string[];
   excluded_keywords: string[];
