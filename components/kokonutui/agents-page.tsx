@@ -37,6 +37,8 @@ import {
   Music,
   CheckCircle,
   LoaderCircle,
+  Grid3X3,
+  List,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -699,165 +701,62 @@ export default function AgentsPage() {
   return (
     <Layout>
       <div className="space-y-8 p-4">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-2xl">
-          {/* Modern Elegant Background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950">
-            {/* Circuit Board Pattern */}
-            <div className="absolute inset-0 opacity-10">
-              <svg
-                className="absolute top-0 left-0 w-full h-full"
-                viewBox="0 0 800 400"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <defs>
-                  <pattern
-                    id="circuit-pattern"
-                    x="0"
-                    y="0"
-                    width="100"
-                    height="100"
-                    patternUnits="userSpaceOnUse"
-                    patternTransform="rotate(5)"
-                  >
-                    <path
-                      d="M0 50h100M50 0v100M25 25h25v25h25M75 75h-25v-25h-25"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="0.5"
-                    />
-                    <circle cx="50" cy="50" r="3" fill="currentColor" />
-                    <circle cx="25" cy="25" r="2" fill="currentColor" />
-                    <circle cx="75" cy="75" r="2" fill="currentColor" />
-                    <circle cx="75" cy="25" r="2" fill="currentColor" />
-                    <circle cx="25" cy="75" r="2" fill="currentColor" />
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#circuit-pattern)" />
-              </svg>
-            </div>
-
-            {/* Glowing Accent Elements */}
-            <div className="absolute top-0 right-0 w-full h-full overflow-hidden">
-              <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-cyan-500/10 blur-3xl" />
-              <div className="absolute -bottom-20 -left-10 w-48 h-48 rounded-full bg-blue-500/10 blur-3xl" />
-
-              {/* Digital Data Stream Effect */}
-              <div className="absolute inset-0">
-                {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent"
-                    style={{
-                      top: `${30 + i * 30}%`,
-                      left: 0,
-                      right: 0,
-                      opacity: 0.3 + Math.random() * 0.3,
-                      animation: `dataStream ${
-                        5 + Math.random() * 5
-                      }s linear infinite`,
-                      animationDelay: `${Math.random() * 3}s`,
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Floating Tech Elements */}
-            <div className="absolute top-8 right-1/4 w-12 h-12 border border-cyan-500/20 rounded-lg rotate-12 backdrop-blur-sm" />
-            <div className="absolute bottom-8 left-1/4 w-14 h-14 border border-blue-500/20 rounded-full backdrop-blur-sm" />
-          </div>
-
-          {/* Content */}
-          <div className="relative z-10 p-6 md:p-8">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              {/* Left Section - Title and Description */}
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2.5 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 backdrop-blur-md rounded-xl border border-cyan-500/30 shadow-xl">
-                    <BrainCircuit className="h-6 w-6 text-cyan-400" />
-                  </div>
-                  <div>
-                    <h1 className="text-3xl md:text-4xl font-bold text-white">
-                      AI Agents
-                    </h1>
-                    <p className="text-cyan-100/80 text-sm">
-                      Intelligent automation across platforms
-                    </p>
-                  </div>
-                </div>
-                <p className="text-base text-slate-300 max-w-2xl leading-relaxed">
-                  Deploy intelligent agents to automate engagement, generate
-                  leads, and grow your business on autopilot.
+        {/* Banner with stats */}
+        <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white w-full rounded-md overflow-hidden">
+          <div className="w-full px-4 md:px-6 py-6 md:py-4">
+            <div className="flex flex-col md:flex-row items-start gap-6">
+              <div className="flex-1 space-y-3">
+                <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-white flex items-center gap-2">
+                  <BrainCircuit className="h-5 w-5" />
+                  AI Agents
+                </h2>
+                <p className="text-slate-200 text-xs md:text-sm leading-relaxed max-w-xl font-normal">
+                  Deploy intelligent agents to automate engagement, generate leads, and grow your business on autopilot.
                 </p>
+                <div className="flex gap-2 pt-1">
+                  <Button className="gap-1.5 h-7 text-xs bg-white text-slate-900 hover:bg-white/90" onClick={() => setIsCreateModalOpen(true)}>
+                    <Plus className="h-3 w-3" /> Create agent
+                  </Button>
+                </div>
               </div>
-
-              {/* Right Section - Stats Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 lg:max-w-2xl">
-                <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-md rounded-lg p-3 border border-slate-700/50 shadow-lg transition-all hover:border-cyan-500/30">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <Activity className="h-3.5 w-3.5 text-cyan-400" />
-                    <span className="text-xs text-slate-400">Active</span>
+              <div className="w-full md:w-auto">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <Activity className="h-3.5 w-3.5 text-cyan-300" />
+                      <span className="text-xs text-slate-300">Active</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xl font-bold text-white">{totalActive}</span>
+                      <span className="text-xs text-slate-300">/ {agents.length}</span>
+                    </div>
                   </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-white">
-                      {totalActive}
-                    </span>
-                    <span className="text-xs text-slate-400">
-                      / {agents.length}
-                    </span>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <MessageSquare className="h-3.5 w-3.5 text-cyan-300" />
+                      <span className="text-xs text-slate-300">Messages</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xl font-bold text-white">{totalMessages}</span>
+                    </div>
                   </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-md rounded-lg p-3 border border-slate-700/50 shadow-lg transition-all hover:border-cyan-500/30">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <MessageSquare className="h-3.5 w-3.5 text-cyan-400" />
-                    <span className="text-xs text-slate-400">Messages</span>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <Users className="h-3.5 w-3.5 text-cyan-300" />
+                      <span className="text-xs text-slate-300">Engaged</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xl font-bold text-white">{totalEngagement}</span>
+                    </div>
                   </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-white">
-                      {totalMessages}
-                    </span>
-                    <span className="text-xs text-emerald-400">+24%</span>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-md rounded-lg p-3 border border-slate-700/50 shadow-lg transition-all hover:border-cyan-500/30">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <Users className="h-3.5 w-3.5 text-cyan-400" />
-                    <span className="text-xs text-slate-400">Engaged</span>
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-white">
-                      {totalEngagement}
-                    </span>
-                    <span className="text-xs text-emerald-400">+18%</span>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-md rounded-lg p-3 border border-slate-700/50 shadow-lg transition-all hover:border-cyan-500/30">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <TrendingUp className="h-3.5 w-3.5 text-cyan-400" />
-                    <span className="text-xs text-slate-400">Converts</span>
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-white">
-                      {totalConversions}
-                    </span>
-                    <span className="text-xs text-emerald-400">+32%</span>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-md rounded-lg p-3 border border-slate-700/50 shadow-lg transition-all hover:border-cyan-500/30">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <BarChart3 className="h-3.5 w-3.5 text-cyan-400" />
-                    <span className="text-xs text-slate-400">Avg Perf</span>
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-white">
-                      {avgPerformance}%
-                    </span>
-                    <span className="text-xs text-emerald-400">+5%</span>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <TrendingUp className="h-3.5 w-3.5 text-cyan-300" />
+                      <span className="text-xs text-slate-300">Converts</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xl font-bold text-white">{totalConversions}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -865,84 +764,32 @@ export default function AgentsPage() {
           </div>
         </div>
 
-        {/* Filters Section */}
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search agents by name or description..."
-              className="pl-10 h-11 bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+        {/* Controls bar */}
+        <div className="flex items-center justify-between gap-2 mb-4 w-full">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center border rounded-md p-0.5 h-7">
+              <Button variant="secondary" size="sm" className="h-6 w-6 p-0 rounded-sm">
+                <Grid3X3 className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-sm">
+                <List className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
-
-          <div className="flex gap-3">
-            <Select value={filterPlatform} onValueChange={setFilterPlatform}>
-              <SelectTrigger className="w-[180px] h-11 bg-white dark:bg-gray-900/60">
-                <div className="flex items-center gap-2">
-                  <Layers className="h-4 w-4" />
-                  <SelectValue placeholder="All Platforms" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Platforms</SelectItem>
-                {platformOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div className="flex items-center gap-2">
-                      <PlatformIcon
-                        platform={option.value}
-                        className="h-4 w-4"
-                      />
-                      <span>{option.label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[180px] h-11 bg-white dark:bg-gray-900/60">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  <SelectValue placeholder="All Status" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span>Active</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="paused">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-amber-500" />
-                    <span>Paused</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="error">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-red-500" />
-                    <span>Error</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="pending">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-blue-500" />
-                    <span>Pending</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="h-11 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-lg shadow-cyan-500/25"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Agent
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-1.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search agents..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-[200px] h-7 text-xs pl-7 pr-2"
+              />
+            </div>
+            <Button className="h-7 text-xs gap-1 px-2.5" onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="h-3 w-3" />
+              <span>New agent</span>
             </Button>
           </div>
         </div>

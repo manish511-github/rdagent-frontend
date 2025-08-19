@@ -92,6 +92,21 @@ export const formatRelativeDate = (dateString: string) => {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
 
+export const formatDateTime = (dateString: string) => {
+  if (!dateString) return "-";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "-";
+  return date.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+};
+
 export const getCategoryIcon = (category: string): LucideIcon => {
   switch (category.toLowerCase()) {
     case "marketing":

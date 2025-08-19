@@ -150,6 +150,36 @@ export const fetchProjectSummary = createAsyncThunk(
   }
 );
 
+export const deleteProject = createAsyncThunk(
+  "projects/deleteProject",
+  async (projectUuid: string) => {
+    let token = Cookies.get("access_token");
+    let response = await fetch(getApiUrl(`projects/${projectUuid}`), {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401) {
+      token = await refreshAccessToken();
+      if (token) {
+        response = await fetch(getApiUrl(`projects/${projectUuid}`), {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+    }
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || "Failed to delete project");
+    }
+
+    return { uuid: projectUuid };
+  }
+);
+
 const projectsSlice = createSlice({
   name: "projects",
   initialState,
@@ -184,6 +214,18 @@ const projectsSlice = createSlice({
         state.summaryStatus = "failed";
         state.summaryError =
           action.error.message || "Failed to fetch project summary";
+      })
+      // Delete project
+      .addCase(deleteProject.fulfilled, (state, action) => {
+        const uuid = action.payload.uuid;
+        state.items = state.items.filter((p) => p.uuid !== uuid);
+        // Optionally update summary counts if present
+        if (state.summary) {
+          state.summary.total_projects = Math.max(
+            0,
+            (state.summary.total_projects || 0) - 1
+          );
+        }
       });
   },
 });

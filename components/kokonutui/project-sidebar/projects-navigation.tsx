@@ -1,4 +1,4 @@
-import { Home, Clock, Star, Archive, Target, PenTool, Briefcase, FileText, ImageIcon, Bookmark } from "lucide-react";
+import { Home, Clock, Star, Target, PenTool, Briefcase, FileText, ImageIcon, Bookmark } from "lucide-react";
 import { NavItem } from "./nav-item";
 import type { FC } from "react";
 
@@ -25,9 +25,6 @@ export const ProjectsNavigation: FC<ProjectsNavigationProps> = ({ isCollapsed, i
         </NavItem>
         <NavItem href="/projects?filter=starred" icon={Star} isCollapsed={isCollapsed} isMounted={isMounted}>
           Starred
-        </NavItem>
-        <NavItem href="/projects?filter=archived" icon={Archive} isCollapsed={isCollapsed} isMounted={isMounted}>
-          Archived
         </NavItem>
       </div>
     </div>

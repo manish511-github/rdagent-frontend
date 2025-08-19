@@ -25,7 +25,7 @@ export function HeroSection() {
       <div className="flex">
         {mounted && (
           <motion.div
-            className="relative w-[159px] border-r p-1 max-lg:hidden 2xl:flex-1"
+            className="relative w-[159px] border-r p-1 max-lg:hidden"
             initial={{ x: -100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
@@ -78,7 +78,7 @@ export function HeroSection() {
 
         {mounted && (
           <motion.div
-            className="relative w-[159px] p-1 max-lg:hidden border-r-0 border-l 2xl:flex-1"
+            className="relative w-[159px] p-1 max-lg:hidden border-r-0 border-l"
             initial={{ x: 100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
@@ -126,7 +126,7 @@ export function HeroSection() {
       )}
 
       <div className="flex">
-        <div className="relative w-[159px] border-r p-1 max-lg:hidden 2xl:flex-1" />
+        <div className="relative w-[159px] border-r p-1 max-lg:hidden" />
         <div className="container !pt-0 lg:!p-1.5">
           <FadeIn delay={1.2} direction="up">
             <Image
@@ -138,7 +138,7 @@ export function HeroSection() {
             />
           </FadeIn>
         </div>
-        <div className="relative w-[159px] p-1 max-lg:hidden border-r-0 border-l 2xl:flex-1" />
+        <div className="relative w-[159px] p-1 max-lg:hidden border-r-0 border-l" />
       </div>
 
       {mounted && (

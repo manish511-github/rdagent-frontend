@@ -24,7 +24,6 @@ import {
   MoreHorizontal,
   ExternalLink,
   Copy,
-  Archive,
   Trash2,
   Clock,
   Briefcase,
@@ -36,7 +35,11 @@ import {
   getStatusColor,
   formatRelativeDate,
   getCategoryIcon,
+  formatDateTime,
 } from "./projectUtils";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/store/store";
+import { deleteProject } from "@/store/slices/projectsSlice";
 
 interface ProjectCardProps {
   project: Project;
@@ -62,11 +65,21 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   handleProjectClick,
   view,
 }) => {
-  const lastActivity = project.lastActivity ?? project.lastUpdated;
+  const dispatch = useDispatch<AppDispatch>();
+  const lastActivity = project.lastUpdated;
   const agentCount = project.agentCount ?? project.team.length;
   const tags = Array.isArray(project.tags) ? project.tags : [];
   const Icon = project.icon ?? getCategoryIcon(project.category);
   const isLoading = loadingProjectId === project.uuid;
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await dispatch(deleteProject(project.uuid)).unwrap();
+    } catch (err) {
+      // no-op
+    }
+  };
 
   return view === "list" ? (
     <div
@@ -86,18 +99,6 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           <div className="font-semibold text-sm truncate">{project.title}</div>
         </div>
       </div>
-      {/* Status */}
-      {/* <div className="col-span-1">
-        <Badge
-          variant="secondary"
-          className={cn(
-            "text-xs px-2 py-0 h-6 font-medium border-0",
-            getStatusColor(project.status)
-          )}
-        >
-          {project.status}
-        </Badge>
-      </div> */}
       {/* About */}
       <div className="col-span-3 min-w-0">
         <div className="text-xs text-muted-foreground truncate">
@@ -113,7 +114,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       <div className="col-span-2 flex items-center gap-1 text-xs text-muted-foreground">
         <Clock className="h-3.5 w-3.5" />
         <span className="font-medium">
-          {lastActivity ? formatRelativeDate(lastActivity) : "-"}
+          {lastActivity ? formatDateTime(lastActivity) : "-"}
         </span>
       </div>
       {/* Actions */}
@@ -133,12 +134,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               <Copy className="mr-2 h-3 w-3" />
               Duplicate
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-xs">
-              <Archive className="mr-2 h-3 w-3" />
-              Archive
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive text-xs">
+            <DropdownMenuItem className="text-destructive text-xs" onClick={handleDelete}>
               <Trash2 className="mr-2 h-3 w-3" />
               Delete
             </DropdownMenuItem>
@@ -226,31 +223,12 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                   <h3 className="text-base font-semibold tracking-tight line-clamp-1 group-hover:text-primary dark:group-hover:text-primary/90 transition-colors font-sans">
                     {project.title}
                   </h3>
-                  {/* <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "text-[10px] font-medium border-0 px-1.5 py-0 h-5",
-                        getStatusColor(project.status)
-                      )}
-                    >
-                      {project.status}
-                    </Badge>
-                    {project.priority === "High" && (
-                      <div
-                        className="h-1.5 w-1.5 rounded-full bg-blue-900 dark:bg-blue-700"
-                        title="High Priority"
-                      />
-                    )}
-                  </div> */}
                 </div>
 
                 {/* Description */}
                 <p className="text-[0.70rem] leading-relaxed text-foreground/80 dark:text-slate-100/90 line-clamp-4 mb-3 font-normal tracking-wide font-inter">
                   {project.description}
                 </p>
-
-                {/* Meta section removed in redesign */}
 
                 {/* Bottom info */}
                 <div className="flex items-center justify-between">
@@ -301,8 +279,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="h-3.5 w-3.5" />
                       <span className="text-xs">Last Activity:</span>{" "}
-                      <span className="font-medium">
-                        {lastActivity ? formatRelativeDate(lastActivity) : "-"}
+                      <span className="font-medium text-[10px]">
+                        {lastActivity ? formatDateTime(lastActivity) : "-"}
                       </span>
                     </div>
 
@@ -327,12 +305,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                           <Copy className="mr-2 h-3 w-3" />
                           Duplicate
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-xs">
-                          <Archive className="mr-2 h-3 w-3" />
-                          Archive
-                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive text-xs">
+                        <DropdownMenuItem className="text-destructive text-xs" onClick={handleDelete}>
                           <Trash2 className="mr-2 h-3 w-3" />
                           Delete
                         </DropdownMenuItem>

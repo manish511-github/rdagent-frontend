@@ -5,7 +5,7 @@ import {
   fetchProjects,
   fetchProjectSummary,
 } from "@/store/slices/projectsSlice";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { getApiUrl } from "../../../lib/config";
 import Cookies from "js-cookie";
@@ -73,7 +73,6 @@ export const CreateProjectDialogWrapper: React.FC<
   CreateProjectDialogWrapperProps
 > = ({ open, onOpenChange }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { toast } = useToast();
 
   // New project form state
   const [newProject, setNewProject] = useState({
@@ -286,30 +285,30 @@ export const CreateProjectDialogWrapper: React.FC<
         const errorBody = await response
           .json()
           .catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+        
+        // Handle project limit error specifically
+        if (response.status === 403 && errorBody.detail && errorBody.detail.includes("Project limit reached")) {
+          toast.error("Project limit reached. Please upgrade your plan to create more projects.");
+          onOpenChange(false);
+          return;
+        }
+        
         throw new Error(
-          errorBody.message || `HTTP error! status: ${response.status}`
+          errorBody.message || errorBody.detail || `HTTP error! status: ${response.status}`
         );
       }
 
       const createdProject = await response.json();
       console.log("Project created successfully:", createdProject);
 
-      toast({
-        title: "Project Created",
-        description: `Project "${createdProject.title}" created successfully.`,
-        variant: "default",
-      });
+      toast.success(`Project "${createdProject.title}" created successfully.`);
 
       // Refetch projects and summary to show the new project instantly
       dispatch(fetchProjects());
       dispatch(fetchProjectSummary());
     } catch (error: any) {
       console.error("Error creating project:", error);
-      toast({
-        title: "Failed to Create Project",
-        description: error.message || "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Something went wrong. Please try again.");
     } finally {
       onOpenChange(false);
     }

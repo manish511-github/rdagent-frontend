@@ -38,6 +38,10 @@ import {
   Layers,
   Loader2,
   AlertCircle,
+  Briefcase,
+  Activity,
+  Users,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
@@ -49,7 +53,6 @@ import {
 } from "@/store/slices/projectsSlice";
 import { useRouter } from "next/navigation";
 import { ProjectCard } from "./ProjectCard";
-import { ProjectStats } from "./ProjectStats";
 import {
   projectCategories,
   projectStatuses,
@@ -73,7 +76,7 @@ export default function ProjectsPage() {
   } = useSelector((state: RootState) => state.projects);
 
   // All state declarations
-  const [view, setView] = useState<"grid" | "list" | "kanban">("grid");
+  const [view, setView] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -225,8 +228,8 @@ export default function ProjectsPage() {
   // Loading state
   if (status === "loading") {
     return (
-      <div className="bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
-        <div className="p-6 max-w-[1600px] mx-auto">
+      <section className="py-4 md:py-0">
+        <div className="px-4 md:px-6 2xl:max-w-[1400px] mx-auto">
           <div className="flex items-center justify-center h-[50vh]">
             <div className="text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
@@ -234,15 +237,15 @@ export default function ProjectsPage() {
             </div>
           </div>
         </div>
-      </div>
+      </section>
     );
   }
 
   // Error state
   if (status === "failed") {
     return (
-      <div className="bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
-        <div className="p-6 max-w-[1600px] mx-auto">
+      <section className="py-4 md:py-0">
+        <div className="px-4 md:px-6 2xl:max-w-[1400px] mx-auto">
           <div className="flex items-center justify-center h-[50vh]">
             <div className="text-center">
               <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-4" />
@@ -259,7 +262,7 @@ export default function ProjectsPage() {
             </div>
           </div>
         </div>
-      </div>
+      </section>
     );
   }
 
@@ -284,9 +287,6 @@ export default function ProjectsPage() {
   // Bulk actions
   const handleBulkAction = (action: string) => {
     switch (action) {
-      case "archive":
-        console.log("Archiving projects:", selectedProjects);
-        break;
       case "delete":
         console.log("Deleting projects:", selectedProjects);
         break;
@@ -313,312 +313,115 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className=" bg-gradient-to-br from-background via-background/80 to-background/60 dark:from-background dark:via-background/95 dark:to-slate-900/40">
-      <div className="p-6 max-w-[1600px] mx-auto">
-        {/* Header */}
-        <div className="flex flex-col gap-6 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                Projects
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Manage and track all your projects in one place
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => setShowCreateDialog(true)}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                New Project
-              </Button>
+    <section className="py-4 md:py-0">
+      <div className="px-4 md:px-6 2xl:max-w-[1400px] mx-auto">
+        
+
+        {/* Projects Banner with Stats */}
+        <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white w-full rounded-md overflow-hidden mt-6">
+          <div className="w-full px-4 md:px-6 py-6 md:py-4">
+            <div className="flex flex-col md:flex-row items-start gap-6">
+              <div className="flex-1 space-y-3">
+                <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-white flex items-center gap-2">
+                  <Layers className="h-5 w-5" />
+                  Projects Workspace
+                </h2>
+                <p className="text-slate-200 text-xs md:text-sm leading-relaxed max-w-xl font-normal">
+                  Organize, track, and ship your work faster. Create a new project or jump back into your ongoing work.
+                </p>
+                <div className="flex gap-2 pt-1">
+                  <Button className="gap-1.5 h-7 text-xs bg-white text-slate-900 hover:bg-white/90" onClick={() => setShowCreateDialog(true)}>
+                    <Plus className="h-3 w-3" /> Create project
+                  </Button>
+                </div>
+              </div>
+              <div className="w-full md:w-auto">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-slate-300">Total Projects</p>
+                        <p className="text-xl font-semibold text-white">{summary?.total_projects || 0}</p>
+                      </div>
+                      <Briefcase className="h-5 w-5 text-slate-300/60" />
+                    </div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-slate-300">Active Projects</p>
+                        <p className="text-xl font-semibold text-white">{summary?.active_projects || 0}</p>
+                      </div>
+                      <Activity className="h-5 w-5 text-slate-300/60" />
+                    </div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-slate-300">Total Agents</p>
+                        <p className="text-xl font-semibold text-white">{summary?.total_agents || 0}</p>
+                      </div>
+                      <Users className="h-5 w-5 text-slate-300/60" />
+                    </div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-slate-300">Total Posts</p>
+                        <p className="text-xl font-semibold text-white">{summary?.total_posts || 0}</p>
+                      </div>
+                      <FileText className="h-5 w-5 text-slate-300/60" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-          {/* Statistics */}
-          <ProjectStats
-            summary={summary}
-            isLoading={summaryStatus === "loading"}
-          />
         </div>
 
-        {/* Filters and Search */}
-        <div className="flex flex-wrap md:flex-nowrap items-center gap-2 mb-4 w-full">
-          {/* Search */}
-          <div className="relative flex-1 min-w-0 w-full">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              ref={searchInputRef}
-              type="search"
-              placeholder="Search... (⌘K)"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-3 h-8 text-xs bg-background/60 dark:bg-slate-900/60 backdrop-blur-sm"
-            />
+        {/* Section header to mirror competitors page */}
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-sm font-medium">All projects</h2>
+            <span className="text-xs text-muted-foreground opacity-80">({filteredProjects.length} total)</span>
           </div>
+        </div>
 
-          {/* Filters Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+        {/* Controls */}
+        <div className="flex items-center justify-between gap-2 mb-4 w-full">
+          <div className="flex items-center border rounded-md p-0.5 h-7">
               <Button
-                variant="outline"
+                variant={view === "grid" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-8 px-2.5 text-xs"
+                className="h-6 w-6 p-0 rounded-sm"
+                onClick={() => setView("grid")}
               >
-                <Filter className="mr-1.5 h-3 w-3" />
-                Filters
-                {(categoryFilter !== "all" ||
-                  statusFilter !== "all" ||
-                  priorityFilter !== "all" ||
-                  healthFilter !== "all") && (
-                  <Badge
-                    variant="secondary"
-                    className="ml-1.5 px-1 py-0 text-[10px]"
-                  >
-                    {
-                      [
-                        categoryFilter,
-                        statusFilter,
-                        priorityFilter,
-                        healthFilter,
-                      ].filter((f) => f !== "all").length
-                    }
-                  </Badge>
-                )}
+                <Grid3X3 className="h-3.5 w-3.5" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64">
-              <div className="p-2 space-y-3 text-xs">
-                {/* Category Filter */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-medium">Category</Label>
-                  <Select
-                    value={categoryFilter}
-                    onValueChange={setCategoryFilter}
-                  >
-                    <SelectTrigger className="h-7 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projectCategories.map((category) => {
-                        const Icon = category.icon;
-                        return (
-                          <SelectItem
-                            key={category.value}
-                            value={category.value}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Icon className="h-4 w-4" />
-                              {category.label}
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Status Filter */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-medium">Status</Label>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="h-7 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projectStatuses.map((status) => {
-                        const Icon = status.icon;
-                        return (
-                          <SelectItem key={status.value} value={status.value}>
-                            <div className="flex items-center gap-2">
-                              <Icon className="h-4 w-4" />
-                              {status.label}
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Priority Filter */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-medium">Priority</Label>
-                  <Select
-                    value={priorityFilter}
-                    onValueChange={setPriorityFilter}
-                  >
-                    <SelectTrigger className="h-7 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {priorityLevels.map((priority) => {
-                        const Icon = priority.icon;
-                        return (
-                          <SelectItem
-                            key={priority.value}
-                            value={priority.value}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Icon className="h-4 w-4" />
-                              {priority.label}
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Health Filter */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-medium">Health</Label>
-                  <Select value={healthFilter} onValueChange={setHealthFilter}>
-                    <SelectTrigger className="h-7 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {healthStatuses.map((health) => {
-                        const Icon = health.icon;
-                        return (
-                          <SelectItem key={health.value} value={health.value}>
-                            <div className="flex items-center gap-2">
-                              <Icon className="h-4 w-4" />
-                              {health.label}
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Separator className="my-1" />
-
-                {/* Reset Filters */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full h-7 text-xs"
-                  onClick={() => {
-                    setCategoryFilter("all");
-                    setStatusFilter("all");
-                    setPriorityFilter("all");
-                    setHealthFilter("all");
-                  }}
-                >
-                  Reset Filters
-                </Button>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Sort */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
               <Button
-                variant="outline"
+                variant={view === "list" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-8 px-2.5 text-xs"
+                className="h-6 w-6 p-0 rounded-sm"
+                onClick={() => setView("list")}
               >
-                <SlidersHorizontal className="mr-1.5 h-3 w-3" />
-                Sort
+                <List className="h-3.5 w-3.5" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem
-                onClick={() => setSort("newest")}
-                className="text-xs"
-              >
-                <Clock className="mr-2 h-3 w-3" />
-                Newest First
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setSort("oldest")}
-                className="text-xs"
-              >
-                <Clock className="mr-2 h-3 w-3" />
-                Oldest First
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setSort("name-asc")}
-                className="text-xs"
-              >
-                <ArrowUp className="mr-2 h-3 w-3" />
-                Name (A-Z)
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setSort("name-desc")}
-                className="text-xs"
-              >
-                <ArrowDown className="mr-2 h-3 w-3" />
-                Name (Z-A)
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setSort("due-date")}
-                className="text-xs"
-              >
-                <Calendar className="mr-2 h-3 w-3" />
-                Due Date
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setSort("progress")}
-                className="text-xs"
-              >
-                <TrendingUp className="mr-2 h-3 w-3" />
-                Progress
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setSort("priority")}
-                className="text-xs"
-              >
-                <Flag className="mr-2 h-3 w-3" />
-                Priority
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Starred Toggle */}
-          <Button
-            variant={showStarredOnly ? "default" : "outline"}
-            size="sm"
-            className="h-8 px-2.5 text-xs"
-            onClick={() => setShowStarredOnly(!showStarredOnly)}
-          >
-            <Star
-              className="mr-1.5 h-3 w-3"
-              fill={showStarredOnly ? "currentColor" : "none"}
-            />
-            {showStarredOnly ? "Starred" : "All"}
-          </Button>
-
-          {/* View Toggle */}
-          <div className="flex items-center bg-muted rounded-md p-0.5 h-8">
-            <Button
-              variant={view === "grid" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 w-7 p-0"
-              onClick={() => setView("grid")}
-            >
-              <Grid3X3 className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant={view === "list" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 w-7 p-0"
-              onClick={() => setView("list")}
-            >
-              <List className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant={view === "kanban" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 w-7 p-0"
-              onClick={() => setView("kanban")}
-            >
-              <Layers className="h-3.5 w-3.5" />
+            </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-1.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                type="search"
+                placeholder="Search projects..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-[200px] h-7 text-xs pl-7 pr-2"
+              />
+            </div>
+            <Button className="h-7 text-xs gap-1 px-2.5" onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-3 w-3" />
+              <span>New project</span>
             </Button>
           </div>
         </div>
@@ -632,20 +435,12 @@ export default function ProjectsPage() {
               </div>
               <h3 className="text-lg font-semibold mb-2">No projects found</h3>
               <p className="text-muted-foreground mb-4">
-                Try adjusting your filters or search query
+                Create your first project to get started
               </p>
               <Button
-                variant="outline"
-                onClick={() => {
-                  setSearchQuery("");
-                  setCategoryFilter("all");
-                  setStatusFilter("all");
-                  setPriorityFilter("all");
-                  setHealthFilter("all");
-                  setShowStarredOnly(false);
-                }}
+                onClick={() => setShowCreateDialog(true)}
               >
-                Clear all filters
+                Create new project
               </Button>
             </div>
           </Card>
@@ -654,48 +449,36 @@ export default function ProjectsPage() {
             className={cn(
               view === "grid" &&
                 "grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3",
-              view === "list" && "flex flex-col w-full",
-              view === "kanban" && "grid-cols-1"
+              view === "list" && "flex flex-col w-full"
             )}
           >
-            {view === "kanban" ? (
-              <Card className="p-6">
-                <div className="text-center text-muted-foreground">
-                  <Layers className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                  <p>Kanban view coming soon...</p>
+            {view === "list" && (
+              <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 text-xs font-semibold text-muted-foreground border-b bg-background/80 sticky top-0 z-10">
+                <div className="col-span-3 flex items-center gap-1">
+                  Name
                 </div>
-              </Card>
-            ) : (
-              <>
-                {view === "list" && (
-                  <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 text-xs font-semibold text-muted-foreground border-b bg-background/80 sticky top-0 z-10">
-                    <div className="col-span-3 flex items-center gap-1">
-                      Name
-                    </div>
-                    {/* <div className="col-span-1">Status</div> */}
-                    <div className="col-span-3">About</div>
-                    <div className="col-span-2">Agents</div>
-                    <div className="col-span-2">Last Activity</div>
-                    <div className="col-span-1 text-right">Actions</div>
-                  </div>
-                )}
-                {filteredProjects.map((project, index) => (
-                  <ProjectCard
-                    key={project.uuid}
-                    project={project}
-                    index={index}
-                    isSelected={selectedProjects.includes(project.uuid)}
-                    isSelectionMode={isSelectionMode}
-                    loadingProjectId={loadingProjectId}
-                    selectedProjects={selectedProjects}
-                    animateIn={animateIn}
-                    toggleProjectSelection={toggleProjectSelection}
-                    handleProjectClick={handleProjectClick}
-                    view={view}
-                  />
-                ))}
-              </>
+                {/* <div className="col-span-1">Status</div> */}
+                <div className="col-span-3">About</div>
+                <div className="col-span-2">Agents</div>
+                <div className="col-span-2">Last Activity</div>
+                <div className="col-span-1 text-right">Actions</div>
+              </div>
             )}
+            {filteredProjects.map((project, index) => (
+              <ProjectCard
+                key={project.uuid}
+                project={project}
+                index={index}
+                isSelected={selectedProjects.includes(project.uuid)}
+                isSelectionMode={isSelectionMode}
+                loadingProjectId={loadingProjectId}
+                selectedProjects={selectedProjects}
+                animateIn={animateIn}
+                toggleProjectSelection={toggleProjectSelection}
+                handleProjectClick={handleProjectClick}
+                view={view}
+              />
+            ))}
           </div>
         )}
 
@@ -705,6 +488,6 @@ export default function ProjectsPage() {
           onOpenChange={setShowCreateDialog}
         />
       </div>
-    </div>
+    </section>
   );
 }

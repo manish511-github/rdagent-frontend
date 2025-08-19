@@ -25,9 +25,9 @@ export const ProjectStats: React.FC<ProjectStatsProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <Card className="bg-white/70 dark:bg-slate-900/70 border border-muted shadow-sm backdrop-blur-sm">
-        <CardContent className="p-5">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <Card className="bg-white/80 dark:bg-slate-900/70 border border-white/20 dark:border-muted/40 shadow-sm">
+        <CardContent className="p-4 md:p-5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">
@@ -41,8 +41,8 @@ export const ProjectStats: React.FC<ProjectStatsProps> = ({
           </div>
         </CardContent>
       </Card>
-      <Card className="bg-white/70 dark:bg-slate-900/70 border border-muted shadow-sm backdrop-blur-sm">
-        <CardContent className="p-5">
+      <Card className="bg-white/80 dark:bg-slate-900/70 border border-white/20 dark:border-muted/40 shadow-sm">
+        <CardContent className="p-4 md:p-5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">
@@ -56,8 +56,8 @@ export const ProjectStats: React.FC<ProjectStatsProps> = ({
           </div>
         </CardContent>
       </Card>
-      <Card className="bg-white/70 dark:bg-slate-900/70 border border-muted shadow-sm backdrop-blur-sm">
-        <CardContent className="p-5">
+      <Card className="bg-white/80 dark:bg-slate-900/70 border border-white/20 dark:border-muted/40 shadow-sm">
+        <CardContent className="p-4 md:p-5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">
@@ -71,8 +71,8 @@ export const ProjectStats: React.FC<ProjectStatsProps> = ({
           </div>
         </CardContent>
       </Card>
-      <Card className="bg-white/70 dark:bg-slate-900/70 border border-muted shadow-sm backdrop-blur-sm">
-        <CardContent className="p-5">
+      <Card className="bg-white/80 dark:bg-slate-900/70 border border-white/20 dark:border-muted/40 shadow-sm">
+        <CardContent className="p-4 md:p-5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">
