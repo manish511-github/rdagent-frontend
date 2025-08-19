@@ -127,14 +127,16 @@ export function HeroSection() {
 
       <div className="flex">
         <div className="relative w-[159px] border-r p-1 max-lg:hidden" />
-        <div className="container !pt-0 lg:!p-1.5">
+        <div className=" mx-auto !pt-0">
           <FadeIn delay={1.2} direction="up">
             <Image
-              src="/placeholder.svg?height=600&width=1000"
-              alt="Hero"
-              width={1000}
-              height={600}
-              className="mx-auto rounded-xl border object-contain p-1 shadow-lg 2xl:max-w-[1092px] dark:invert"
+              src="/images/projects.png"
+              alt="Projects Workspace Dashboard"
+              width={1800}
+              height={1240}
+              priority
+              sizes="(min-width: 1536px) 1320px, (min-width: 1280px) 1240px, (min-width: 1024px) 1140px, (min-width: 768px) 960px, 100vw"
+              className="mx-auto w-full rounded-xl border object-contain p-1 shadow-lg"
             />
           </FadeIn>
         </div>

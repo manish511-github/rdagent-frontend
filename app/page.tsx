@@ -23,13 +23,13 @@ export default function HomePage() {
     requireAuth: false, // Redirect if authenticated
     toastTitle: "Welcome Back!",
     toastDescription: "Redirecting to your dashboard...",
-    redirectDelay: 1000
+    redirectDelay: 1
   })
 
   // Show loading state while checking authentication
-  if (isLoading) {
-    return <AuthLoading message="Checking authentication..." />
-  }
+  // if (isLoading) {
+  //   return <AuthLoading message="Checking authentication..." />
+  // }
 
   // If authenticated, don't render the landing page (will redirect)
   if (isAuthenticated) {

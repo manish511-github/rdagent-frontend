@@ -2,7 +2,7 @@
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Image from "next/image"
-import { Bell, ChevronRight } from "lucide-react"
+import { ChevronRight } from "lucide-react"
 import Profile01 from "./profile-01"
 import Link from "next/link"
 import ThemeToggle from "../theme-toggle"
@@ -80,13 +80,6 @@ export default function TopNav({ currentProject }: TopNavProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4 ml-auto">
-        <button
-          type="button"
-          className="p-1 sm:p-1.5 hover:bg-gray-100 dark:hover:bg-[#1F1F23] rounded-full transition-colors"
-        >
-          <Bell className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-600 dark:text-gray-300" />
-        </button>
-
         <ThemeToggle />
 
         <DropdownMenu>

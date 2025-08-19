@@ -20,12 +20,6 @@ export const ProjectsNavigation: FC<ProjectsNavigationProps> = ({ isCollapsed, i
         <NavItem href="/projects" icon={Home} isActive={pathname === "/projects"} isCollapsed={isCollapsed} isMounted={isMounted}>
           All Projects
         </NavItem>
-        <NavItem href="/projects?filter=recent" icon={Clock} isCollapsed={isCollapsed} isMounted={isMounted}>
-          Recent
-        </NavItem>
-        <NavItem href="/projects?filter=starred" icon={Star} isCollapsed={isCollapsed} isMounted={isMounted}>
-          Starred
-        </NavItem>
       </div>
     </div>
 

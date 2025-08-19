@@ -20,7 +20,7 @@ interface UseAuthGuardReturn {
 export function useAuthGuard(options: UseAuthGuardOptions = {}): UseAuthGuardReturn {
   const {
     redirectTo = "/login",
-    redirectDelay = 3000,
+    redirectDelay = 1,
     toastTitle = "Authentication Required",
     toastDescription = "Please sign in to continue.",
     requireAuth = true

@@ -590,12 +590,12 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
   };
   return (
     <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-      <DialogContent className="max-w-[900px] max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-[700px] max-h-[85vh] flex flex-col">
         <DialogHeader className="pb-4">
-          <DialogTitle className="text-2xl font-bold">
+          <DialogTitle className="text-xl font-bold">
             Create AI Agent
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm">
             Set up your intelligent agent in just a few steps. Choose a goal,
             select a platform, and configure the settings.
           </DialogDescription>
@@ -653,7 +653,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
           {currentStep === 1 && (
             <div className="space-y-6 animate-in fade-in-50 duration-300">
               <div className="space-y-2">
-                <Label htmlFor="agent-name" className="text-base font-medium">
+                <Label htmlFor="agent-name" className="text-sm font-medium">
                   Agent Name
                 </Label>
                 <Input
@@ -666,7 +666,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
               </div>
               {/* Goal Selection UI */}
               <div className="space-y-3">
-                <Label className="text-base font-medium">
+                <Label className="text-sm font-medium">
                   Select Your Goal
                 </Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -700,8 +700,8 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                             </div>
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-semibold mb-1">{goal.label}</h3>
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                            <h3 className="text-sm font-semibold mb-1">{goal.label}</h3>
+                            <p className="text-xs text-zinc-600 dark:text-zinc-400">
                               {goal.description}
                             </p>
                           </div>
@@ -721,7 +721,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                 <div className="flex items-center gap-2">
                   <Label
                     htmlFor="agent-instructions"
-                    className="text-base font-medium"
+                    className="text-sm font-medium"
                   >
                     Instructions & Personality
                   </Label>
@@ -766,7 +766,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                 <div className="flex items-center gap-2">
                   <Label
                     htmlFor="agent-expectations"
-                    className="text-base font-medium"
+                    className="text-sm font-medium"
                   >
                     Expected Outcomes
                   </Label>
@@ -827,7 +827,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
           {currentStep === 2 && (
             <div className="space-y-6 animate-in fade-in-50 duration-300">
               <div className="space-y-2">
-                <Label className="text-base font-medium">Agent Keywords</Label>
+                <Label className="text-sm font-medium">Agent Keywords</Label>
                 <div className="flex flex-wrap gap-2 mb-2 min-h-[40px] p-2 border rounded-md bg-background/60 dark:bg-card/60">
                   {agentKeywords.map((kw: string) => (
                     <Badge
@@ -907,7 +907,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
               </div>
               {/* Schedule Section */}
               <div className="space-y-2 mt-6">
-                <Label className="text-base font-medium">Schedule</Label>
+                <Label className="text-sm font-medium">Schedule</Label>
                 <div className="flex flex-col md:flex-row gap-4 items-center">
                   <div className="w-full md:w-60">
                     <Label
@@ -942,7 +942,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
           {currentStep === 3 && (
             <div className="space-y-6 animate-in fade-in-50 duration-300">
               <div className="space-y-3">
-                <Label className="text-base font-medium">
+                <Label className="text-sm font-medium">
                   Choose Your Platform
                 </Label>
                 <div className="grid grid-cols-5 gap-4">
@@ -980,7 +980,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                           </div>
                         </div>
                         <div className="text-center">
-                          <span className="font-medium text-sm block">
+                          <span className="font-medium text-xs block">
                             {platform.label}
                           </span>
                         </div>
@@ -1001,7 +1001,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
               {/* Account Connection Section */}
               {formData.platform && (
                 <div className="space-y-3">
-                  <Label className="text-base font-medium">
+                  <Label className="text-sm font-medium">
                     Account Connection
                   </Label>
                   <div className="rounded-xl border-2 p-6">
@@ -1019,12 +1019,12 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                           />
                         </div>
                         <div>
-                          <h3 className="font-semibold">
+                          <h3 className="text-sm font-semibold">
                             Login with{" "}
                             {formData.platform.charAt(0).toUpperCase() +
                               formData.platform.slice(1)}
                           </h3>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             Connect your account to post content
                           </p>
                         </div>
@@ -1083,7 +1083,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
               )}
 
               <div className="space-y-3">
-                <Label className="text-base font-medium">Operation Mode</Label>
+                <Label className="text-sm font-medium">Operation Mode</Label>
                 <RadioGroup
                   value={formData.mode}
                   onValueChange={(value) => handleInputChange("mode", value)}
@@ -1111,8 +1111,8 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                         <Brain className="h-6 w-6" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold mb-1">Copilot Mode</h3>
-                        <p className="text-sm text-muted-foreground">
+                        <h3 className="text-sm font-semibold mb-1">Copilot Mode</h3>
+                        <p className="text-xs text-muted-foreground">
                           Agent suggests actions and waits for your approval
                           before executing
                         </p>
@@ -1142,8 +1142,8 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                         <Rocket className="h-6 w-6" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold mb-1">Autopilot Mode</h3>
-                        <p className="text-sm text-muted-foreground">
+                        <h3 className="text-sm font-semibold mb-1">Autopilot Mode</h3>
+                        <p className="text-xs text-muted-foreground">
                           Agent works autonomously based on your instructions
                           and guidelines
                         </p>
@@ -1183,7 +1183,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
 
               <Collapsible className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">
+                  <Label className="text-sm font-medium">
                     Advanced Settings
                   </Label>
                   <CollapsibleTrigger asChild>
@@ -1221,7 +1221,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                         />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-xl font-semibold mb-1 text-slate-900 dark:text-slate-200">
+                        <h3 className="text-lg font-semibold mb-1 text-slate-900 dark:text-slate-200">
                           {formData.name || "Unnamed Agent"}
                         </h3>
                         <div className="flex items-center gap-3">
@@ -1250,7 +1250,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                 <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
                   <div className="flex items-center gap-2 mb-4">
                     <Clock className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                    <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">
+                    <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-200">
                       Review Settings
                     </h4>
                   </div>
@@ -1288,7 +1288,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                   <div>
                     <div className="flex items-center gap-2 mb-4">
                       <MessageSquare className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                      <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">
+                      <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-200">
                         Instructions & Personality
                       </h4>
                     </div>
@@ -1301,7 +1301,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                   <div>
                     <div className="flex items-center gap-2 mb-4">
                       <Target className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                      <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">
+                      <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-200">
                         Expected Outcomes
                       </h4>
                     </div>
@@ -1319,7 +1319,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                 <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
                   <div className="flex items-center gap-2 mb-4">
                     <Layers className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                    <h4 className="text-base font-semibold text-slate-900 dark:text-slate-200">
+                    <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-200">
                       Platform Settings
                     </h4>
                   </div>

@@ -83,7 +83,6 @@ export default function ProjectsPage() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [healthFilter, setHealthFilter] = useState("all");
   const [sort, setSort] = useState("newest");
-  const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -170,11 +169,6 @@ export default function ProjectsPage() {
       filtered = filtered.filter((project) => project.health === healthFilter);
     }
 
-    // Starred filter
-    if (showStarredOnly) {
-      filtered = filtered.filter((project) => project.starred);
-    }
-
     // Sorting
     filtered.sort((a, b) => {
       switch (sort) {
@@ -219,7 +213,6 @@ export default function ProjectsPage() {
     statusFilter,
     priorityFilter,
     healthFilter,
-    showStarredOnly,
     sort,
   ]);
 

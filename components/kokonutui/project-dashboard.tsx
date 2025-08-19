@@ -392,7 +392,6 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>Duplicate Project</DropdownMenuItem>
                     <DropdownMenuItem>Export Project</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="text-destructive">

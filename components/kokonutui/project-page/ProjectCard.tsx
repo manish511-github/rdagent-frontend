@@ -20,10 +20,8 @@ import {
 } from "@/components/ui/tooltip";
 import {
   Loader2,
-  Star,
   MoreHorizontal,
   ExternalLink,
-  Copy,
   Trash2,
   Clock,
   Briefcase,
@@ -36,6 +34,7 @@ import {
   formatRelativeDate,
   getCategoryIcon,
   formatDateTime,
+  formatConciseDateTime,
 } from "./projectUtils";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/store/store";
@@ -130,10 +129,6 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               <ExternalLink className="mr-2 h-3 w-3" />
               Open in new tab
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-xs">
-              <Copy className="mr-2 h-3 w-3" />
-              Duplicate
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive text-xs" onClick={handleDelete}>
               <Trash2 className="mr-2 h-3 w-3" />
@@ -183,25 +178,6 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             />
           </div>
         )}
-
-        {/* Star button */}
-        <button
-          className={cn(
-            "absolute top-3 right-3 z-10 p-1.5 rounded-full transition-all duration-200",
-            project.starred
-              ? "bg-amber-100/90 text-amber-600 dark:bg-amber-500/30 dark:text-amber-300"
-              : "bg-background/60 backdrop-blur-sm text-muted-foreground hover:text-amber-500 hover:bg-amber-100/50 dark:hover:bg-amber-500/20 dark:text-slate-400 dark:hover:text-amber-300"
-          )}
-          onClick={(e) => {
-            e.preventDefault();
-            // Toggle star logic here
-          }}
-        >
-          <Star
-            className="h-3 w-3"
-            fill={project.starred ? "currentColor" : "none"}
-          />
-        </button>
 
         <Link href={`/projects/${project.uuid}`} className="block">
           <div className="p-5">
@@ -278,9 +254,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                     {/* Last Activity */}
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="h-3.5 w-3.5" />
-                      <span className="text-xs">Last Activity:</span>{" "}
+                      <span className="text-xs">Updated:</span>{" "}
                       <span className="font-medium text-[10px]">
-                        {lastActivity ? formatDateTime(lastActivity) : "-"}
+                        {lastActivity ? formatConciseDateTime(lastActivity) : "-"}
                       </span>
                     </div>
 
@@ -300,10 +276,6 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                         <DropdownMenuItem className="text-xs">
                           <ExternalLink className="mr-2 h-3 w-3" />
                           Open in new tab
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-xs">
-                          <Copy className="mr-2 h-3 w-3" />
-                          Duplicate
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive text-xs" onClick={handleDelete}>
