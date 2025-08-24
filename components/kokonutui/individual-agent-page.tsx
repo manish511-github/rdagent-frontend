@@ -1501,12 +1501,21 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   const agentType = useSelector(selectAgentType);
   const agentData = useSelector(selectAgentData);
   const agentState = useSelector(selectAgentState);
+  const agentDetails = useSelector(selectAgentDetails);
+  const agentDetailsStatus = useSelector(selectAgentDetailsStatus);
   const isMobile = useIsMobile();
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(
-    agentData?.agent_name || "Hexnode Reddit Lead Finder"
+    agentDetails?.agent_name || agentData?.agent_name || "Agent"
   );
+
+  // Update editedName when agentDetails changes
+  useEffect(() => {
+    if (agentDetails?.agent_name) {
+      setEditedName(agentDetails.agent_name);
+    }
+  }, [agentDetails?.agent_name]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [showDetailPane, setShowDetailPane] = useState(true);
   const [selectedContentId, setSelectedContentId] = useState<string | null>(
@@ -1535,6 +1544,8 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
       try {
         console.log("Dispatching fetchAgentData for agentId:", agentId);
         await dispatch(fetchAgentData(agentId));
+        // Also fetch agent details for comprehensive agent information
+        await dispatch(fetchAgentDetails(agentId));
         setHasInitialData(true);
       } catch (error) {
         console.error("Failed to fetch agent data:", error);
@@ -1717,25 +1728,26 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   const agent = React.useMemo(
     () => ({
       id: agentId,
-      name: agentData?.agent_name || editedName,
-      platform: agentType,
-      status: agentState,
+      name: agentDetails?.agent_name || agentData?.agent_name || editedName,
+      platform: agentDetails?.agent_platform || agentType,
+      status: agentDetails?.agent_status || agentState,
       lastActive: "5 mins ago",
       keyMetric: {
         value: displayPosts.length.toString(),
         label: "Posts Found",
       },
       secondaryMetric: {
-        value: agentData?.goals?.length?.toString() || "0",
+        value: agentDetails?.goals?.split(',').length?.toString() || agentData?.goals?.length?.toString() || "0",
         label: "Goals",
       },
       healthScore: 90,
       weeklyActivity: displayPosts.length,
       description:
+        agentDetails?.description ||
         agentData?.description ||
         "Identifies potential leads by monitoring relevant subreddits.",
     }),
-    [agentId, agentData, editedName, agentType, agentState, displayPosts.length]
+    [agentId, agentDetails, agentData, editedName, agentType, agentState, displayPosts.length]
   );
 
   const toggleAgentStatus = React.useCallback(async () => {

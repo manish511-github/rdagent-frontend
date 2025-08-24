@@ -52,13 +52,14 @@ import { useMutation } from "@tanstack/react-query";
 import Cookies from "js-cookie";
 import { getApiUrl } from "../../lib/config";
 import { Checkbox } from "@/components/ui/checkbox";
+ 
 
-const platformOptions = [
+const platforms = [
   { value: "reddit", label: "Reddit", icon: "reddit" },
-  { value: "linkedin", label: "LinkedIn", icon: "linkedin" },
-  { value: "twitter", label: "Twitter", icon: "twitter" },
-  { value: "instagram", label: "Instagram", icon: "instagram" },
-  { value: "tiktok", label: "TikTok", icon: "tiktok" },
+  { value: "hackernews", label: "HackerNews", icon: "hackernews" },
+  // { value: "linkedin", label: "LinkedIn", icon: "linkedin" },
+  { value: "twitter", label: "Twitter", icon: "twitter", comingSoon: true },
+  { value: "instagram", label: "Instagram", icon: "instagram", comingSoon: true },
 ];
 
 const goalOptions = [
@@ -102,6 +103,8 @@ const getPlatformGradient = (platform: string) => {
       return "from-sky-400 to-blue-600";
     case "instagram":
       return "from-purple-500 to-pink-600";
+          case "hackernews":
+        return "from-orange-500 to-red-600";
     case "email":
       return "from-emerald-500 to-teal-600";
     default:
@@ -254,7 +257,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
     platformSettings: PlatformSettings;
   }>({
     name: "",
-    platform: "",
+    platform: "reddit",
     goal: "",
     instructions: "",
     expectations: "",
@@ -272,6 +275,18 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
   const [redditOauthAccountId, setRedditOauthAccountId] = useState<
     string | null
   >(null);
+
+  const keywordDotColors = [
+    "bg-emerald-500",
+    "bg-cyan-500",
+    "bg-blue-500",
+    "bg-violet-500",
+    "bg-amber-500",
+    "bg-rose-500",
+    "bg-teal-500",
+  ];
+  const getKeywordDotColor = (index: number) =>
+    keywordDotColors[index % keywordDotColors.length];
 
   const generateProfileMutation = useMutation({
     mutationFn: generateAgentProfile,
@@ -313,7 +328,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
     if (!isCreateModalOpen) {
       setFormData({
         name: "",
-        platform: "",
+        platform: "reddit",
         goal: "",
         instructions: "",
         expectations: "",
@@ -429,6 +444,8 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
       });
     }
   };
+
+  
 
   const createAgentHandler = () => {
     if (!projectId) {
@@ -590,12 +607,12 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
   };
   return (
     <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-      <DialogContent className="max-w-[700px] max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-[780px] md:max-w-[820px] max-h-[85vh] flex flex-col text-[13px] leading-5 dark:bg-gray-900/60 dark:border-gray-800 dark:backdrop-blur dark:supports-[backdrop-filter]:bg-gray-900/50">
         <DialogHeader className="pb-4">
-          <DialogTitle className="text-xl font-bold">
+          <DialogTitle className="text-base font-semibold">
             Create AI Agent
           </DialogTitle>
-          <DialogDescription className="text-sm">
+          <DialogDescription className="text-xs">
             Set up your intelligent agent in just a few steps. Choose a goal,
             select a platform, and configure the settings.
           </DialogDescription>
@@ -603,7 +620,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
 
         {/* Progress Steps */}
         <div className="relative mb-8">
-          <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-700" />
+          <div className="absolute top-5 left-6 right-0 h-0.5 bg-slate-300 dark:bg-slate-800" />
           <div className="relative flex justify-between">
             {[
               { step: 1, label: "Goal & Details", icon: Target },
@@ -618,10 +635,10 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                     className={cn(
                       "relative z-10 flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all",
                       currentStep === item.step
-                        ? "border-cyan-600 bg-cyan-600 text-white shadow-lg shadow-cyan-500/25"
+                        ? "border-blue-800 bg-blue-800 text-white shadow-lg shadow-blue-700/25 dark:border-blue-400 dark:bg-blue-400"
                         : currentStep > item.step
-                        ? "border-emerald-500 bg-emerald-500 text-white"
-                        : "border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-400"
+                        ? "border-slate-700 bg-slate-700 text-white dark:border-slate-500 dark:bg-slate-500"
+                        : "border-gray-300 bg-white dark:bg-gray-900/70 dark:border-gray-800 text-gray-400"
                     )}
                   >
                     {currentStep > item.step ? (
@@ -634,10 +651,10 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                     className={cn(
                       "mt-2 text-xs font-medium",
                       currentStep === item.step
-                        ? "text-cyan-600"
+                        ? "text-blue-800 dark:text-blue-300"
                         : currentStep > item.step
-                        ? "text-emerald-600"
-                        : "text-gray-500"
+                        ? "text-slate-700 dark:text-slate-400"
+                        : "text-gray-500 dark:text-gray-400"
                     )}
                   >
                     {item.label}
@@ -727,8 +744,8 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                   </Label>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    size="sm"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
                     onClick={() => {
                       if (!projectId) {
                         toast({
@@ -772,8 +789,8 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                   </Label>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    size="sm"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
                     onClick={() => {
                       if (!projectId) {
                         toast({
@@ -828,27 +845,30 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
             <div className="space-y-6 animate-in fade-in-50 duration-300">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Agent Keywords</Label>
-                <div className="flex flex-wrap gap-2 mb-2 min-h-[40px] p-2 border rounded-md bg-background/60 dark:bg-card/60">
-                  {agentKeywords.map((kw: string) => (
-                    <Badge
+                <div className="flex flex-wrap gap-2 mb-2 min-h-[40px] p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 backdrop-blur supports-[backdrop-filter]:bg-white/40 dark:supports-[backdrop-filter]:bg-slate-900/30">
+                  {agentKeywords.length === 0 && (
+                    <span className="text-xs text-muted-foreground">No keywords yet. Add your first keyword.</span>
+                  )}
+                  {agentKeywords.map((kw: string, idx: number) => (
+                    <span
                       key={kw}
-                      variant="secondary"
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-full"
+                      className="inline-flex items-center gap-1 pl-1.5 pr-1 py-0.5 rounded-full text-[11px] border bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 shadow-sm hover:shadow transition-all"
                     >
-                      {kw}
+                      <span className={`w-1.5 h-1.5 rounded-full ${getKeywordDotColor(idx)}`} />
+                      <span className="px-0.5 font-medium text-slate-700 dark:text-slate-200">{kw}</span>
                       <Button
                         type="button"
                         size="icon"
                         variant="ghost"
-                        className="h-4 w-4 p-0 ml-1 text-muted-foreground hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive"
+                        className="h-4 w-4 p-0 ml-0.5 text-muted-foreground hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive"
                         onClick={() =>
                           setAgentKeywords(
                             agentKeywords.filter((k) => k !== kw)
                           )
                         }
                         tabIndex={-1}
+                        aria-label={`Remove ${kw}`}
                       >
-                        <span className="sr-only">Remove</span>
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           className="h-3 w-3"
@@ -864,15 +884,15 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                           />
                         </svg>
                       </Button>
-                    </Badge>
+                    </span>
                   ))}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   <Input
                     value={newKeyword}
                     onChange={(e) => setNewKeyword(e.target.value)}
                     placeholder="Add keyword"
-                    className="w-40"
+                    className="w-40 h-7 text-[11px]"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && newKeyword.trim()) {
                         e.preventDefault();
@@ -899,40 +919,58 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                     }}
                     disabled={!newKeyword.trim()}
                     size="sm"
-                    className="h-11 px-6 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold shadow-md shadow-cyan-500/10 rounded-md transition-all duration-200"
+                    className="h-7 px-2 text-[11px]"
                   >
                     Add Keyword
                   </Button>
                 </div>
+                {agentKeywords.length > 8 && (
+                  <div className="text-[11px] text-muted-foreground">
+                    Showing {Math.min(agentKeywords.length, 50)} keywords
+                  </div>
+                )}
               </div>
               {/* Schedule Section */}
               <div className="space-y-2 mt-6">
-                <Label className="text-sm font-medium">Schedule</Label>
-                <div className="flex flex-col md:flex-row gap-4 items-center">
-                  <div className="w-full md:w-60">
-                    <Label
-                      htmlFor="schedule-type"
-                      className="text-sm font-medium"
-                    >
-                      Type
-                    </Label>
-                    <Select
-                      value={scheduleType}
-                      onValueChange={setScheduleType}
-                    >
-                      <SelectTrigger
-                        id="schedule-type"
-                        className="w-full h-11 mt-1"
-                      >
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div className="rounded-lg border p-3 bg-white/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 backdrop-blur supports-[backdrop-filter]:bg-white/40 dark:supports-[backdrop-filter]:bg-slate-900/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm font-medium">Schedule Type</Label>
                   </div>
+                  <RadioGroup value={scheduleType} onValueChange={setScheduleType} className="flex gap-2">
+                    <div
+                      className={cn(
+                        "relative cursor-pointer rounded-full border px-3 py-1.5 text-xs transition-colors",
+                        scheduleType === "daily"
+                          ? "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-300 dark:border-cyan-900"
+                          : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
+                      )}
+                    >
+                      <RadioGroupItem value="daily" id="schedule-daily" className="sr-only" />
+                      <Label htmlFor="schedule-daily" className="cursor-pointer">Daily</Label>
+                    </div>
+                    <div
+                      className={cn(
+                        "relative cursor-pointer rounded-full border px-3 py-1.5 text-xs transition-colors",
+                        scheduleType === "weekly"
+                          ? "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-300 dark:border-cyan-900"
+                          : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
+                      )}
+                    >
+                      <RadioGroupItem value="weekly" id="schedule-weekly" className="sr-only" />
+                      <Label htmlFor="schedule-weekly" className="cursor-pointer">Weekly</Label>
+                    </div>
+                    <div
+                      className={cn(
+                        "relative cursor-pointer rounded-full border px-3 py-1.5 text-xs transition-colors",
+                        scheduleType === "monthly"
+                          ? "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-300 dark:border-cyan-900"
+                          : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
+                      )}
+                    >
+                      <RadioGroupItem value="monthly" id="schedule-monthly" className="sr-only" />
+                      <Label htmlFor="schedule-monthly" className="cursor-pointer">Monthly</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
               </div>
             </div>
@@ -946,20 +984,20 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                   Choose Your Platform
                 </Label>
                 <div className="grid grid-cols-5 gap-4">
-                  {platformOptions.map((platform) => (
+                  {platforms.map((platform) => (
                     <div
                       key={platform.value}
                       className={cn(
-                        "relative cursor-pointer rounded-xl border-2 p-4 transition-all duration-200",
-                        "hover:shadow-lg hover:border-cyan-400 hover:-translate-y-0.5",
+                        "relative rounded-xl border-2 p-4 transition-all duration-200",
                         "group",
+                        platform.comingSoon 
+                          ? "cursor-not-allowed opacity-50 border-zinc-200 dark:border-zinc-800"
+                          : "cursor-pointer hover:shadow-lg hover:border-cyan-400 hover:-translate-y-0.5",
                         formData.platform === platform.value
                           ? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 shadow-lg"
                           : "border-zinc-200 dark:border-zinc-800"
                       )}
-                      onClick={() =>
-                        handleInputChange("platform", platform.value)
-                      }
+                      onClick={() => !platform.comingSoon && handleInputChange("platform", platform.value)}
                     >
                       <div className="flex flex-col items-center gap-3">
                         <div
@@ -992,6 +1030,11 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                           </div>
                         </div>
                       )}
+                      {platform.comingSoon && (
+                        <div className="absolute bottom-2 left-2 right-2 bg-gray-200 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full text-center">
+                          Coming Soon
+                        </div>
+                      )}
                       <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   ))}
@@ -999,7 +1042,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
               </div>
 
               {/* Account Connection Section */}
-              {formData.platform && (
+              {formData.platform && formData.platform !== "hackernews" && (
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">
                     Account Connection
@@ -1033,7 +1076,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                           <Button
                             className={cn(
-                              "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white",
+                              "h-8",
                               redditConnected &&
                                 !redditLoading &&
                                 "opacity-100 cursor-default"
@@ -1068,12 +1111,13 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                           </Button>
 
                           {redditLoading && !redditConnected && (
-                            <Button
-                              variant="outline"
-                              onClick={() => setRedditLoading(false)}
-                            >
-                              Cancel
-                            </Button>
+                                                      <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setRedditLoading(false)}
+                          >
+                            Cancel
+                          </Button>
                           )}
                         </div>
                       )}
@@ -1082,7 +1126,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                 </div>
               )}
 
-              <div className="space-y-3">
+              {/* <div className="space-y-3">
                 <Label className="text-sm font-medium">Operation Mode</Label>
                 <RadioGroup
                   value={formData.mode}
@@ -1179,7 +1223,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                     </p>
                   </div>
                 )}
-              </div>
+              </div> */}
 
               <Collapsible className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -1187,8 +1231,8 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                     Advanced Settings
                   </Label>
                   <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <ChevronDown className="h-4 w-4" />
+                    <Button variant="ghost" size="sm" className="h-7 w-7">
+                      <ChevronDown className="h-3.5 w-3.5" />
                     </Button>
                   </CollapsibleTrigger>
                 </div>
@@ -1571,7 +1615,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
 
         <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-6 border-t mt-4">
           {currentStep > 1 ? (
-            <Button variant="outline" onClick={goToPrevStep} className="gap-2">
+            <Button variant="outline" size="sm" onClick={goToPrevStep} className="gap-2 h-8">
               <ChevronLeft className="h-4 w-4" />
               Back
             </Button>
@@ -1582,7 +1626,8 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
           {currentStep < 4 ? (
             <Button
               onClick={goToNextStep}
-              className="gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white w-full sm:w-auto"
+              size="sm"
+              className="gap-2 w-full sm:w-auto h-8"
             >
               Next
               <ChevronRight className="h-4 w-4" />
@@ -1590,7 +1635,8 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
           ) : (
             <Button
               onClick={createAgentHandler}
-              className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 w-full sm:w-auto"
+              size="sm"
+              className="gap-2 w-full sm:w-auto h-8"
             >
               <Rocket className="h-4 w-4 mr-2" />
               Launch Agent

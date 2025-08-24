@@ -234,13 +234,16 @@ const transformPostsToDisplayPosts = (
   posts: any[],
   platform: string
 ): DisplayPost[] => {
+  // Debug: Log the first post to see what we're working with
+
+  
   return posts.map((post: any, index: number) => {
     if (post.post_id || platform === "reddit") {
       // Reddit post
       return {
         id: post.post_id || `reddit_${index}`,
         platform: "reddit" as const,
-        author: post.post_author || "Unknown",
+        author: post.post_author || post.author || post.user || post.username || post.user_name || post.by || post.op || post.poster || "Unknown",
         time: post.created_utc
           ? new Date(post.created_utc).toLocaleString()
           : "Unknown",
@@ -500,6 +503,9 @@ export const fetchAgentData = createAsyncThunk(
       } else if (agentType === "reddit") {
         // For Reddit agents, use posts directly from API response
         transformedRedditPosts = agentData.results?.posts || [];
+        
+        // Debug: Log the first post to see available fields
+        // Removed debug logging as it's no longer needed
       }
 
       console.log("Determined Agent Type:", agentType); // Debug log

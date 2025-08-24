@@ -136,6 +136,19 @@ export function TiktokIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function HackerNewsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 512 512"
+      fill="currentColor"
+      {...props}
+    >
+      <path d="M140 120h28l84 146 84-146h28l-98 168v104h-28V288z" fill="#fff" />
+    </svg>
+  );
+}
+
 // PlatformIcon component that renders the appropriate icon based on the platform prop
 export function PlatformIcon({
   platform,
@@ -161,6 +174,8 @@ export function PlatformIcon({
       return <SlackIcon className={className} />;
     case "tiktok":
       return <TiktokIcon className={className} />;
+    case "hackernews":
+      return <HackerNewsIcon className={className} />;
     default:
       return <MessageSquare className={className} />;
   }
