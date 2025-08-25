@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch } from "@/store/store";
 import {
@@ -13,11 +12,14 @@ import {
   updateAgentStatus,
   type DisplayPost,
   type PostStatus,
+  fetchAgentDetails,
+  selectAgentDetails,
+  selectAgentDetailsStatus,
+  updateAgentDetails,
+  type AgentDetails,
 } from "@/store/features/agentSlice";
 import {
   Users,
-  Edit,
-  Trash2,
   MessageSquare,
   RefreshCw,
   Search,
@@ -26,7 +28,6 @@ import {
   UserPlusIcon,
   FlagIcon,
   ShareIcon,
-  ChevronLeftIcon,
   ChevronRightIcon,
   FilterIcon,
   SlidersHorizontal,
@@ -35,9 +36,7 @@ import {
   ExternalLink,
   BarChart2,
   Settings,
-  Menu,
   Hash,
-  Flag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -53,7 +52,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Layout from "@/components/kokonutui/layout";
+//
 import {
   Select,
   SelectContent,
@@ -63,19 +62,10 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import React from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
-//
-import {
-  fetchAgentDetails,
-  selectAgentDetails,
-  selectAgentDetailsStatus,
-  updateAgentDetails,
-  type AgentDetails,
-} from "@/store/features/agentSlice";
-import MarkdownRender from "../markdown-render";
-import ResponseComposer from "./response-generator";
-import { InfinitePostsList } from "./infinite-posts-list";
+import MarkdownRender from "../../markdown-render";
+import ResponseComposer from "../../kokonutui/response-generator";
+import { InfinitePostsList } from "../../kokonutui/infinite-posts-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import Cookies from "js-cookie";
 import { getApiUrl } from "@/lib/config";
@@ -88,12 +78,13 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import HackerNewsView from "../agent/hackernews/hackernews-view";
-import RedditResultView from "@/components/agent/reddit/reddit-result-view";
 
-//
-
-//
+// Reddit Icon Component
+const RedditIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
+  </svg>
+);
 
 // Update the status badge rendering
 const getStatusBadgeClass = (status: PostStatus) => {
@@ -355,25 +346,6 @@ const PerformanceMetrics = React.memo(function PerformanceMetrics({
   const relevance = posts?.relevance;
   const top_posts = posts?.top_posts;
 
-  // Debug logging to see what data we're receiving
-  console.log("Analytics data received:", {
-    runs,
-    posts: posts
-      ? {
-          total_distinct: posts.total_distinct,
-          by_subreddit_count: posts.by_subreddit?.length,
-          time_series_count: posts.time_series?.length,
-          engagement: posts.engagement,
-          relevance: posts.relevance,
-          top_posts: posts.top_posts?.length || 0,
-        }
-      : null,
-    extracted_engagement: engagement,
-    extracted_relevance: relevance,
-    extracted_top_posts: top_posts?.length || 0,
-    per_run,
-  });
-
   // Calculate derived metrics
   const successRate =
     runs.total > 0 ? Math.round((runs.completed / runs.total) * 100) : 0;
@@ -394,26 +366,6 @@ const PerformanceMetrics = React.memo(function PerformanceMetrics({
           Back to Content
         </Button>
       </div>
-
-      {/* Debug Info - Remove this after testing */}
-      {/* <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
-        <CardContent className="p-3">
-          <h3 className="text-sm font-medium mb-2 text-yellow-800 dark:text-yellow-200">
-            Debug Info
-          </h3>
-          <div className="text-xs space-y-1 text-yellow-700 dark:text-yellow-300">
-            <div>Posts: {posts?.total_distinct || 0} total</div>
-            <div>Subreddits: {posts?.by_subreddit?.length || 0} found</div>
-            <div>Time Series: {posts?.time_series?.length || 0} points</div>
-            <div>Top Posts: {top_posts?.length || 0} found</div>
-            <div>Engagement: {engagement ? "Available" : "Missing"}</div>
-            <div>Relevance: {relevance ? "Available" : "Missing"}</div>
-            <div>
-              Time Series Sample: {posts?.time_series?.[0]?.ts || "None"}
-            </div>
-          </div>
-        </CardContent>
-      </Card> */}
 
       {/* Performance Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1051,135 +1003,6 @@ const ConfigurationSection = React.memo(function ConfigurationSection({
           </div>
         </div>
 
-        {/* Platform Settings (Reddit) */}
-        {form.platform_settings?.reddit !== undefined && (
-          <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
-            <h3 className="text-sm font-medium">Reddit Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-              <div className="space-y-2">
-                <Label className="text-sm">Subreddit</Label>
-                <Input
-                  className="h-11"
-                  value={form.platform_settings.reddit.subreddit || ""}
-                  onChange={(e) =>
-                    onNestedChange(
-                      ["platform_settings", "reddit", "subreddit"],
-                      e.target.value
-                    )
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm">Time Range</Label>
-                <Select
-                  value={form.platform_settings.reddit.timeRange || ""}
-                  onValueChange={(v) =>
-                    onNestedChange(
-                      ["platform_settings", "reddit", "timeRange"],
-                      v
-                    )
-                  }
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Select range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="day">Day</SelectItem>
-                    <SelectItem value="week">Week</SelectItem>
-                    <SelectItem value="month">Month</SelectItem>
-                    <SelectItem value="year">Year</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm">Min Upvotes</Label>
-                <Input
-                  type="number"
-                  className="h-11"
-                  value={form.platform_settings.reddit.minUpvotes || 0}
-                  onChange={(e) =>
-                    onNestedChange(
-                      ["platform_settings", "reddit", "minUpvotes"],
-                      Number(e.target.value)
-                    )
-                  }
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-              <div className="space-y-2">
-                <Label className="text-sm">Relevance Threshold</Label>
-                <Input
-                  type="number"
-                  className="h-11"
-                  value={form.platform_settings.reddit.relevanceThreshold || 0}
-                  onChange={(e) =>
-                    onNestedChange(
-                      ["platform_settings", "reddit", "relevanceThreshold"],
-                      Number(e.target.value)
-                    )
-                  }
-                />
-              </div>
-              <div className="flex items-center justify-between mt-8">
-                <Label className="text-sm">Monitor Comments</Label>
-                <Switch
-                  checked={Boolean(
-                    form.platform_settings.reddit.monitorComments
-                  )}
-                  onCheckedChange={(v) =>
-                    onNestedChange(
-                      ["platform_settings", "reddit", "monitorComments"],
-                      v
-                    )
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Schedule */}
-        <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
-          <h3 className="text-sm font-medium">Schedule</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-            <div className="space-y-2">
-              <Label className="text-sm">Type</Label>
-              <Select
-                value={form.schedule?.schedule_type || "daily"}
-                onValueChange={(v) =>
-                  onNestedChange(["schedule", "schedule_type"], v)
-                }
-              >
-                <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="manual">Manual</SelectItem>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">Time</Label>
-              <Input
-                type="datetime-local"
-                className="h-11"
-                value={
-                  form.schedule?.schedule_time
-                    ? form.schedule.schedule_time.toString().slice(0, 16)
-                    : ""
-                }
-                onChange={(e) =>
-                  onNestedChange(["schedule", "schedule_time"], e.target.value)
-                }
-              />
-            </div>
-          </div>
-        </div>
-
         {/* Save */}
         <div className="pt-1">
           <Button
@@ -1195,7 +1018,338 @@ const ConfigurationSection = React.memo(function ConfigurationSection({
   );
 });
 
-// Content Management Component
+// Content details for Reddit posts
+interface ContentDetailsProps {
+  selectedContentId: string;
+  selectedPost: DisplayPost;
+  agentId: string;
+  toggleDetailPane: () => void;
+  getStatusBadgeClass: (status: PostStatus) => string;
+  getStatusLabel: (status: PostStatus) => string;
+}
+
+const ContentDetails = React.memo(function ContentDetails({
+  selectedContentId,
+  selectedPost,
+  agentId,
+  toggleDetailPane,
+  getStatusBadgeClass,
+  getStatusLabel,
+}: ContentDetailsProps) {
+  const isMobile = useIsMobile();
+  const detailContainerRef = React.useRef<HTMLDivElement>(null);
+  const [parentWidth, setParentWidth] = React.useState(0);
+
+  React.useEffect(() => {
+    const measureParentWidth = () => {
+      if (detailContainerRef.current) {
+        setParentWidth(detailContainerRef.current.offsetWidth);
+      }
+    };
+    measureParentWidth();
+    const resizeObserver = new ResizeObserver(measureParentWidth);
+    if (detailContainerRef.current)
+      resizeObserver.observe(detailContainerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  const markdownMaxWidth = React.useMemo(() => {
+    if (parentWidth === 0) return "100%";
+    const calculatedWidth = parentWidth - 48;
+    return `${Math.max(calculatedWidth, 200)}px`;
+  }, [parentWidth]);
+
+  const content = selectedPost;
+  if (!selectedContentId) return null;
+  if (!content) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center p-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+          <h3 className="text-sm font-medium mb-1">Loading content...</h3>
+          <p className="text-xs text-muted-foreground">
+            Please wait while we fetch the details
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={detailContainerRef} className="flex flex-col h-full">
+      <div className="border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <div className="p-3 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Content Details</h3>
+            <div className="flex items-center gap-1">
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-xs px-1.5 py-0",
+                  getStatusBadgeClass(content.status)
+                )}
+              >
+                {getStatusLabel(content.status)}
+              </Badge>
+              <Badge
+                variant="outline"
+                className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800/50 text-xs px-1.5 py-0"
+              >
+                #{(content as any).subreddit || "reddit"}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={toggleDetailPane}
+              >
+                {isMobile ? (
+                  <XIcon className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronRightIcon className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 p-0.5 rounded-full">
+              <div className="h-3.5 w-3.5 flex items-center justify-center font-bold text-xs">
+                R
+              </div>
+            </div>
+            <span className="font-medium">
+              r/{(content as any).subreddit || "reddit"}
+            </span>
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs flex items-center gap-1"
+              asChild
+            >
+              <a href={content.url} target="_blank" rel="noopener noreferrer">
+                View Original
+                <ExternalLink className="h-3 w-3 ml-0.5" />
+              </a>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          "flex-1 overflow-y-auto min-h-0",
+          isMobile && "max-h-[50vh]"
+        )}
+      >
+        <div className="p-3 space-y-4">
+          <div className="w-full">
+            <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="font-semibold text-base">u/{"Unknown"}</span>
+                <span className="text-sm text-muted-foreground">
+                  {content.time}
+                </span>
+              </div>
+              <h3 className="text-lg font-semibold mb-3">{content.title}</h3>
+              <div
+                className="prose prose-invert overflow-hidden overflow-x-auto"
+                style={{
+                  maxWidth: markdownMaxWidth,
+                  wordBreak: "break-word",
+                  overflowWrap: "break-word",
+                }}
+              >
+                <MarkdownRender content={content?.content || ""} />
+              </div>
+            </div>
+          </div>
+
+          {content.status !== "discarded" && (
+            <div className="w-full mt-4">
+              <ResponseComposer
+                post={{
+                  id: content.id,
+                  title: content.title,
+                  body: content.content,
+                  author: content.author,
+                  subreddit: content.subreddit || content.tag || "reddit",
+                  url: content.url,
+                }}
+                agentId={agentId}
+                onSend={(markdown) => {
+                  console.log("Reply sent:", markdown);
+                }}
+              />
+            </div>
+          )}
+
+          {content.status === "discarded" && (
+            <div>
+              <h4 className="text-sm font-medium mb-1.5 flex items-center">
+                <XIcon className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                Discarded
+              </h4>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-muted-foreground">
+                  This content was discarded because it was deemed not relevant
+                  enough for a response.
+                </p>
+                <div className="flex items-center gap-1 mt-3 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>Discarded yesterday by AI Agent</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {content.status !== "discarded" && (
+        <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex-shrink-0">
+          <div
+            className={cn(
+              "flex gap-2",
+              isMobile ? "grid grid-cols-2" : "flex-wrap"
+            )}
+          >
+            {content.status === "pending" && (
+              <Button
+                className={cn("gap-1.5 h-8 text-xs", isMobile && "col-span-2")}
+              >
+                <CheckIcon className="h-3.5 w-3.5" />
+                Approve & Post
+              </Button>
+            )}
+            {(content.status === "pending" ||
+              content.status === "needs_review") && (
+              <Button variant="outline" className="gap-1.5 h-8 text-xs">
+                <XIcon className="h-3.5 w-3.5" />
+                Reject
+              </Button>
+            )}
+            {content.status !== "escalated" && (
+              <Button variant="outline" className="gap-1.5 h-8 text-xs">
+                <UserPlusIcon className="h-3.5 w-3.5" />
+                Escalate
+              </Button>
+            )}
+            {!isMobile && (
+              <>
+                <Button variant="outline" className="gap-1.5 h-8 text-xs">
+                  <FlagIcon className="h-3.5 w-3.5" />
+                  Flag
+                </Button>
+                <Button variant="outline" className="gap-1.5 h-8 text-xs">
+                  <ShareIcon className="h-3.5 w-3.5" />
+                  Share
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+interface ContentListItemProps {
+  item: DisplayPost;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+  showDetailPane: boolean;
+  getStatusBadgeClass: (status: PostStatus) => string;
+  getStatusLabel: (status: PostStatus) => string;
+}
+
+const ContentListItem = React.memo(function ContentListItem({
+  item,
+  isSelected,
+  onSelect,
+  showDetailPane,
+  getStatusBadgeClass,
+  getStatusLabel,
+}: ContentListItemProps) {
+  const handleClick = React.useCallback(() => {
+    if (showDetailPane) {
+      onSelect(item.id);
+    } else {
+      window.open(item.url, "_blank", "noopener,noreferrer");
+    }
+  }, [showDetailPane, onSelect, item.id, item.url]);
+
+  const handleExternalLinkClick = React.useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  return (
+    <div
+      className={cn(
+        "p-3 border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-all duration-200 w-full min-w-0",
+        isSelected &&
+          "bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-l-blue-500 dark:border-l-blue-400"
+      )}
+      onClick={handleClick}
+      id="content-list-item"
+    >
+      <div
+        className="flex items-center gap-1 mb-1 w-full min-w-0"
+        id="content-list-item-header"
+      >
+        <div className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 p-0.5 rounded-full flex-shrink-0">
+          <div className="h-4 w-4 flex items-center justify-center font-bold text-xs">
+            R
+          </div>
+        </div>
+        {item.platform === "reddit" && (
+          <span className="text-xs font-medium truncate min-w-0 max-w-[120px]">
+            r/{item.subreddit || item.tag}
+          </span>
+        )}
+        <div
+          className={cn(
+            "ml-auto px-1.5 py-0.5 rounded-full text-xs flex-shrink-0",
+            getStatusBadgeClass(item.status)
+          )}
+        >
+          {getStatusLabel(item.status)}
+        </div>
+      </div>
+
+      <h4 className="text-sm font-medium mb-1 line-clamp-1 w-full min-w-0 break-words overflow-hidden">
+        {item.title}
+      </h4>
+
+      <div className="flex items-center text-xs text-muted-foreground w-full min-w-0">
+        <span className="font-medium truncate max-w-[80px]">
+          u/{item.author}
+        </span>
+        <span className="mx-1 flex-shrink-0">•</span>
+        <span className="flex-shrink-0">{item.time}</span>
+        <div className="flex items-center gap-2 ml-auto mr-1 flex-shrink-0">
+          <div className="flex items-center gap-0.5">
+            <MessageSquare className="h-3 w-3 flex-shrink-0" />
+            <span className="min-w-0">{item.comments}</span>
+          </div>
+          <div className="flex items-center gap-0.5">
+            <ArrowUpRight className="h-3 w-3 flex-shrink-0" />
+            <span className="min-w-0">{item.upvotes}</span>
+          </div>
+        </div>
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0"
+          onClick={handleExternalLinkClick}
+        >
+          <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
+    </div>
+  );
+});
+
 const ContentManagement = React.memo(function ContentManagement({
   filteredContent,
   selectedContentId,
@@ -1241,9 +1395,7 @@ const ContentManagement = React.memo(function ContentManagement({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Flexbox Layout */}
       <div className="flex flex-1 min-h-0 mx-3 overflow-hidden">
-        {/* Left Pane - Content Feed */}
         <div
           className={cn(
             "flex flex-col min-h-0 min-w-0 overflow-hidden border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/60",
@@ -1255,10 +1407,8 @@ const ContentManagement = React.memo(function ContentManagement({
           )}
           id="content-list-container"
         >
-          {/* Search Bar - Inside the scrollable container */}
           <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/60">
             <div className="flex items-center gap-3">
-              {/* Search Input */}
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -1282,7 +1432,6 @@ const ContentManagement = React.memo(function ContentManagement({
                 )}
               </div>
 
-              {/* Status Filter */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -1354,7 +1503,6 @@ const ContentManagement = React.memo(function ContentManagement({
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Sort By */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -1400,7 +1548,6 @@ const ContentManagement = React.memo(function ContentManagement({
             </div>
           </div>
 
-          {/* Content List - Infinite Scroll */}
           <div
             className="flex-1 overflow-y-auto min-h-0"
             id="content-list-scroll-area"
@@ -1421,7 +1568,6 @@ const ContentManagement = React.memo(function ContentManagement({
           </div>
         </div>
 
-        {/* Right Pane - Content Details (Desktop) */}
         {showDetailPane && !isMobile && selectedContentId && selectedPost && (
           <div className="flex flex-col min-w-0 min-h-0 ml-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/60 overflow-hidden flex-[3]">
             <ContentDetails
@@ -1436,7 +1582,6 @@ const ContentManagement = React.memo(function ContentManagement({
         )}
       </div>
 
-      {/* Mobile Detail View - Only shown on mobile devices */}
       {showDetailPane && selectedContentId && selectedPost && isMobile && (
         <div className="mt-2 mx-3 mb-3 bg-white dark:bg-gray-900/60 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
           <ContentDetails
@@ -1453,8 +1598,7 @@ const ContentManagement = React.memo(function ContentManagement({
   );
 });
 
-export default function IndividualAgentPage({ agentId }: { agentId: string }) {
-  const router = useRouter();
+export default function RedditResultView({ agentId }: { agentId: string }) {
   const dispatch = useDispatch<AppDispatch>();
   const displayPosts = useSelector(selectDisplayPosts);
   const agentType = useSelector(selectAgentType);
@@ -1463,155 +1607,45 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   const agentDetails = useSelector(selectAgentDetails);
   const agentDetailsStatus = useSelector(selectAgentDetailsStatus);
   const isMobile = useIsMobile();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedName, setEditedName] = useState(
-    agentDetails?.agent_name || agentData?.agent_name || "Agent"
-  );
 
-  // Update editedName when agentDetails changes
-  useEffect(() => {
-    if (agentDetails?.agent_name) {
-      setEditedName(agentDetails.agent_name);
-    }
-  }, [agentDetails?.agent_name]);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [showDetailPane, setShowDetailPane] = useState(true);
   const [selectedContentId, setSelectedContentId] = useState<string | null>(
     null
   );
   const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all-types");
-  const [timeFilter, setTimeFilter] = useState("24h");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("relevance");
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
-  const [showAgentStats, setShowAgentStats] = useState(false);
-  const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(false);
-  const [isConfigExpanded, setIsConfigExpanded] = useState(false);
   const [activeView, setActiveView] = useState("content");
-
   const [hasInitialData, setHasInitialData] = useState(false);
 
-  // Update useEffect to handle loading state and prevent repeated calls
   useEffect(() => {
     const fetchData = async () => {
-      // Skip if already loading or has data
       if (isLoading || hasInitialData) return;
-
       setIsLoading(true);
       try {
-        console.log("Dispatching fetchAgentData for agentId:", agentId);
         await dispatch(fetchAgentData(agentId));
-        // Also fetch agent details for comprehensive agent information
         await dispatch(fetchAgentDetails(agentId));
         setHasInitialData(true);
       } catch (error) {
         console.error("Failed to fetch agent data:", error);
-        // Add error state handling here if needed
       } finally {
         setIsLoading(false);
       }
     };
+    if (agentId) fetchData();
+  }, [dispatch, agentId, isLoading, hasInitialData]);
 
-    if (agentId) {
-      fetchData();
-    }
-  }, [dispatch, agentId, isLoading, hasInitialData]); // Include isLoading to prevent double fetches
-
-  // Debounced search to improve performance
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
-
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 300); // 300ms debounce
-
+    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Memoize the search suggestions function
-  const getSearchSuggestions = React.useCallback(
-    (query: string) => {
-      const suggestions = [];
-
-      // Author suggestions
-      const authors = [...new Set(displayPosts.map((item) => item.author))];
-      const matchingAuthors = authors
-        .filter((author) => author.toLowerCase().includes(query.toLowerCase()))
-        .slice(0, 2);
-
-      matchingAuthors.forEach((author) => {
-        suggestions.push({
-          type: "author",
-          label: `Author: ${author}`,
-          query: `author:${author}`,
-          count: displayPosts.filter((item) => item.author === author).length,
-        });
-      });
-
-      // Keyword suggestions
-      const allKeywords = displayPosts.flatMap((item) => item.keywords);
-      const uniqueKeywords = [...new Set(allKeywords)];
-      const matchingKeywords = uniqueKeywords
-        .filter((keyword) =>
-          keyword.toLowerCase().includes(query.toLowerCase())
-        )
-        .slice(0, 3);
-
-      matchingKeywords.forEach((keyword) => {
-        suggestions.push({
-          type: "keyword",
-          label: keyword,
-          query: keyword,
-          count: displayPosts.filter((item) => item.keywords.includes(keyword))
-            .length,
-        });
-      });
-
-      // Status suggestions
-      if ("pending".includes(query.toLowerCase())) {
-        suggestions.push({
-          type: "status",
-          label: "Status: Pending",
-          query: "status:pending",
-          count: displayPosts.filter((item) => item.status === "pending")
-            .length,
-        });
-      }
-
-      return suggestions.slice(0, 5);
-    },
-    [displayPosts]
-  );
-
-  // Add this style tag for the scrollbar hiding
-  React.useEffect(() => {
-    // Add the style to hide scrollbars
-    const styleElement = document.createElement("style");
-    styleElement.textContent = `
-      .scrollbar-hide::-webkit-scrollbar {
-        display: none;
-      }
-      .scrollbar-hide {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-    `;
-    document.head.appendChild(styleElement);
-
-    return () => {
-      document.head.removeChild(styleElement);
-    };
-  }, []);
-
-  // Memoize the filtered content calculation
   const filteredContent = React.useMemo(() => {
     let filtered = displayPosts.filter((item) => {
-      // Apply status filter
       if (statusFilter !== "all" && item.status !== statusFilter) return false;
-
-      // Apply search filter - simple text search in title and content
       if (debouncedSearchQuery) {
         const query = debouncedSearchQuery.toLowerCase();
         return (
@@ -1619,20 +1653,13 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
           item.content.toLowerCase().includes(query)
         );
       }
-
       return true;
     });
 
-    // Apply sorting
-    // Parse time strings for comparison (assuming format like "2 hours ago", "5 mins ago")
     const getTimeValue = (timeStr: string) => {
-      if (timeStr.includes("min")) {
-        return parseInt(timeStr);
-      } else if (timeStr.includes("hour")) {
-        return parseInt(timeStr) * 60;
-      } else if (timeStr.includes("day")) {
-        return parseInt(timeStr) * 60 * 24;
-      }
+      if (timeStr.includes("min")) return parseInt(timeStr);
+      else if (timeStr.includes("hour")) return parseInt(timeStr) * 60;
+      else if (timeStr.includes("day")) return parseInt(timeStr) * 60 * 24;
       return 0;
     };
 
@@ -1640,537 +1667,180 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
       switch (sortBy) {
         case "relevance":
           return (b.relevance || 0) - (a.relevance || 0);
-
         case "newest":
           return getTimeValue(a.time) - getTimeValue(b.time);
-
         case "oldest":
           return getTimeValue(b.time) - getTimeValue(a.time);
-
         case "most_comments":
           return (
             parseInt(b.comments.toString()) - parseInt(a.comments.toString())
           );
-
         case "least_comments":
           return (
             parseInt(a.comments.toString()) - parseInt(b.comments.toString())
           );
-
         case "most_upvotes":
           return (
             parseInt(b.upvotes.toString()) - parseInt(a.upvotes.toString())
           );
-
         case "least_upvotes":
           return (
             parseInt(a.upvotes.toString()) - parseInt(b.upvotes.toString())
           );
-
         default:
           return (b.relevance || 0) - (a.relevance || 0);
       }
     });
-
     return filtered;
   }, [displayPosts, statusFilter, debouncedSearchQuery, sortBy]);
-
-  // Memoize the selected content
-  const selectedContent = React.useMemo(() => {
-    return (
-      filteredContent.find((item) => item.id === selectedContentId) ||
-      filteredContent[0]
-    );
-  }, [filteredContent, selectedContentId]);
-
-  // Memoize the agent object
-  const agent = React.useMemo(
-    () => ({
-      id: agentId,
-      name: agentDetails?.agent_name || agentData?.agent_name || editedName,
-      platform: agentDetails?.agent_platform || agentType,
-      status: agentDetails?.agent_status || agentState,
-      lastActive: "5 mins ago",
-      keyMetric: {
-        value: displayPosts.length.toString(),
-        label: "Posts Found",
-      },
-      secondaryMetric: {
-        value:
-          agentDetails?.goals?.split(",").length?.toString() ||
-          agentData?.goals?.length?.toString() ||
-          "0",
-        label: "Goals",
-      },
-      healthScore: 90,
-      weeklyActivity: displayPosts.length,
-      description:
-        agentDetails?.description ||
-        agentData?.description ||
-        "Identifies potential leads by monitoring relevant subreddits.",
-    }),
-    [
-      agentId,
-      agentDetails,
-      agentData,
-      editedName,
-      agentType,
-      agentState,
-      displayPosts.length,
-    ]
-  );
-
-  const toggleAgentStatus = React.useCallback(async () => {
-    try {
-      const newStatus = agentState === "active" ? "paused" : "active";
-      await dispatch(updateAgentStatus({ agentId, status: newStatus }));
-    } catch (error) {
-      console.error("Failed to update agent status:", error);
-    }
-  }, [agentState, dispatch, agentId]);
-
-  const saveAgentName = React.useCallback(() => {
-    setIsEditing(false);
-  }, []);
-
-  const handleDeleteAgent = React.useCallback(() => {
-    setIsDeleteDialogOpen(false);
-    router.push("/projects/1/agents");
-  }, [router]);
 
   const toggleDetailPane = React.useCallback(() => {
     setShowDetailPane(!showDetailPane);
   }, [showDetailPane]);
 
-  const toggleFilterExpanded = React.useCallback(() => {
-    setIsFilterExpanded(!isFilterExpanded);
-  }, [isFilterExpanded]);
-
-  const toggleAgentStats = React.useCallback(() => {
-    setShowAgentStats(!showAgentStats);
-  }, [showAgentStats]);
-
-  const togglePerformance = React.useCallback(() => {
-    setIsPerformanceExpanded(!isPerformanceExpanded);
-  }, [isPerformanceExpanded]);
-
-  const toggleConfig = React.useCallback(() => {
-    setIsConfigExpanded(!isConfigExpanded);
-  }, [isConfigExpanded]);
-
   if (isLoading) {
     return (
-      <Layout>
-        <div className="flex items-center justify-center h-96">
-          <div className="flex flex-col items-center gap-4">
-            <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
-            <p className="text-muted-foreground">Loading agent details...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  // If this is a HackerNews agent, render the HN view backed by store data
-  if (agentType === "hackernews") {
-    return (
-      <Layout>
-        <div className="h-[calc(100vh-80px)]">
-          <HackerNewsView agentId={agentId} />
-        </div>
-      </Layout>
-    );
-  }
-
-  // If this is a Reddit agent, render the Reddit Result View
-  if (agentType === "reddit") {
-    return (
-      <Layout>
-        <div className="h-[calc(100vh-80px)]">
-          <RedditResultView agentId={agentId} />
-        </div>
-      </Layout>
-    );
-  }
-
-  return (
-    <Layout>
-      <div className="h-[calc(100vh-80px)] flex items-center justify-center text-sm text-muted-foreground">
-        Agent view not available for this platform yet.
-      </div>
-    </Layout>
-  );
-}
-
-// ContentDetails Component
-interface ContentDetailsProps {
-  selectedContentId: string;
-  selectedPost: DisplayPost;
-  agentId: string;
-  toggleDetailPane: () => void;
-  getStatusBadgeClass: (status: PostStatus) => string;
-  getStatusLabel: (status: PostStatus) => string;
-}
-
-const ContentDetails = React.memo(function ContentDetails({
-  selectedContentId,
-  selectedPost,
-  agentId,
-  toggleDetailPane,
-  getStatusBadgeClass,
-  getStatusLabel,
-}: ContentDetailsProps) {
-  const isMobile = useIsMobile();
-  const detailContainerRef = React.useRef<HTMLDivElement>(null);
-  const [parentWidth, setParentWidth] = React.useState(0);
-
-  // Measure parent width and update markdown max-width
-  React.useEffect(() => {
-    const measureParentWidth = () => {
-      if (detailContainerRef.current) {
-        const width = detailContainerRef.current.offsetWidth;
-        setParentWidth(width);
-      }
-    };
-
-    // Initial measurement
-    measureParentWidth();
-
-    // Measure on resize
-    const resizeObserver = new ResizeObserver(measureParentWidth);
-    if (detailContainerRef.current) {
-      resizeObserver.observe(detailContainerRef.current);
-    }
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
-
-  // Calculate max-width for markdown content
-  const markdownMaxWidth = React.useMemo(() => {
-    if (parentWidth === 0) return "100%";
-    // Set markdown max-width to 90% of parent width with some padding
-    const calculatedWidth = parentWidth - 48; // Account for padding
-    return `${Math.max(calculatedWidth, 200)}px`; // Minimum 200px
-  }, [parentWidth]);
-
-  // Use the selected post data passed from the parent component
-  const content = selectedPost;
-
-  // Early return for loading state
-  if (!selectedContentId) {
-    return null;
-  }
-
-  // Show loading state while content is being fetched
-  if (!content) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center p-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-          <h3 className="text-sm font-medium mb-1">Loading content...</h3>
-          <p className="text-xs text-muted-foreground">
-            Please wait while we fetch the details
-          </p>
+      <div className="flex items-center justify-center h-96">
+        <div className="flex flex-col items-center gap-4">
+          <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
+          <p className="text-muted-foreground">Loading agent details...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div ref={detailContainerRef} className="flex flex-col h-full">
-      {/* Detail Header - Fixed */}
-      <div className="border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
-        <div className="p-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Content Details</h3>
-            <div className="flex items-center gap-1">
-              <Badge
-                variant="outline"
-                className={cn(
-                  "text-xs px-1.5 py-0",
-                  getStatusBadgeClass(content.status)
-                )}
-              >
-                {getStatusLabel(content.status)}
-              </Badge>
-              <Badge
-                variant="outline"
-                className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800/50 text-xs px-1.5 py-0"
-              >
-                #{(content as any).subreddit || "reddit"}
-              </Badge>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={toggleDetailPane}
-              >
-                {isMobile ? (
-                  <XIcon className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronRightIcon className="h-3.5 w-3.5" />
-                )}
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <div className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 p-0.5 rounded-full">
-              <div className="h-3.5 w-3.5 flex items-center justify-center font-bold text-xs">
-                R
+    <div className="flex flex-col h-full">
+      <div className="border-b border-gray-200 dark:border-gray-800 px-4 py-1 flex-shrink-0 bg-white dark:bg-gray-900/60">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="h-10 w-10 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400">
+                <RedditIcon className="h-5 w-5" />
               </div>
-            </div>
-            <span className="font-medium">
-              r/{(content as any).subreddit || "reddit"}
-            </span>
-            <Button
-              variant="link"
-              size="sm"
-              className="h-auto p-0 text-xs flex items-center gap-1"
-              asChild
-            >
-              <a href={content.url} target="_blank" rel="noopener noreferrer">
-                View Original
-                <ExternalLink className="h-3 w-3 ml-0.5" />
-              </a>
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Detail Content - Scrollable */}
-      <div
-        className={cn(
-          "flex-1 overflow-y-auto min-h-0",
-          isMobile && "max-h-[50vh]"
-        )}
-      >
-        <div className="p-3 space-y-4">
-          {/* Original Content */}
-          <div className="w-full">
-            {/* <h4 className="text-sm font-medium mb-1.5">Original Content</h4> */}
-            <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="font-semibold text-base">u/{"Unknown"}</span>
-                <span className="text-sm text-muted-foreground">
-                  {content.time}
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold">
+                  {agentDetails?.agent_name || agentData?.agent_name || "Agent"}
+                </h1>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "text-xs px-2 py-0.5 h-5",
+                    (agentDetails?.agent_status || agentState) === "active"
+                      ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50"
+                      : "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800/50"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-1.5 h-1.5 rounded-full mr-1.5",
+                      (agentDetails?.agent_status || agentState) === "active"
+                        ? "bg-green-500"
+                        : "bg-gray-400"
+                    )}
+                  />
+                  {(agentDetails?.agent_status || agentState) === "active"
+                    ? "Active"
+                    : "Paused"}
+                </Badge>
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  {displayPosts.length} posts
                 </span>
               </div>
-              <h3 className="text-lg font-semibold mb-3">{content.title}</h3>
-              <div
-                className="prose prose-invert overflow-hidden overflow-x-auto"
-                style={{
-                  maxWidth: markdownMaxWidth,
-                  wordBreak: "break-word",
-                  overflowWrap: "break-word",
-                }}
-              >
-                <MarkdownRender content={content?.content || ""} />
-              </div>
             </div>
+            <div className="flex-1" />
           </div>
 
-          {/* Response Composer - only if not discarded */}
-          {content.status !== "discarded" && (
-            <div className="w-full mt-4">
-              <ResponseComposer
-                post={{
-                  id: content.id,
-                  title: content.title,
-                  body: content.content,
-                  author: content.author,
-                  subreddit: content.subreddit || content.tag || "reddit",
-                  url: content.url,
-                }}
-                agentId={agentId}
-                // TODO: Implement onSend to handle reply submission
-                onSend={(markdown) => {
-                  // Handle reply submission here
-                  // e.g., call an API or update state
-                  console.log("Reply sent:", markdown);
-                }}
-              />
-            </div>
-          )}
-
-          {/* Discarded Reason */}
-          {content.status === "discarded" && (
-            <div>
-              <h4 className="text-sm font-medium mb-1.5 flex items-center">
-                <XIcon className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                Discarded
-              </h4>
-              <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                <p className="text-sm text-muted-foreground">
-                  This content was discarded because it was deemed not relevant
-                  enough for a response.
-                </p>
-                <div className="flex items-center gap-1 mt-3 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>Discarded yesterday by AI Agent</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Action Buttons - Fixed */}
-      {content.status !== "discarded" && (
-        <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex-shrink-0">
-          <div
-            className={cn(
-              "flex gap-2",
-              isMobile ? "grid grid-cols-2" : "flex-wrap"
-            )}
-          >
-            {content.status === "pending" && (
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
               <Button
-                className={cn("gap-1.5 h-8 text-xs", isMobile && "col-span-2")}
+                variant={activeView === "content" ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "h-8 w-8 p-0",
+                  activeView === "content"
+                    ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary"
+                    : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                )}
+                onClick={() => setActiveView("content")}
+                title="Content"
               >
-                <CheckIcon className="h-3.5 w-3.5" />
-                Approve & Post
+                <MessageSquare className="h-4 w-4" />
               </Button>
-            )}
-            {(content.status === "pending" ||
-              content.status === "needs_review") && (
-              <Button variant="outline" className="gap-1.5 h-8 text-xs">
-                <XIcon className="h-3.5 w-3.5" />
-                Reject
+              <Button
+                variant={activeView === "performance" ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "h-8 w-8 p-0",
+                  activeView === "performance"
+                    ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary"
+                    : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                )}
+                onClick={() => setActiveView("performance")}
+                title="Analytics"
+              >
+                <BarChart2 className="h-4 w-4" />
               </Button>
-            )}
-            {content.status !== "escalated" && (
-              <Button variant="outline" className="gap-1.5 h-8 text-xs">
-                <UserPlusIcon className="h-3.5 w-3.5" />
-                Escalate
+              <Button
+                variant={activeView === "config" ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "h-8 w-8 p-0",
+                  activeView === "config"
+                    ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary"
+                    : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                )}
+                onClick={() => setActiveView("config")}
+                title="Settings"
+              >
+                <Settings className="h-4 w-4" />
               </Button>
-            )}
-            {!isMobile && (
-              <>
-                <Button variant="outline" className="gap-1.5 h-8 text-xs">
-                  <FlagIcon className="h-3.5 w-3.5" />
-                  Flag
-                </Button>
-                <Button variant="outline" className="gap-1.5 h-8 text-xs">
-                  <ShareIcon className="h-3.5 w-3.5" />
-                  Share
-                </Button>
-              </>
-            )}
+            </div>
           </div>
         </div>
-      )}
-    </div>
-  );
-});
+      </div>
 
-// ContentListItem Component for optimized rendering
-interface ContentListItemProps {
-  item: DisplayPost;
-  isSelected: boolean;
-  onSelect: (id: string) => void;
-  showDetailPane: boolean;
-  getStatusBadgeClass: (status: PostStatus) => string;
-  getStatusLabel: (status: PostStatus) => string;
-}
-
-const ContentListItem = React.memo(function ContentListItem({
-  item,
-  isSelected,
-  onSelect,
-  showDetailPane,
-  getStatusBadgeClass,
-  getStatusLabel,
-}: ContentListItemProps) {
-  const handleClick = React.useCallback(() => {
-    if (showDetailPane) {
-      onSelect(item.id);
-    } else {
-      // Open in new tab if details are hidden
-      window.open(item.url, "_blank", "noopener,noreferrer");
-    }
-  }, [showDetailPane, onSelect, item.id, item.url]);
-
-  const handleExternalLinkClick = React.useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-  }, []);
-
-  return (
-    <div
-      className={cn(
-        "p-3 border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-all duration-200 w-full min-w-0",
-        isSelected &&
-          "bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-l-blue-500 dark:border-l-blue-400"
-      )}
-      onClick={handleClick}
-      id="content-list-item"
-    >
-      <div
-        className="flex items-center gap-1 mb-1 w-full min-w-0"
-        id="content-list-item-header"
-      >
-        <div className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 p-0.5 rounded-full flex-shrink-0">
-          <div className="h-4 w-4 flex items-center justify-center font-bold text-xs">
-            R
-          </div>
-        </div>
-        {item.platform === "reddit" && (
-          <span className="text-xs font-medium truncate min-w-0 max-w-[120px]">
-            r/{item.subreddit || item.tag}
-          </span>
+      <div className="flex-1 flex flex-col min-h-0 max-w-full overflow-hidden">
+        {activeView === "content" && (
+          <ContentManagement
+            filteredContent={filteredContent}
+            selectedContentId={selectedContentId}
+            setSelectedContentId={setSelectedContentId}
+            showDetailPane={showDetailPane}
+            toggleDetailPane={toggleDetailPane}
+            isMobile={isMobile}
+            getStatusBadgeClass={getStatusBadgeClass}
+            getStatusLabel={(s) => getStatusLabel(s)}
+            isFilterExpanded={isFilterExpanded}
+            toggleFilterExpanded={() => setIsFilterExpanded((v) => !v)}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            agentId={agentId}
+          />
         )}
-        <div
-          className={cn(
-            "ml-auto px-1.5 py-0.5 rounded-full text-xs flex-shrink-0",
-            getStatusBadgeClass(item.status)
-          )}
-        >
-          {getStatusLabel(item.status)}
-        </div>
-      </div>
 
-      {/* Post Title */}
-      <h4 className="text-sm font-medium mb-1 line-clamp-1 w-full min-w-0 break-words overflow-hidden">
-        {item.title}
-      </h4>
-
-      {/* Post Content */}
-      {/* <p className="text-xs leading-tight line-clamp-2 mb-1 text-muted-foreground break-words whitespace-normal overflow-hidden w-full min-w-0">
-        {item.content}
-      </p> */}
-
-      <div className="flex items-center text-xs text-muted-foreground w-full min-w-0">
-        <span className="font-medium truncate max-w-[80px]">
-          u/{item.author}
-        </span>
-        <span className="mx-1 flex-shrink-0">•</span>
-        <span className="flex-shrink-0">{item.time}</span>
-
-        {/* Comments and Upvotes */}
-        <div className="flex items-center gap-2 ml-auto mr-1 flex-shrink-0">
-          <div className="flex items-center gap-0.5">
-            <MessageSquare className="h-3 w-3 flex-shrink-0" />
-            <span className="min-w-0">{item.comments}</span>
+        {activeView === "performance" && (
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <PerformanceMetrics
+              setActiveView={setActiveView}
+              agentId={agentId}
+            />
           </div>
-          <div className="flex items-center gap-0.5">
-            <ArrowUpRight className="h-3 w-3 flex-shrink-0" />
-            <span className="min-w-0">{item.upvotes}</span>
-          </div>
-        </div>
+        )}
 
-        {/* External Link */}
-        <a
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0"
-          onClick={handleExternalLinkClick}
-        >
-          <ExternalLink className="h-3 w-3" />
-        </a>
+        {activeView === "config" && (
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <ConfigurationSection
+              agentId={agentId}
+              setActiveView={setActiveView}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
-});
+}

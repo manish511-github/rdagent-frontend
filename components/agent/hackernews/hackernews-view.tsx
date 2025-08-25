@@ -1,13 +1,28 @@
 "use client";
 
 import React from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch } from "@/store/store";
+import {
+  fetchAgentData,
+  selectHackerNewsPosts,
+  selectAgentType,
+  selectAgentStatus,
+} from "@/store/features/agentSlice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { MessageSquare, ArrowUpRight, RefreshCw, Hash, Clock, ExternalLink } from "lucide-react";
+import {
+  MessageSquare,
+  ArrowUpRight,
+  RefreshCw,
+  Hash,
+  Clock,
+  ExternalLink,
+} from "lucide-react";
 
 type HNStory = {
   id: number;
@@ -33,7 +48,7 @@ type HNComment = {
 };
 
 type Props = {
-  stories: HNStory[];
+  agentId: string;
 };
 
 function formatTime(timestamp?: number) {
@@ -52,12 +67,17 @@ function getDomain(url?: string | null) {
 }
 
 async function fetchItem(id: number): Promise<HNStory | HNComment> {
-  const res = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
+  const res = await fetch(
+    `https://hacker-news.firebaseio.com/v0/item/${id}.json`
+  );
   if (!res.ok) throw new Error("Failed to fetch HN item");
   return res.json();
 }
 
-async function fetchCommentsBatch(ids: number[], cache: Map<number, HNComment>): Promise<HNComment[]> {
+async function fetchCommentsBatch(
+  ids: number[],
+  cache: Map<number, HNComment>
+): Promise<HNComment[]> {
   const results = await Promise.all(
     ids.map(async (id) => {
       const cached = cache.get(id);
@@ -70,7 +90,19 @@ async function fetchCommentsBatch(ids: number[], cache: Map<number, HNComment>):
   return results.filter((c) => c && !c.deleted && !c.dead);
 }
 
-function Comment({ id, depth = 0, commentsMap, setCommentsMap, highlightIds }: { id: number; depth?: number; commentsMap: Map<number, HNComment>; setCommentsMap: React.Dispatch<React.SetStateAction<Map<number, HNComment>>>; highlightIds: Set<number> }) {
+function Comment({
+  id,
+  depth = 0,
+  commentsMap,
+  setCommentsMap,
+  highlightIds,
+}: {
+  id: number;
+  depth?: number;
+  commentsMap: Map<number, HNComment>;
+  setCommentsMap: React.Dispatch<React.SetStateAction<Map<number, HNComment>>>;
+  highlightIds: Set<number>;
+}) {
   const node = commentsMap.get(id);
   const [expanded, setExpanded] = React.useState(false);
   const [childLoadedCount, setChildLoadedCount] = React.useState(0);
@@ -83,8 +115,14 @@ function Comment({ id, depth = 0, commentsMap, setCommentsMap, highlightIds }: {
     if (!node?.kids || childLoadedCount >= node.kids.length) return;
     setLoadingChildren(true);
     try {
-      const next = node.kids.slice(childLoadedCount, childLoadedCount + CHILD_PAGE);
-      const fetched = await fetchCommentsBatch(next, commentsMap as Map<number, HNComment>);
+      const next = node.kids.slice(
+        childLoadedCount,
+        childLoadedCount + CHILD_PAGE
+      );
+      const fetched = await fetchCommentsBatch(
+        next,
+        commentsMap as Map<number, HNComment>
+      );
       setCommentsMap((prev) => {
         const nextMap = new Map(prev);
         fetched.forEach((c) => nextMap.set(c.id, c));
@@ -105,8 +143,20 @@ function Comment({ id, depth = 0, commentsMap, setCommentsMap, highlightIds }: {
 
   if (!node) return null;
   return (
-    <div id={`c-${id}`} className={cn("mt-2 rounded-md", isHighlighted && "bg-amber-50 dark:bg-amber-950/30") } style={{ marginLeft: depth * 12 }}>
-      <div className={cn("text-xs text-muted-foreground flex items-center gap-2", isHighlighted && "px-2 pt-2") }>
+    <div
+      id={`c-${id}`}
+      className={cn(
+        "mt-2 rounded-md",
+        isHighlighted && "bg-amber-50 dark:bg-amber-950/30"
+      )}
+      style={{ marginLeft: depth * 12 }}
+    >
+      <div
+        className={cn(
+          "text-xs text-muted-foreground flex items-center gap-2",
+          isHighlighted && "px-2 pt-2"
+        )}
+      >
         <button
           className="text-[11px] px-1 py-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
           onClick={() => setExpanded((e) => !e)}
@@ -119,12 +169,25 @@ function Comment({ id, depth = 0, commentsMap, setCommentsMap, highlightIds }: {
         <span>{formatTime(node.time)}</span>
       </div>
       {expanded && (
-        <div className={cn("prose prose-sm dark:prose-invert mt-1", isHighlighted && "px-2 pb-2") } dangerouslySetInnerHTML={{ __html: node.text || "" }} />
+        <div
+          className={cn(
+            "prose prose-sm dark:prose-invert mt-1",
+            isHighlighted && "px-2 pb-2"
+          )}
+          dangerouslySetInnerHTML={{ __html: node.text || "" }}
+        />
       )}
       {expanded && childIdsLoaded.length > 0 && (
         <div className="mt-1">
           {childIdsLoaded.map((cid) => (
-            <Comment key={cid} id={cid} depth={depth + 1} commentsMap={commentsMap} setCommentsMap={setCommentsMap} highlightIds={highlightIds} />
+            <Comment
+              key={cid}
+              id={cid}
+              depth={depth + 1}
+              commentsMap={commentsMap}
+              setCommentsMap={setCommentsMap}
+              highlightIds={highlightIds}
+            />
           ))}
         </div>
       )}
@@ -144,7 +207,10 @@ function Comment({ id, depth = 0, commentsMap, setCommentsMap, highlightIds }: {
 }
 
 function stripHtml(s: string) {
-  return s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  return s
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function RelevantCommentsPanel({ ids }: { ids: number[] }) {
@@ -157,7 +223,9 @@ function RelevantCommentsPanel({ ids }: { ids: number[] }) {
       const fetched = await Promise.all(
         take.map(async (id) => {
           try {
-            const res = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
+            const res = await fetch(
+              `https://hacker-news.firebaseio.com/v0/item/${id}.json`
+            );
             if (!res.ok) return null;
             return (await res.json()) as HNComment;
           } catch {
@@ -182,7 +250,8 @@ function RelevantCommentsPanel({ ids }: { ids: number[] }) {
           {items.map((c) => (
             <li key={c.id} className="text-sm">
               <a href={`#c-${c.id}`} className="underline">
-                {stripHtml(c.text || "").slice(0, 140)}{stripHtml(c.text || "").length > 140 ? "…" : ""}
+                {stripHtml(c.text || "").slice(0, 140)}
+                {stripHtml(c.text || "").length > 140 ? "…" : ""}
               </a>
             </li>
           ))}
@@ -192,13 +261,62 @@ function RelevantCommentsPanel({ ids }: { ids: number[] }) {
   );
 }
 
-export default function HackerNewsView({ stories }: Props) {
+export default function HackerNewsView({ agentId }: Props) {
+  const dispatch = useDispatch<AppDispatch>();
+  const agentType = useSelector(selectAgentType);
+  const loadStatus = useSelector(selectAgentStatus);
+  const hnPosts = useSelector(selectHackerNewsPosts);
+
   const [query, setQuery] = React.useState("");
-  const [sortBy, setSortBy] = React.useState<"top" | "newest" | "comments">("top");
-  const [selectedId, setSelectedId] = React.useState<number | null>(stories[0]?.id ?? null);
+  const [sortBy, setSortBy] = React.useState<"top" | "newest" | "comments">(
+    "top"
+  );
+  const stories: HNStory[] = React.useMemo(() => {
+    return (hnPosts || []).map((p) => {
+      const idNum = Number(p.story_id ?? 0);
+      const relevantIds = Array.isArray(p.relevant_comments)
+        ? p.relevant_comments
+            .map((c) => Number(c.comment_id))
+            .filter((n) => !Number.isNaN(n))
+        : [];
+      return {
+        id: Number.isNaN(idNum) ? 0 : idNum,
+        title: p.title,
+        url: p.url ?? null,
+        score: p.score ?? 0,
+        time:
+          p.time ??
+          (p.created_utc
+            ? Math.floor(new Date(p.created_utc).getTime() / 1000)
+            : undefined),
+        by: undefined,
+        descendants: p.comment_count ?? 0,
+        children: (p.children as number[]) || [],
+        relevant_comment_ids: relevantIds,
+      } as HNStory;
+    });
+  }, [hnPosts]);
+
+  const [selectedId, setSelectedId] = React.useState<number | null>(null);
+  const isLoading = loadStatus === "loading" && stories.length === 0;
+
+  React.useEffect(() => {
+    if (!agentId) return;
+    dispatch(fetchAgentData(agentId));
+  }, [dispatch, agentId]);
+
+  React.useEffect(() => {
+    if (stories.length > 0 && !selectedId) {
+      setSelectedId(stories[0].id);
+    }
+  }, [stories, selectedId]);
   const [loadingComments, setLoadingComments] = React.useState(false);
-  const [storyCache] = React.useState<Map<number, HNStory | HNComment>>(new Map());
-  const [commentsMap, setCommentsMap] = React.useState<Map<number, HNComment>>(new Map());
+  const [storyCache] = React.useState<Map<number, HNStory | HNComment>>(
+    new Map()
+  );
+  const [commentsMap, setCommentsMap] = React.useState<Map<number, HNComment>>(
+    new Map()
+  );
   const [topKids, setTopKids] = React.useState<number[]>([]);
   const [topLoadedCount, setTopLoadedCount] = React.useState(0);
   const [topLoadedIds, setTopLoadedIds] = React.useState<number[]>([]);
@@ -209,7 +327,11 @@ export default function HackerNewsView({ stories }: Props) {
     let list = stories.slice(0);
     if (query.trim()) {
       const q = query.toLowerCase();
-      list = list.filter((s) => s.title.toLowerCase().includes(q) || getDomain(s.url).toLowerCase().includes(q));
+      list = list.filter(
+        (s) =>
+          s.title.toLowerCase().includes(q) ||
+          getDomain(s.url).toLowerCase().includes(q)
+      );
     }
     switch (sortBy) {
       case "top":
@@ -225,13 +347,18 @@ export default function HackerNewsView({ stories }: Props) {
     return list;
   }, [stories, query, sortBy]);
 
-  const selectedStory = React.useMemo(() => filtered.find((s) => s.id === selectedId) || filtered[0], [filtered, selectedId]);
+  const selectedStory = React.useMemo(
+    () => filtered.find((s) => s.id === selectedId) || filtered[0],
+    [filtered, selectedId]
+  );
 
   const loadStoryAndFirstComments = React.useCallback(async () => {
     if (!selectedStory) return;
     setLoadingComments(true);
     try {
-      let kids: number[] = Array.isArray(selectedStory.children) ? selectedStory.children : [];
+      let kids: number[] = Array.isArray(selectedStory.children)
+        ? selectedStory.children
+        : [];
       if (!kids.length) {
         const full = (await fetchItem(selectedStory.id)) as any;
         kids = (full?.kids || []) as number[];
@@ -281,6 +408,17 @@ export default function HackerNewsView({ stories }: Props) {
     }
   }, [selectedStory, loadStoryAndFirstComments]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full p-6">
+        <div className="flex flex-col items-center gap-4 text-muted-foreground">
+          <RefreshCw className="h-8 w-8 animate-spin" />
+          <div className="text-sm">Loading Hacker News posts...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2 bg-white dark:bg-gray-900/60">
@@ -293,13 +431,28 @@ export default function HackerNewsView({ stories }: Props) {
           />
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant={sortBy === "top" ? "default" : "outline"} className="h-8 px-2" onClick={() => setSortBy("top")}>
+          <Button
+            size="sm"
+            variant={sortBy === "top" ? "default" : "outline"}
+            className="h-8 px-2"
+            onClick={() => setSortBy("top")}
+          >
             <Hash className="h-3.5 w-3.5 mr-1" /> Top
           </Button>
-          <Button size="sm" variant={sortBy === "newest" ? "default" : "outline"} className="h-8 px-2" onClick={() => setSortBy("newest")}>
+          <Button
+            size="sm"
+            variant={sortBy === "newest" ? "default" : "outline"}
+            className="h-8 px-2"
+            onClick={() => setSortBy("newest")}
+          >
             <Clock className="h-3.5 w-3.5 mr-1" /> New
           </Button>
-          <Button size="sm" variant={sortBy === "comments" ? "default" : "outline"} className="h-8 px-2" onClick={() => setSortBy("comments")}>
+          <Button
+            size="sm"
+            variant={sortBy === "comments" ? "default" : "outline"}
+            className="h-8 px-2"
+            onClick={() => setSortBy("comments")}
+          >
             <MessageSquare className="h-3.5 w-3.5 mr-1" /> Comments
           </Button>
         </div>
@@ -323,11 +476,16 @@ export default function HackerNewsView({ stories }: Props) {
                     onClick={() => setSelectedId(s.id)}
                   >
                     <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-1">
-                      <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">HN</span>
+                      <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">
+                        HN
+                      </span>
                       <span className="truncate">{domain}</span>
                       <a
                         className="ml-auto inline-flex items-center gap-1 hover:underline"
-                        href={s.url || `https://news.ycombinator.com/item?id=${s.id}`}
+                        href={
+                          s.url ||
+                          `https://news.ycombinator.com/item?id=${s.id}`
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
@@ -335,7 +493,9 @@ export default function HackerNewsView({ stories }: Props) {
                         Open <ExternalLink className="h-3 w-3" />
                       </a>
                     </div>
-                    <div className="font-medium text-sm mb-1 line-clamp-1">{s.title}</div>
+                    <div className="font-medium text-sm mb-1 line-clamp-1">
+                      {s.title}
+                    </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{s.score ?? 0} points</span>
                       <span>•</span>
@@ -362,9 +522,16 @@ export default function HackerNewsView({ stories }: Props) {
             <div className="flex flex-col h-full">
               <div className="p-3 border-b border-gray-200 dark:border-gray-800">
                 <div className="flex items-start gap-2">
-                  <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800/50 text-[10px]">HN</Badge>
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800/50 text-[10px]"
+                  >
+                    HN
+                  </Badge>
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold leading-snug line-clamp-2">{selectedStory.title}</div>
+                    <div className="text-sm font-semibold leading-snug line-clamp-2">
+                      {selectedStory.title}
+                    </div>
                     <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
                       <span>{getDomain(selectedStory.url)}</span>
                       <span>•</span>
@@ -373,8 +540,20 @@ export default function HackerNewsView({ stories }: Props) {
                       <span>{formatTime(selectedStory.time)}</span>
                     </div>
                   </div>
-                  <Button asChild variant="ghost" size="icon" className="ml-auto h-7 w-7">
-                    <a href={selectedStory.url || `https://news.ycombinator.com/item?id=${selectedStory.id}`} target="_blank" rel="noopener noreferrer">
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="icon"
+                    className="ml-auto h-7 w-7"
+                  >
+                    <a
+                      href={
+                        selectedStory.url ||
+                        `https://news.ycombinator.com/item?id=${selectedStory.id}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <ArrowUpRight className="h-4 w-4" />
                     </a>
                   </Button>
@@ -385,22 +564,32 @@ export default function HackerNewsView({ stories }: Props) {
                 <ScrollArea className="h-full">
                   <div className="p-3 space-y-3">
                     {!!(selectedStory as any)?.relevant_comment_ids?.length && (
-                      <RelevantCommentsPanel ids={(selectedStory as any).relevant_comment_ids as number[]} />
+                      <RelevantCommentsPanel
+                        ids={
+                          (selectedStory as any)
+                            .relevant_comment_ids as number[]
+                        }
+                      />
                     )}
                     <Card className="border-gray-200 dark:border-gray-800">
                       <CardContent className="p-3">
                         <div className="flex items-center gap-2 mb-2">
                           <MessageSquare className="h-4 w-4 text-muted-foreground" />
                           <h3 className="text-sm font-medium">Comments</h3>
-                          <div className="text-[11px] text-muted-foreground ml-auto">{selectedStory.descendants ?? 0} total</div>
+                          <div className="text-[11px] text-muted-foreground ml-auto">
+                            {selectedStory.descendants ?? 0} total
+                          </div>
                         </div>
                         {loadingComments && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <RefreshCw className="h-4 w-4 animate-spin" /> Loading comments...
+                            <RefreshCw className="h-4 w-4 animate-spin" />{" "}
+                            Loading comments...
                           </div>
                         )}
                         {!loadingComments && topLoadedIds.length === 0 && (
-                          <div className="text-sm text-muted-foreground">No comments yet.</div>
+                          <div className="text-sm text-muted-foreground">
+                            No comments yet.
+                          </div>
                         )}
                         {!loadingComments && topLoadedIds.length > 0 && (
                           <div>
@@ -410,15 +599,28 @@ export default function HackerNewsView({ stories }: Props) {
                                 id={cid}
                                 commentsMap={commentsMap}
                                 setCommentsMap={setCommentsMap}
-                                highlightIds={new Set((selectedStory as any)?.relevant_comment_ids || [])}
+                                highlightIds={
+                                  new Set(
+                                    (selectedStory as any)
+                                      ?.relevant_comment_ids || []
+                                  )
+                                }
                               />
                             ))}
                           </div>
                         )}
                         {topLoadedCount < topKids.length && (
                           <div className="mt-2">
-                            <Button variant="outline" size="sm" className="h-8" onClick={loadMoreTop} disabled={loadingComments}>
-                              {loadingComments ? "Loading more..." : "Load more comments"}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                              onClick={loadMoreTop}
+                              disabled={loadingComments}
+                            >
+                              {loadingComments
+                                ? "Loading more..."
+                                : "Load more comments"}
                             </Button>
                           </div>
                         )}
@@ -434,5 +636,3 @@ export default function HackerNewsView({ stories }: Props) {
     </div>
   );
 }
-
-

@@ -1,12 +1,12 @@
 // Utility functions for project display and formatting
-import { 
-  Megaphone, 
-  Code, 
-  Package, 
-  Palette, 
-  PenTool, 
-  Briefcase, 
-  Activity 
+import {
+  Megaphone,
+  Code,
+  Package,
+  Palette,
+  PenTool,
+  Briefcase,
+  Activity,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -74,7 +74,8 @@ export const getDaysUntilDue = (dueDate: string) => {
   if (diffDays < 0) return { text: "Overdue", color: "text-blue-900" };
   if (diffDays === 0) return { text: "Due today", color: "text-blue-800" };
   if (diffDays === 1) return { text: "Due tomorrow", color: "text-blue-800" };
-  if (diffDays <= 7) return { text: `${diffDays} days left`, color: "text-blue-700" };
+  if (diffDays <= 7)
+    return { text: `${diffDays} days left`, color: "text-blue-700" };
   return { text: `${diffDays} days left`, color: "text-muted-foreground" };
 };
 
@@ -89,7 +90,11 @@ export const formatRelativeDate = (dateString: string) => {
   if (diffDays < 7) return `${diffDays}d ago`;
   if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
   if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 };
 
 export const formatDateTime = (dateString: string) => {
@@ -120,7 +125,8 @@ export const formatConciseDateTime = (dateString: string) => {
   });
 };
 
-export const getCategoryIcon = (category: string): LucideIcon => {
+export const getCategoryIcon = (category?: string | null): LucideIcon => {
+  if (!category) return Activity;
   switch (category.toLowerCase()) {
     case "marketing":
       return Megaphone;
@@ -138,5 +144,3 @@ export const getCategoryIcon = (category: string): LucideIcon => {
       return Activity;
   }
 };
-
- 
