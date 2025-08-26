@@ -35,6 +35,7 @@ type HNStory = {
   // Optional pre-supplied children and relevant ids from upstream payload
   children?: number[];
   relevant_comment_ids?: number[];
+  kids?: number[]; // Comments
 };
 
 type HNComment = {
@@ -96,20 +97,42 @@ function Comment({
   commentsMap,
   setCommentsMap,
   highlightIds,
+  expandedCommentId,
+  setExpandedCommentId,
 }: {
   id: number;
   depth?: number;
   commentsMap: Map<number, HNComment>;
   setCommentsMap: React.Dispatch<React.SetStateAction<Map<number, HNComment>>>;
   highlightIds: Set<number>;
+  expandedCommentId: number | null;
+  setExpandedCommentId: (id: number | null) => void;
 }) {
   const node = commentsMap.get(id);
-  const [expanded, setExpanded] = React.useState(false);
   const [childLoadedCount, setChildLoadedCount] = React.useState(0);
   const [childIdsLoaded, setChildIdsLoaded] = React.useState<number[]>([]);
   const [loadingChildren, setLoadingChildren] = React.useState(false);
   const CHILD_PAGE = 5;
   const isHighlighted = highlightIds.has(id);
+  const isExpanded = expandedCommentId === id;
+
+  // Function to get preview text (first 2-3 lines)
+  const getPreviewText = (text: string) => {
+    const stripped = stripHtml(text);
+    // Split by newlines and get first 3 non-empty lines
+    const lines = stripped.split("\n").filter((line) => line.trim());
+    const previewLines = lines.slice(0, 3);
+    const preview = previewLines.join(" ");
+    // Limit to 200 characters for preview
+    return preview.length > 200 ? preview.substring(0, 200) + "..." : preview;
+  };
+
+  // Function to check if text needs expansion
+  const needsExpansion = (text: string) => {
+    const stripped = stripHtml(text);
+    const lines = stripped.split("\n").filter((line) => line.trim());
+    return lines.length > 3 || stripped.length > 200;
+  };
 
   const loadMoreChildren = React.useCallback(async () => {
     if (!node?.kids || childLoadedCount >= node.kids.length) return;
@@ -136,72 +159,165 @@ function Comment({
   }, [node, childLoadedCount, commentsMap, setCommentsMap]);
 
   React.useEffect(() => {
-    if (expanded && node?.kids && childLoadedCount === 0) {
+    if (isExpanded && node?.kids && childLoadedCount === 0) {
       loadMoreChildren();
     }
-  }, [expanded, node, childLoadedCount, loadMoreChildren]);
+  }, [isExpanded, node, childLoadedCount, loadMoreChildren]);
 
   if (!node) return null;
+
+  const commentText = node.text || "";
+  const hasMoreText = needsExpansion(commentText);
+  const previewText = getPreviewText(commentText);
+
   return (
     <div
       id={`c-${id}`}
       className={cn(
-        "mt-2 rounded-md",
-        isHighlighted && "bg-amber-50 dark:bg-amber-950/30"
+        "mt-3 rounded-lg border border-gray-100 dark:border-gray-800 max-w-full",
+        isHighlighted &&
+          "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
       )}
-      style={{ marginLeft: depth * 12 }}
+      style={{ marginLeft: depth * 16 }}
     >
+      {/* Comment Header */}
       <div
         className={cn(
-          "text-xs text-muted-foreground flex items-center gap-2",
-          isHighlighted && "px-2 pt-2"
+          "px-4 py-3 border-b border-gray-100 dark:border-gray-800",
+          isHighlighted && "border-amber-200 dark:border-amber-800"
         )}
       >
-        <button
-          className="text-[11px] px-1 py-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-          onClick={() => setExpanded((e) => !e)}
-          aria-label="toggle"
-        >
-          {expanded ? "−" : "+"}
-        </button>
-        <span className="font-medium">{node.by || "unknown"}</span>
-        <span>•</span>
-        <span>{formatTime(node.time)}</span>
-      </div>
-      {expanded && (
-        <div
-          className={cn(
-            "prose prose-sm dark:prose-invert mt-1",
-            isHighlighted && "px-2 pb-2"
-          )}
-          dangerouslySetInnerHTML={{ __html: node.text || "" }}
-        />
-      )}
-      {expanded && childIdsLoaded.length > 0 && (
-        <div className="mt-1">
-          {childIdsLoaded.map((cid) => (
-            <Comment
-              key={cid}
-              id={cid}
-              depth={depth + 1}
-              commentsMap={commentsMap}
-              setCommentsMap={setCommentsMap}
-              highlightIds={highlightIds}
-            />
-          ))}
-        </div>
-      )}
-      {expanded && node.kids && childLoadedCount < node.kids.length && (
-        <div className="mt-1">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                <span className="text-xs font-medium text-orange-700 dark:text-orange-300">
+                  {node.by ? node.by.charAt(0).toUpperCase() : "?"}
+                </span>
+              </div>
+              <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                {node.by || "unknown"}
+              </span>
+            </div>
+            <span className="text-gray-400 dark:text-gray-500">•</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {formatTime(node.time)}
+            </span>
+          </div>
+
           <button
-            className="text-[11px] px-2 py-1 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-            onClick={loadMoreChildren}
-            disabled={loadingChildren}
+            className="text-xs px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors"
+            onClick={() => setExpandedCommentId(isExpanded ? null : id)}
+            aria-label={isExpanded ? "Collapse comment" : "Expand comment"}
           >
-            {loadingChildren ? "Loading replies..." : "Load more replies"}
+            {isExpanded ? "Collapse" : "Expand"}
           </button>
         </div>
-      )}
+      </div>
+
+      {/* Comment Content */}
+      <div
+        className={cn(
+          "px-4 py-3 overflow-hidden",
+          isHighlighted && "bg-amber-50/50 dark:bg-amber-950/20"
+        )}
+      >
+        {isExpanded ? (
+          // Full expanded content
+          <div className="space-y-3">
+            <div
+              className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed overflow-hidden break-words"
+              dangerouslySetInnerHTML={{ __html: commentText }}
+            />
+
+            {/* Child comments */}
+            {childIdsLoaded.length > 0 && (
+              <div className="mt-4 space-y-2 max-w-full">
+                {childIdsLoaded.map((cid) => (
+                  <Comment
+                    key={cid}
+                    id={cid}
+                    depth={depth + 1}
+                    commentsMap={commentsMap}
+                    setCommentsMap={setCommentsMap}
+                    highlightIds={highlightIds}
+                    expandedCommentId={expandedCommentId}
+                    setExpandedCommentId={setExpandedCommentId}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Load more replies button */}
+            {node.kids && childLoadedCount < node.kids.length && (
+              <div className="mt-3">
+                <button
+                  className="text-xs px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors"
+                  onClick={loadMoreChildren}
+                  disabled={loadingChildren}
+                >
+                  {loadingChildren ? "Loading replies..." : "Load more replies"}
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          // Preview content
+          <div className="space-y-2">
+            <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+              {hasMoreText ? (
+                <div
+                  className="overflow-hidden"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  {previewText}
+                  {previewText.length < stripHtml(commentText).length && (
+                    <span className="text-gray-500 dark:text-gray-400">
+                      ...
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className="overflow-hidden"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  <div
+                    className="prose prose-sm dark:prose-invert max-w-none overflow-hidden break-words"
+                    dangerouslySetInnerHTML={{ __html: commentText }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {hasMoreText && (
+              <button
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                onClick={() => setExpandedCommentId(id)}
+              >
+                Read more
+              </button>
+            )}
+
+            {/* Show reply count if available */}
+            {node.kids && node.kids.length > 0 && (
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                {node.kids.length} repl{node.kids.length === 1 ? "y" : "ies"}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -213,49 +329,59 @@ function stripHtml(s: string) {
     .trim();
 }
 
-function RelevantCommentsPanel({ ids }: { ids: number[] }) {
-  const [items, setItems] = React.useState<HNComment[]>([]);
-  React.useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!ids || ids.length === 0) return setItems([]);
-      const take = ids.slice(0, 10);
-      const fetched = await Promise.all(
-        take.map(async (id) => {
-          try {
-            const res = await fetch(
-              `https://hacker-news.firebaseio.com/v0/item/${id}.json`
-            );
-            if (!res.ok) return null;
-            return (await res.json()) as HNComment;
-          } catch {
-            return null;
-          }
-        })
-      );
-      if (!cancelled) setItems(fetched.filter(Boolean) as HNComment[]);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [ids]);
-
-  if (!ids || ids.length === 0) return null;
+function RelevantCommentsPanel({
+  relevantComments,
+}: {
+  relevantComments: any[];
+}) {
+  if (!relevantComments || relevantComments.length === 0) return null;
 
   return (
     <Card className="border-amber-200 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/10">
-      <CardContent className="p-3">
-        <div className="text-sm font-medium mb-2">Relevant comments</div>
-        <ul className="space-y-2">
-          {items.map((c) => (
-            <li key={c.id} className="text-sm">
-              <a href={`#c-${c.id}`} className="underline">
-                {stripHtml(c.text || "").slice(0, 140)}
-                {stripHtml(c.text || "").length > 140 ? "…" : ""}
-              </a>
-            </li>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-5 h-5 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+              ★
+            </span>
+          </div>
+          <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+            Relevant Comments
+          </h3>
+        </div>
+        <div className="space-y-3">
+          {relevantComments.slice(0, 10).map((c) => (
+            <div
+              key={c.comment_id}
+              className="bg-white dark:bg-gray-900/50 rounded-lg border border-amber-200 dark:border-amber-800 p-3"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-medium text-orange-700 dark:text-orange-300">
+                      {c.by ? c.by.charAt(0).toUpperCase() : "?"}
+                    </span>
+                  </div>
+                  <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                    {c.by || "unknown"}
+                  </span>
+                </div>
+                <a
+                  href={`https://news.ycombinator.com/item?id=${c.comment_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                >
+                  View on HN →
+                </a>
+              </div>
+              <div
+                className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-gray-700 dark:text-gray-300"
+                dangerouslySetInnerHTML={{ __html: c.text || "" }}
+              />
+            </div>
           ))}
-        </ul>
+        </div>
       </CardContent>
     </Card>
   );
@@ -271,60 +397,33 @@ export default function HackerNewsView({ agentId }: Props) {
   const [sortBy, setSortBy] = React.useState<"top" | "newest" | "comments">(
     "top"
   );
-  const stories: HNStory[] = React.useMemo(() => {
-    return (hnPosts || []).map((p) => {
-      const idNum = Number(p.story_id ?? 0);
-      const relevantIds = Array.isArray(p.relevant_comments)
-        ? p.relevant_comments
-            .map((c) => Number(c.comment_id))
-            .filter((n) => !Number.isNaN(n))
-        : [];
-      return {
-        id: Number.isNaN(idNum) ? 0 : idNum,
-        title: p.title,
-        url: p.url ?? null,
-        score: p.score ?? 0,
-        time:
-          p.time ??
-          (p.created_utc
-            ? Math.floor(new Date(p.created_utc).getTime() / 1000)
-            : undefined),
-        by: undefined,
-        descendants: p.comment_count ?? 0,
-        children: (p.children as number[]) || [],
-        relevant_comment_ids: relevantIds,
-      } as HNStory;
-    });
-  }, [hnPosts]);
 
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
-  const isLoading = loadStatus === "loading" && stories.length === 0;
+  const isLoading =
+    loadStatus === "loading" && (!hnPosts || hnPosts.length === 0);
 
   React.useEffect(() => {
     if (!agentId) return;
     dispatch(fetchAgentData(agentId));
   }, [dispatch, agentId]);
-
-  React.useEffect(() => {
-    if (stories.length > 0 && !selectedId) {
-      setSelectedId(stories[0].id);
-    }
-  }, [stories, selectedId]);
   const [loadingComments, setLoadingComments] = React.useState(false);
-  const [storyCache] = React.useState<Map<number, HNStory | HNComment>>(
-    new Map()
-  );
+  const [loadingStoryDetails, setLoadingStoryDetails] = React.useState(false);
+  const [fullStoryDetails, setFullStoryDetails] = React.useState<any>(null);
   const [commentsMap, setCommentsMap] = React.useState<Map<number, HNComment>>(
     new Map()
   );
   const [topKids, setTopKids] = React.useState<number[]>([]);
   const [topLoadedCount, setTopLoadedCount] = React.useState(0);
   const [topLoadedIds, setTopLoadedIds] = React.useState<number[]>([]);
+  const [expandedCommentId, setExpandedCommentId] = React.useState<
+    number | null
+  >(null);
   const TOP_PAGE = 10;
   const cacheRef = React.useRef<Map<number, HNComment>>(new Map());
+  const storyCacheRef = React.useRef<Map<number, any>>(new Map());
 
   const filtered = React.useMemo(() => {
-    let list = stories.slice(0);
+    let list = (hnPosts || []).slice(0);
     if (query.trim()) {
       const q = query.toLowerCase();
       list = list.filter(
@@ -335,53 +434,183 @@ export default function HackerNewsView({ agentId }: Props) {
     }
     switch (sortBy) {
       case "top":
-        list.sort((a, b) => (b.score || 0) - (a.score || 0));
+        list.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
         break;
       case "newest":
-        list.sort((a, b) => (b.time || 0) - (a.time || 0));
+        list.sort((a, b) => (b.time ?? 0) - (a.time ?? 0));
         break;
       case "comments":
-        list.sort((a, b) => (b.descendants || 0) - (a.descendants || 0));
+        list.sort((a, b) => (b.comment_count ?? 0) - (a.comment_count ?? 0));
         break;
     }
     return list;
-  }, [stories, query, sortBy]);
+  }, [hnPosts, query, sortBy]);
 
   const selectedStory = React.useMemo(
-    () => filtered.find((s) => s.id === selectedId) || filtered[0],
+    () =>
+      filtered.find((s) => Number(s.story_id) === selectedId) || filtered[0],
     [filtered, selectedId]
   );
 
-  const loadStoryAndFirstComments = React.useCallback(async () => {
-    if (!selectedStory) return;
-    setLoadingComments(true);
-    try {
-      let kids: number[] = Array.isArray(selectedStory.children)
-        ? selectedStory.children
-        : [];
-      if (!kids.length) {
-        const full = (await fetchItem(selectedStory.id)) as any;
-        kids = (full?.kids || []) as number[];
-      }
-      setTopKids(kids);
+  const loadStoryAndFirstComments = React.useCallback(
+    async (storyId: number) => {
+      // Reset comment state immediately for better UX
+      setTopKids([]);
       setTopLoadedCount(0);
       setTopLoadedIds([]);
       setCommentsMap(new Map());
-      const first = kids.slice(0, TOP_PAGE);
-      const fetched = await fetchCommentsBatch(first, cacheRef.current);
-      setCommentsMap((prev) => {
-        const next = new Map(prev);
-        fetched.forEach((c) => next.set(c.id, c));
-        return next;
-      });
-      // update cache
-      fetched.forEach((c) => cacheRef.current.set(c.id, c));
-      setTopLoadedIds(fetched.map((c) => c.id));
-      setTopLoadedCount(first.length);
-    } finally {
-      setLoadingComments(false);
+
+      setLoadingComments(true);
+      try {
+        // Check cache first for immediate response
+        const cached = storyCacheRef.current.get(storyId);
+        let kids: number[] = [];
+
+        if (cached && cached.kids) {
+          kids = cached.kids as number[];
+          setTopKids(kids);
+
+          // Immediately show cached comments if available
+          if (kids.length > 0) {
+            const first = kids.slice(0, TOP_PAGE);
+            const cachedComments = first.filter((id) =>
+              cacheRef.current.has(id)
+            );
+
+            if (cachedComments.length > 0) {
+              const cached = cachedComments.map(
+                (id) => cacheRef.current.get(id)!
+              );
+              setCommentsMap((prev) => {
+                const next = new Map(prev);
+                cached.forEach((c) => next.set(c.id, c));
+                return next;
+              });
+              setTopLoadedIds(cached.map((c) => c.id));
+              setTopLoadedCount(cachedComments.length);
+            }
+          }
+        } else {
+          // Fetch story details if not cached
+          const full = (await fetchItem(storyId)) as any;
+          kids = (full?.kids || []) as number[];
+          storyCacheRef.current.set(storyId, full);
+          setTopKids(kids);
+        }
+
+        // Load any remaining comments that aren't cached
+        if (kids.length > 0) {
+          const first = kids.slice(0, TOP_PAGE);
+          const uncachedComments = first.filter(
+            (id) => !cacheRef.current.has(id)
+          );
+
+          if (uncachedComments.length > 0) {
+            const fetched = await fetchCommentsBatch(
+              uncachedComments,
+              cacheRef.current
+            );
+            setCommentsMap((prev) => {
+              const next = new Map(prev);
+              fetched.forEach((c) => next.set(c.id, c));
+              return next;
+            });
+            // update cache
+            fetched.forEach((c) => cacheRef.current.set(c.id, c));
+            setTopLoadedIds((prev) => [...prev, ...fetched.map((c) => c.id)]);
+            setTopLoadedCount((prev) => prev + fetched.length);
+          }
+        }
+      } finally {
+        setLoadingComments(false);
+      }
+    },
+    []
+  );
+
+  // Function to handle instant story selection
+  const handleStorySelection = React.useCallback(
+    (storyId: number) => {
+      setSelectedId(storyId);
+      setFullStoryDetails(null); // Reset full story details
+      setExpandedCommentId(null); // Reset expanded comment when switching stories
+
+      // Check if we have cached data for instant display
+      const cached = storyCacheRef.current.get(storyId);
+      if (cached && cached.kids) {
+        // If cached, show comments immediately
+        const kids = cached.kids as number[];
+        setTopKids(kids);
+
+        if (kids.length > 0) {
+          const first = kids.slice(0, TOP_PAGE);
+          const cachedComments = first.filter((id) => cacheRef.current.has(id));
+
+          if (cachedComments.length > 0) {
+            const cached = cachedComments.map(
+              (id) => cacheRef.current.get(id)!
+            );
+            setCommentsMap((prev) => {
+              const next = new Map(prev);
+              cached.forEach((c) => next.set(c.id, c));
+              return next;
+            });
+            setTopLoadedIds(cached.map((c) => c.id));
+            setTopLoadedCount(cachedComments.length);
+          }
+        }
+
+        // Load any remaining comments in background
+        loadStoryAndFirstComments(storyId);
+      } else {
+        // If not cached, show loading and fetch
+        setLoadingStoryDetails(true);
+        setTopKids([]);
+        setTopLoadedCount(0);
+        setTopLoadedIds([]);
+        setCommentsMap(new Map());
+
+        loadStoryAndFirstComments(storyId).finally(() => {
+          setLoadingStoryDetails(false);
+        });
+      }
+    },
+    [loadStoryAndFirstComments]
+  );
+
+  // Function to fetch full story details if text is missing
+  const fetchFullStoryDetails = React.useCallback(async (storyId: number) => {
+    try {
+      const full = await fetchItem(storyId);
+      storyCacheRef.current.set(storyId, full);
+      return full;
+    } catch (error) {
+      console.error("Failed to fetch full story details:", error);
+      return null;
     }
-  }, [selectedStory]);
+  }, []);
+
+  // Set initial story when posts load
+  React.useEffect(() => {
+    if (hnPosts && hnPosts.length > 0 && !selectedId) {
+      handleStorySelection(Number(hnPosts[0].story_id));
+    }
+  }, [hnPosts, selectedId, handleStorySelection]);
+
+  // Auto-fetch full story details if text is missing
+  React.useEffect(() => {
+    if (
+      selectedStory &&
+      !selectedStory.text &&
+      !selectedStory.summary &&
+      !fullStoryDetails
+    ) {
+      // Auto-fetch full story details if we don't have text content
+      fetchFullStoryDetails(Number(selectedStory.story_id)).then((full) => {
+        if (full) setFullStoryDetails(full);
+      });
+    }
+  }, [selectedStory, fullStoryDetails, fetchFullStoryDetails]);
 
   const loadMoreTop = React.useCallback(async () => {
     if (topLoadedCount >= topKids.length) return;
@@ -401,12 +630,6 @@ export default function HackerNewsView({ agentId }: Props) {
       setLoadingComments(false);
     }
   }, [topKids, topLoadedCount]);
-
-  React.useEffect(() => {
-    if (selectedStory) {
-      loadStoryAndFirstComments();
-    }
-  }, [selectedStory, loadStoryAndFirstComments]);
 
   if (isLoading) {
     return (
@@ -465,15 +688,43 @@ export default function HackerNewsView({ agentId }: Props) {
             <div className="divide-y divide-gray-200 dark:divide-gray-800">
               {filtered.map((s) => {
                 const domain = getDomain(s.url);
-                const isSelected = s.id === selectedStory?.id;
+                const isSelected = s.story_id === selectedStory?.story_id;
                 return (
                   <div
-                    key={s.id}
+                    key={s.story_id}
                     className={cn(
-                      "p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50",
+                      "p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors",
                       isSelected && "bg-orange-50/40 dark:bg-orange-900/10"
                     )}
-                    onClick={() => setSelectedId(s.id)}
+                    onClick={() => handleStorySelection(Number(s.story_id))}
+                    onMouseEnter={() => {
+                      // Pre-fetch story details on hover for better UX
+                      if (!storyCacheRef.current.has(Number(s.story_id))) {
+                        fetchItem(Number(s.story_id))
+                          .then((full) => {
+                            storyCacheRef.current.set(Number(s.story_id), full);
+                            // Also pre-fetch first few comments for instant loading
+                            if (
+                              (full as any)?.kids &&
+                              (full as any).kids.length > 0
+                            ) {
+                              const firstComments = (full as any).kids.slice(
+                                0,
+                                5
+                              );
+                              fetchCommentsBatch(
+                                firstComments,
+                                cacheRef.current
+                              ).catch(() => {
+                                // Silently fail for pre-fetch
+                              });
+                            }
+                          })
+                          .catch(() => {
+                            // Silently fail for pre-fetch
+                          });
+                      }
+                    }}
                   >
                     <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-1">
                       <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">
@@ -484,7 +735,7 @@ export default function HackerNewsView({ agentId }: Props) {
                         className="ml-auto inline-flex items-center gap-1 hover:underline"
                         href={
                           s.url ||
-                          `https://news.ycombinator.com/item?id=${s.id}`
+                          `https://news.ycombinator.com/item?id=${s.story_id}`
                         }
                         target="_blank"
                         rel="noopener noreferrer"
@@ -499,7 +750,7 @@ export default function HackerNewsView({ agentId }: Props) {
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{s.score ?? 0} points</span>
                       <span>•</span>
-                      <span>{s.descendants ?? 0} comments</span>
+                      <span>{s.comment_count ?? 0} comments</span>
                       <span className="ml-auto">{formatTime(s.time)}</span>
                     </div>
                   </div>
@@ -538,6 +789,15 @@ export default function HackerNewsView({ agentId }: Props) {
                       <span>{selectedStory.score ?? 0} points</span>
                       <span>•</span>
                       <span>{formatTime(selectedStory.time)}</span>
+                      {loadingStoryDetails && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <RefreshCw className="h-3 w-3 animate-spin" />
+                            Loading...
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <Button
@@ -549,7 +809,7 @@ export default function HackerNewsView({ agentId }: Props) {
                     <a
                       href={
                         selectedStory.url ||
-                        `https://news.ycombinator.com/item?id=${selectedStory.id}`
+                        `https://news.ycombinator.com/item?id=${selectedStory.story_id}`
                       }
                       target="_blank"
                       rel="noopener noreferrer"
@@ -560,39 +820,79 @@ export default function HackerNewsView({ agentId }: Props) {
                 </div>
               </div>
 
+              {loadingStoryDetails ? (
+                <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Loading story details...
+                  </div>
+                </div>
+              ) : null}
+
               <div className="flex-1 min-h-0">
                 <ScrollArea className="h-full">
                   <div className="p-3 space-y-3">
-                    {!!(selectedStory as any)?.relevant_comment_ids?.length && (
+                    {/* Story Text Content */}
+                    {selectedStory.text ||
+                    selectedStory.summary ||
+                    fullStoryDetails?.text ? (
+                      <Card className="border-gray-200 dark:border-gray-800">
+                        <CardContent className="p-3">
+                          <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <div
+                              className="text-sm leading-relaxed"
+                              dangerouslySetInnerHTML={{
+                                __html:
+                                  selectedStory.text ||
+                                  selectedStory.summary ||
+                                  fullStoryDetails?.text ||
+                                  "",
+                              }}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : null}
+
+                    {/* Relevant Comments */}
+                    {!!selectedStory.relevant_comments?.length && (
                       <RelevantCommentsPanel
-                        ids={
-                          (selectedStory as any)
-                            .relevant_comment_ids as number[]
-                        }
+                        relevantComments={selectedStory.relevant_comments || []}
                       />
                     )}
+
+                    {/* All Comments */}
                     <Card className="border-gray-200 dark:border-gray-800">
                       <CardContent className="p-3">
                         <div className="flex items-center gap-2 mb-2">
                           <MessageSquare className="h-4 w-4 text-muted-foreground" />
                           <h3 className="text-sm font-medium">Comments</h3>
                           <div className="text-[11px] text-muted-foreground ml-auto">
-                            {selectedStory.descendants ?? 0} total
+                            {selectedStory.comment_count ?? 0} total
                           </div>
                         </div>
                         {loadingComments && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <RefreshCw className="h-4 w-4 animate-spin" />{" "}
+                            <RefreshCw className="h-4 w-4 animate-spin" />
                             Loading comments...
                           </div>
                         )}
-                        {!loadingComments && topLoadedIds.length === 0 && (
-                          <div className="text-sm text-muted-foreground">
-                            No comments yet.
-                          </div>
-                        )}
+                        {!loadingComments &&
+                          topLoadedIds.length === 0 &&
+                          topKids.length === 0 && (
+                            <div className="text-sm text-muted-foreground">
+                              No comments yet.
+                            </div>
+                          )}
+                        {!loadingComments &&
+                          topLoadedIds.length === 0 &&
+                          topKids.length > 0 && (
+                            <div className="text-sm text-muted-foreground">
+                              Loading comments...
+                            </div>
+                          )}
                         {!loadingComments && topLoadedIds.length > 0 && (
-                          <div>
+                          <div className="space-y-3 max-w-full">
                             {topLoadedIds.map((cid) => (
                               <Comment
                                 key={cid}
@@ -601,10 +901,13 @@ export default function HackerNewsView({ agentId }: Props) {
                                 setCommentsMap={setCommentsMap}
                                 highlightIds={
                                   new Set(
-                                    (selectedStory as any)
-                                      ?.relevant_comment_ids || []
+                                    selectedStory.relevant_comments
+                                      ?.map((c) => Number(c.comment_id))
+                                      .filter((id) => !isNaN(id)) || []
                                   )
                                 }
+                                expandedCommentId={expandedCommentId}
+                                setExpandedCommentId={setExpandedCommentId}
                               />
                             ))}
                           </div>
