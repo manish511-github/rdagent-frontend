@@ -1775,7 +1775,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   if (agentType === "hackernews") {
     return (
       <Layout>
-        <div className="h-[calc(100vh-80px)]">
+        <div className="h-full">
           <HackerNewsView agentId={agentId} />
         </div>
       </Layout>
@@ -1786,7 +1786,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   if (agentType === "reddit") {
     return (
       <Layout>
-        <div className="h-[calc(100vh-80px)]">
+        <div className="h-full">
           <RedditResultView agentId={agentId} />
         </div>
       </Layout>

@@ -1,14 +1,18 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import { motion, AnimatePresence } from "framer-motion"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { PocketKnife, CalendarClock, BarChartIcon as ChartBar } from "lucide-react"
-import { FadeIn } from "@/components/animations/fade-in"
-import { useTheme } from "next-themes"
-import { getDashedBorderSvg } from "@/lib/utils"
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  PocketKnife,
+  CalendarClock,
+  BarChartIcon as ChartBar,
+} from "lucide-react";
+import { FadeIn } from "@/components/animations/fade-in";
+import { useTheme } from "next-themes";
+import { getDashedBorderSvg } from "@/lib/utils";
 
 const features = [
   {
@@ -35,29 +39,39 @@ const features = [
     icon: ChartBar,
     image: "/placeholder.svg?height=510&width=400",
   },
-]
+];
 
 export function FeaturesSection() {
-  const [activeTab, setActiveTab] = useState("smart-task-management")
-  const [mounted, setMounted] = useState(false)
-  const { theme } = useTheme()
-  
+  const [activeTab, setActiveTab] = useState("smart-task-management");
+  const [mounted, setMounted] = useState(false);
+  const { theme } = useTheme();
+
   useEffect(() => {
-    setMounted(true)
-  }, [])
-  
-  const dashedBorderSvg = mounted ? getDashedBorderSvg(theme) : ""
+    setMounted(true);
+  }, []);
+
+  const dashedBorderSvg = mounted ? getDashedBorderSvg(theme) : "";
 
   return (
     <section id="smart-productivity" className="pt-12 lg:pt-5">
       <div className="border-y">
         <div className="container flex flex-col gap-6 border-x py-4 max-lg:border-x lg:py-3.5">
           <FadeIn>
-            <motion.div whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 400, damping: 17 }}>
-              <Badge variant="outline" className="w-fit gap-1 px-3 font-normal tracking-tight shadow-sm text-lg">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            >
+              <Badge
+                variant="outline"
+                className="w-fit gap-1 px-3 font-normal tracking-tight shadow-sm text-lg"
+              >
                 <motion.div
                   animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, delay: 1 }}
+                  transition={{
+                    duration: 2,
+                    repeat: Number.POSITIVE_INFINITY,
+                    delay: 1,
+                  }}
                 >
                   <PocketKnife className="size-4" />
                 </motion.div>
@@ -74,15 +88,20 @@ export function FeaturesSection() {
 
           <FadeIn delay={0.4}>
             <p className="text-muted-foreground max-w-[600px] tracking-[-0.32px] font-light">
-              Achieve unstoppable marketing momentum with features that streamline your workflow, boost productivity,
-              and maximize your brand’s impact.
+              Achieve unstoppable marketing momentum with features that
+              streamline your workflow, boost productivity, and maximize your
+              brand’s impact.
             </p>
           </FadeIn>
         </div>
       </div>
 
       <div className="container border-x lg:!px-0">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex items-center max-lg:flex-col lg:divide-x">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="flex items-center max-lg:flex-col lg:divide-x"
+        >
           <TabsList className="flex h-auto flex-1 flex-col bg-transparent p-0 max-lg:border-x lg:border-t">
             {features.map((feature, index) => (
               <TabsTrigger
@@ -105,13 +124,21 @@ export function FeaturesSection() {
                     <div className="flex items-center gap-1.5">
                       <motion.div
                         whileHover={{ scale: 1.2, rotate: 5 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 17,
+                        }}
                       >
                         <feature.icon className="size-4" />
                       </motion.div>
-                      <h3 className="tracking-[-0.36px] font-medium text-lg">{feature.title}</h3>
+                      <h3 className="tracking-[-0.36px] font-medium text-lg">
+                        {feature.title}
+                      </h3>
                     </div>
-                    <p className="text-muted-foreground mt-2.5 tracking-[-0.32px] font-light">{feature.description}</p>
+                    <p className="text-muted-foreground mt-2.5 tracking-[-0.32px] font-light">
+                      {feature.description}
+                    </p>
                   </div>
                 </FadeIn>
               </TabsTrigger>
@@ -119,11 +146,18 @@ export function FeaturesSection() {
           </TabsList>
 
           <div className="flex-1">
-            <AnimatePresence mode="wait">
-              {features.map((feature) => (
-                <TabsContent key={feature.id} value={feature.id} className="m-0 px-6 py-[38px] max-lg:border-x">
-                  {activeTab === feature.id && (
+            {(() => {
+              const activeFeature = features.find((f) => f.id === activeTab);
+              if (!activeFeature) return null;
+              return (
+                <AnimatePresence mode="wait">
+                  <TabsContent
+                    key={activeTab}
+                    value={activeTab}
+                    className="m-0 px-6 py-[38px] max-lg:border-x"
+                  >
                     <motion.div
+                      key={activeTab}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
@@ -155,8 +189,10 @@ export function FeaturesSection() {
                                 whileHover={{ scale: 1.05 }}
                               >
                                 <Image
-                                  src={feature.image || "/placeholder.svg"}
-                                  alt={feature.title}
+                                  src={
+                                    activeFeature.image || "/placeholder.svg"
+                                  }
+                                  alt={activeFeature.title}
                                   width={400}
                                   height={510}
                                   className="m-3 rounded-md object-contain shadow-md lg:rounded-xl lg:shadow-lg dark:invert transition-all duration-300 hover:shadow-xl"
@@ -181,10 +217,10 @@ export function FeaturesSection() {
                         )}
                       </div>
                     </motion.div>
-                  )}
-                </TabsContent>
-              ))}
-            </AnimatePresence>
+                  </TabsContent>
+                </AnimatePresence>
+              );
+            })()}
           </div>
         </Tabs>
       </div>
@@ -193,5 +229,5 @@ export function FeaturesSection() {
         <div className="container w-full border-x h-full" />
       </div>
     </section>
-  )
+  );
 }

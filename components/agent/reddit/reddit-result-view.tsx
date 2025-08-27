@@ -742,11 +742,11 @@ const ConfigurationSection = React.memo(function ConfigurationSection({
         expectations: form.expectations || "",
         project_id: form.project_id,
         mode: form.mode,
-        review_minutes: form.review_minutes || 0,
         advanced_settings: form.advanced_settings || {},
         platform_settings: form.platform_settings || {},
         agent_keywords: form.agent_keywords || [],
         schedule: form.schedule || undefined,
+        description: form.description || "",
       } as any;
 
       await dispatch(
@@ -861,20 +861,6 @@ const ConfigurationSection = React.memo(function ConfigurationSection({
                     <SelectItem value="autonomous">Autonomous</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="review_minutes" className="text-sm">
-                  Review Minutes
-                </Label>
-                <Input
-                  id="review_minutes"
-                  type="number"
-                  className="h-11"
-                  value={form.review_minutes ?? 0}
-                  onChange={(e) =>
-                    onChange("review_minutes", Number(e.target.value))
-                  }
-                />
               </div>
             </div>
 

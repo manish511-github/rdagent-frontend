@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch } from "@/store/store";
 import {
@@ -8,13 +8,37 @@ import {
   selectHackerNewsPosts,
   selectAgentType,
   selectAgentStatus,
+  selectAgentData,
+  selectAgentState,
+  fetchAgentDetails,
+  selectAgentDetails,
+  selectAgentDetailsStatus,
+  updateAgentDetails,
+  type AgentDetails,
 } from "@/store/features/agentSlice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   MessageSquare,
   ArrowUpRight,
@@ -22,7 +46,348 @@ import {
   Hash,
   Clock,
   ExternalLink,
+  BarChart2,
+  Settings,
+  Search,
+  XIcon,
+  SlidersHorizontal,
 } from "lucide-react";
+
+// HN Icon Component
+const HNIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 122.88 122.88" fill="currentColor">
+    <path
+      fill="#FF6600"
+      d="M18.43,0h86.02c10.18,0,18.43,8.25,18.43,18.43v86.02c0,10.18-8.25,18.43-18.43,18.43H18.43 C8.25,122.88,0,114.63,0,104.45l0-86.02C0,8.25,8.25,0,18.43,0L18.43,0z"
+    />
+    <polygon
+      fill="#FFFFFF"
+      points="29.76,21.84 42,21.84 61.44,60.72 80.88,21.36 93.12,21.36 66.24,70.32 66.24,102.96 56.64,102.96 56.64,70.32 29.76,21.84"
+    />
+  </svg>
+);
+
+// Configuration Component
+const ConfigurationSection = React.memo(function ConfigurationSection({
+  agentId,
+  setActiveView,
+}: {
+  agentId: string;
+  setActiveView: (view: "content" | "performance" | "config") => void;
+}) {
+  const dispatch = useDispatch<AppDispatch>();
+  const details = useSelector(selectAgentDetails);
+  const detailsStatus = useSelector(selectAgentDetailsStatus);
+
+  const [form, setForm] = React.useState<Partial<AgentDetails> | null>(null);
+  const [saving, setSaving] = React.useState(false);
+  const [newKeyword, setNewKeyword] = React.useState("");
+
+  React.useEffect(() => {
+    if (!agentId) return;
+    dispatch(fetchAgentDetails(agentId));
+  }, [agentId, dispatch]);
+
+  React.useEffect(() => {
+    if (details) {
+      setForm(details);
+    }
+  }, [details]);
+
+  const onChange = <K extends keyof AgentDetails>(
+    key: K,
+    value: AgentDetails[K]
+  ) => {
+    setForm(
+      (prev: Partial<AgentDetails> | null) =>
+        ({ ...(prev || {}), [key]: value } as AgentDetails)
+    );
+  };
+
+  const handleSave = async () => {
+    if (!form) return;
+    setSaving(true);
+    try {
+      const payload = {
+        agent_name: form.agent_name,
+        agent_platform: form.agent_platform,
+        agent_status: form.agent_status,
+        goals: form.goals,
+        instructions: form.instructions || "",
+        expectations: form.expectations || "",
+        project_id: form.project_id,
+        mode: form.mode,
+        advanced_settings: form.advanced_settings || {},
+        platform_settings: form.platform_settings || {},
+        agent_keywords: form.agent_keywords || [],
+        schedule: form.schedule || undefined,
+        description: form.description || "",
+      } as any;
+
+      await dispatch(
+        updateAgentDetails({ agentId, updates: payload }) as any
+      ).unwrap();
+    } catch (e) {
+      // handled by slice error
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (detailsStatus === "loading" || !form) {
+    return (
+      <div className="p-3 overflow-y-auto">
+        <div className="max-w-3xl mx-auto space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">Agent Configuration</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => setActiveView("content")}
+            >
+              <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+              Back to Content
+            </Button>
+          </div>
+          <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
+            <div className="space-y-3">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-11 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-3 overflow-y-auto">
+      <div className="max-w-3xl mx-auto space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold">Agent Configuration</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setActiveView("content")}
+          >
+            <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+            Back to Content
+          </Button>
+        </div>
+
+        {/* Basic Settings */}
+        <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="agent_name" className="text-sm">
+                  Agent Name
+                </Label>
+                <Input
+                  id="agent_name"
+                  className="h-11"
+                  value={form.agent_name || ""}
+                  onChange={(e) => onChange("agent_name", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Platform</Label>
+                <Input
+                  id="agent_platform"
+                  className="h-11"
+                  value={form.agent_platform || ""}
+                  disabled
+                  readOnly
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Status</Label>
+                <Select
+                  value={form.agent_status || "active"}
+                  onValueChange={(v: string) =>
+                    onChange("agent_status", v as any)
+                  }
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="paused">Paused</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Mode</Label>
+                <Select
+                  value={form.mode || "copilot"}
+                  onValueChange={(v: string) => onChange("mode", v as any)}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="copilot">Copilot</SelectItem>
+                    <SelectItem value="assisted">Assisted</SelectItem>
+                    <SelectItem value="autonomous">Autonomous</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-sm">
+                Description
+              </Label>
+              <Textarea
+                id="description"
+                className="min-h-[100px]"
+                value={form.description || ""}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  onChange("description", e.target.value)
+                }
+              />
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="instructions" className="text-sm">
+                  Instructions
+                </Label>
+                <Textarea
+                  id="instructions"
+                  className="min-h-[100px]"
+                  value={form.instructions || ""}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    onChange("instructions", e.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="expectations" className="text-sm">
+                  Expectations
+                </Label>
+                <Textarea
+                  id="expectations"
+                  className="min-h-[100px]"
+                  value={form.expectations || ""}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    onChange("expectations", e.target.value)
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Keywords */}
+        <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-950/40 p-4 border border-slate-200 dark:border-slate-700/30 backdrop-blur-sm">
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Agent Keywords</Label>
+            <div className="flex flex-wrap gap-2 mb-2 min-h-[40px] p-3 border rounded-md bg-background/60 dark:bg-card/60">
+              {(form.agent_keywords || []).map((kw: string) => (
+                <Badge
+                  key={kw}
+                  variant="secondary"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full"
+                >
+                  {kw}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-4 w-4 p-0 ml-1 text-muted-foreground hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive"
+                    onClick={() =>
+                      onChange(
+                        "agent_keywords",
+                        (form.agent_keywords || []).filter(
+                          (k: string) => k !== kw
+                        )
+                      )
+                    }
+                    tabIndex={-1}
+                  >
+                    <span className="sr-only">Remove</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3 w-3"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </Button>
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={newKeyword}
+                onChange={(e) => setNewKeyword(e.target.value)}
+                placeholder="Add keyword"
+                className="h-11 flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newKeyword.trim()) {
+                    e.preventDefault();
+                    const currentKeywords = form.agent_keywords || [];
+                    if (!currentKeywords.includes(newKeyword.trim())) {
+                      onChange("agent_keywords", [
+                        ...currentKeywords,
+                        newKeyword.trim(),
+                      ]);
+                    }
+                    setNewKeyword("");
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                onClick={() => {
+                  if (newKeyword.trim()) {
+                    const currentKeywords = form.agent_keywords || [];
+                    if (!currentKeywords.includes(newKeyword.trim())) {
+                      onChange("agent_keywords", [
+                        ...currentKeywords,
+                        newKeyword.trim(),
+                      ]);
+                    }
+                    setNewKeyword("");
+                  }
+                }}
+                className="h-11 px-4"
+              >
+                Add
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Save */}
+        <div className="pt-1">
+          <Button
+            className="w-full sm:w-auto"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 type HNStory = {
   id: number;
@@ -51,6 +416,91 @@ type HNComment = {
 type Props = {
   agentId: string;
 };
+
+// HN Content List Item Component
+interface HNContentListItemProps {
+  item: any; // HN story item
+  isSelected: boolean;
+  onSelect: (id: number) => void;
+}
+
+const HNContentListItem = React.memo(function HNContentListItem({
+  item,
+  isSelected,
+  onSelect,
+}: HNContentListItemProps) {
+  const handleClick = React.useCallback(() => {
+    onSelect(Number(item.story_id));
+  }, [onSelect, item.story_id]);
+
+  const handleExternalLinkClick = React.useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  const domain = getDomain(item.url);
+
+  return (
+    <div
+      className={cn(
+        "p-3 border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-all duration-200 w-full min-w-0",
+        isSelected &&
+          "bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-l-blue-500 dark:border-l-blue-400"
+      )}
+      onClick={handleClick}
+      id="hn-content-list-item"
+    >
+      <div
+        className="flex items-center gap-1 mb-1 w-full min-w-0"
+        id="hn-content-list-item-header"
+      >
+        <div className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 p-0.5 rounded-full flex-shrink-0">
+          <div className="h-4 w-4 flex items-center justify-center font-bold text-xs">
+            H
+          </div>
+        </div>
+        <span className="text-xs font-medium truncate min-w-0 max-w-[120px]">
+          {domain}
+        </span>
+        {/* <div className="ml-auto px-1.5 py-0.5 rounded-full text-xs flex-shrink-0 bg-gray-100 text-gray-700 dark:bg-gray-800/50 dark:text-gray-400">
+          HN
+        </div> */}
+      </div>
+
+      <h4 className="text-sm font-medium mb-1 line-clamp-1 w-full min-w-0 break-words overflow-hidden">
+        {item.title}
+      </h4>
+
+      <div className="flex items-center text-xs text-muted-foreground w-full min-w-0">
+        <span className="font-medium truncate max-w-[80px]">
+          {item.by || "unknown"}
+        </span>
+        <span className="mx-1 flex-shrink-0">•</span>
+        <span className="flex-shrink-0">{formatTime(item.time)}</span>
+        <div className="flex items-center gap-2 ml-auto mr-1 flex-shrink-0">
+          <div className="flex items-center gap-0.5">
+            <MessageSquare className="h-3 w-3 flex-shrink-0" />
+            <span className="min-w-0">{item.comment_count ?? 0}</span>
+          </div>
+          <div className="flex items-center gap-0.5">
+            <ArrowUpRight className="h-3 w-3 flex-shrink-0" />
+            <span className="min-w-0">{item.score ?? 0}</span>
+          </div>
+        </div>
+        <a
+          href={
+            item.url || `https://news.ycombinator.com/item?id=${item.story_id}`
+          }
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0"
+          onClick={handleExternalLinkClick}
+        >
+          <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
+    </div>
+  );
+});
 
 function formatTime(timestamp?: number) {
   if (!timestamp) return "";
@@ -174,17 +624,17 @@ function Comment({
     <div
       id={`c-${id}`}
       className={cn(
-        "mt-3 rounded-lg border border-gray-100 dark:border-gray-800 max-w-full",
+        "mt-3 rounded-lg border border-gray-200 dark:border-gray-800 max-w-full bg-white dark:bg-gray-900/60",
         isHighlighted &&
-          "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
+          "bg-gray-50 dark:bg-gray-800/50 border-gray-300 dark:border-gray-700"
       )}
       style={{ marginLeft: depth * 16 }}
     >
       {/* Comment Header */}
       <div
         className={cn(
-          "px-4 py-3 border-b border-gray-100 dark:border-gray-800",
-          isHighlighted && "border-amber-200 dark:border-amber-800"
+          "px-4 py-3 border-b border-gray-200 dark:border-gray-800",
+          isHighlighted && "border-gray-300 dark:border-gray-700"
         )}
       >
         <div className="flex items-center justify-between">
@@ -205,13 +655,15 @@ function Comment({
             </span>
           </div>
 
-          <button
-            className="text-xs px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors"
-            onClick={() => setExpandedCommentId(isExpanded ? null : id)}
-            aria-label={isExpanded ? "Collapse comment" : "Expand comment"}
-          >
-            {isExpanded ? "Collapse" : "Expand"}
-          </button>
+          {depth === 0 && (
+            <button
+              className="text-xs px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors"
+              onClick={() => setExpandedCommentId(isExpanded ? null : id)}
+              aria-label={isExpanded ? "Collapse comment" : "Expand comment"}
+            >
+              {isExpanded ? "Collapse" : "Expand"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -337,15 +789,15 @@ function RelevantCommentsPanel({
   if (!relevantComments || relevantComments.length === 0) return null;
 
   return (
-    <Card className="border-amber-200 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/10">
+    <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
       <CardContent className="p-4">
         <div className="flex items-center gap-2 mb-4">
-          <div className="w-5 h-5 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
-            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+          <div className="w-5 h-5 bg-gray-100 dark:bg-gray-800/60 rounded-full flex items-center justify-center">
+            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
               ★
             </span>
           </div>
-          <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Relevant Comments
           </h3>
         </div>
@@ -353,12 +805,12 @@ function RelevantCommentsPanel({
           {relevantComments.slice(0, 10).map((c) => (
             <div
               key={c.comment_id}
-              className="bg-white dark:bg-gray-900/50 rounded-lg border border-amber-200 dark:border-amber-800 p-3"
+              className="bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 p-3"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
-                    <span className="text-xs font-medium text-orange-700 dark:text-orange-300">
+                  <div className="w-5 h-5 bg-gray-100 dark:bg-gray-800/60 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                       {c.by ? c.by.charAt(0).toUpperCase() : "?"}
                     </span>
                   </div>
@@ -387,25 +839,480 @@ function RelevantCommentsPanel({
   );
 }
 
+interface HackerNewsContentManagementProps {
+  filteredPosts: any[];
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  sortBy: "top" | "newest" | "comments";
+  setSortBy: (sort: "top" | "newest" | "comments") => void;
+  selectedStoryId: number | null;
+  onSelectStory: (id: number) => void;
+  storyCacheRef: React.MutableRefObject<Map<number, any>>;
+  fetchItem: (id: number) => Promise<HNStory | HNComment>;
+  fetchCommentsBatch: (
+    ids: number[],
+    cache: Map<number, HNComment>
+  ) => Promise<HNComment[]>;
+  cacheRef: React.MutableRefObject<Map<number, HNComment>>;
+  selectedStory: any;
+  fullStoryDetails: any;
+  loadingStoryDetails: boolean;
+  loadingComments: boolean;
+  topLoadedIds: number[];
+  commentsMap: Map<number, HNComment>;
+  setCommentsMap: React.Dispatch<React.SetStateAction<Map<number, HNComment>>>;
+  highlightIds: Set<number>; // This should probably be derived or passed from parent
+  expandedCommentId: number | null;
+  setExpandedCommentId: (id: number | null) => void;
+  loadMoreTop: () => Promise<void>;
+  topLoadedCount: number;
+  topKids: number[];
+}
+
+const HackerNewsContentManagement = React.memo(
+  function HackerNewsContentManagement({
+    filteredPosts: initialFilteredPosts,
+    selectedStoryId,
+    onSelectStory,
+    storyCacheRef,
+    fetchItem,
+    fetchCommentsBatch,
+    cacheRef,
+    selectedStory,
+    fullStoryDetails,
+    loadingStoryDetails,
+    loadingComments,
+    topLoadedIds,
+    commentsMap,
+    setCommentsMap,
+    highlightIds,
+    expandedCommentId,
+    setExpandedCommentId,
+    loadMoreTop,
+    topLoadedCount,
+    topKids,
+  }: Omit<
+    HackerNewsContentManagementProps,
+    "searchQuery" | "setSearchQuery" | "sortBy" | "setSortBy"
+  >) {
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const searchInputRef = React.useRef<HTMLInputElement>(null);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [sortBy, setSortBy] = useState<"top" | "newest" | "comments">("top");
+
+    const filteredPosts = React.useMemo(() => {
+      let list = (initialFilteredPosts || []).slice(0);
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        list = list.filter(
+          (s: any) =>
+            s.title.toLowerCase().includes(q) ||
+            getDomain(s.url).toLowerCase().includes(q)
+        );
+      }
+      switch (sortBy) {
+        case "top":
+          list.sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0));
+          break;
+        case "newest":
+          list.sort((a: any, b: any) => (b.time ?? 0) - (a.time ?? 0));
+          break;
+        case "comments":
+          list.sort(
+            (a: any, b: any) => (b.comment_count ?? 0) - (a.comment_count ?? 0)
+          );
+          break;
+      }
+      return list;
+    }, [initialFilteredPosts, searchQuery, sortBy]);
+
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex flex-1 min-h-0 mx-3 overflow-hidden">
+          <div className="flex flex-col min-h-0 min-w-0 overflow-hidden border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/60 flex-[2]">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/60">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    ref={searchInputRef}
+                    placeholder="Search stories or domains..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 pr-10 h-9 text-sm bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 transition-colors"
+                  />
+                  {searchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      <XIcon className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 w-9 p-0"
+                      title="Sort Posts"
+                    >
+                      <SlidersHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem onClick={() => setSortBy("top")}>
+                      <Hash className="h-4 w-4 mr-2" />
+                      Top
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy("newest")}>
+                      <Clock className="h-4 w-4 mr-2" />
+                      Newest First
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy("comments")}>
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Most Comments
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <ScrollArea className="h-full">
+                <div className="divide-y divide-gray-200 dark:divide-gray-800">
+                  {filteredPosts.map((s) => {
+                    const domain = getDomain(s.url);
+                    const isSelected = Number(s.story_id) === selectedStoryId;
+                    return (
+                      <div
+                        key={s.story_id}
+                        onMouseEnter={() => {
+                          // Pre-fetch story details on hover for better UX
+                          if (!storyCacheRef.current.has(Number(s.story_id))) {
+                            fetchItem(Number(s.story_id))
+                              .then((full) => {
+                                storyCacheRef.current.set(
+                                  Number(s.story_id),
+                                  full
+                                );
+                                // Also pre-fetch first few comments for instant loading
+                                if (
+                                  (full as any)?.kids &&
+                                  (full as any).kids.length > 0
+                                ) {
+                                  const firstComments = (
+                                    full as any
+                                  ).kids.slice(0, 5);
+                                  fetchCommentsBatch(
+                                    firstComments,
+                                    cacheRef.current
+                                  ).catch(() => {
+                                    // Silently fail for pre-fetch
+                                  });
+                                }
+                              })
+                              .catch(() => {
+                                // Silently fail for pre-fetch
+                              });
+                          }
+                        }}
+                      >
+                        <HNContentListItem
+                          item={s}
+                          isSelected={isSelected}
+                          onSelect={onSelectStory}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+
+          {/* Right: Details */}
+          {!selectedStoryId ? (
+            <div className="flex-[3] min-w-0 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900/60 flex items-center justify-center p-6 ml-2">
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <div className="text-sm">Select a story to view details</div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col min-w-0 min-h-0 ml-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/60 overflow-hidden flex-[3]">
+              <HackerNewsStoryDetails
+                selectedStoryId={selectedStoryId}
+                selectedStory={selectedStory}
+                fullStoryDetails={fullStoryDetails}
+                loadingStoryDetails={loadingStoryDetails}
+                formatTime={formatTime}
+                getDomain={getDomain}
+                loadingComments={loadingComments}
+                topLoadedIds={topLoadedIds}
+                commentsMap={commentsMap}
+                setCommentsMap={setCommentsMap}
+                highlightIds={
+                  new Set(
+                    selectedStory.relevant_comments
+                      ?.map((c: { comment_id: string }) => Number(c.comment_id))
+                      .filter((id: number) => !isNaN(id)) || []
+                  )
+                }
+                expandedCommentId={expandedCommentId}
+                setExpandedCommentId={setExpandedCommentId}
+                loadMoreTop={loadMoreTop}
+                topLoadedCount={topLoadedCount}
+                topKids={topKids}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+);
+
+interface HackerNewsStoryDetailsProps {
+  selectedStoryId: number;
+  selectedStory: any;
+  fullStoryDetails: any;
+  loadingStoryDetails: boolean;
+  formatTime: (timestamp?: number) => string;
+  getDomain: (url?: string | null) => string;
+  loadingComments: boolean;
+  topLoadedIds: number[];
+  commentsMap: Map<number, HNComment>;
+  setCommentsMap: React.Dispatch<React.SetStateAction<Map<number, HNComment>>>;
+  highlightIds: Set<number>;
+  expandedCommentId: number | null;
+  setExpandedCommentId: (id: number | null) => void;
+  loadMoreTop: () => Promise<void>;
+  topLoadedCount: number;
+  topKids: number[];
+}
+
+const HackerNewsStoryDetails = React.memo(function HackerNewsStoryDetails({
+  selectedStoryId,
+  selectedStory,
+  fullStoryDetails,
+  loadingStoryDetails,
+  formatTime,
+  getDomain,
+  loadingComments,
+  topLoadedIds,
+  commentsMap,
+  setCommentsMap,
+  highlightIds,
+  expandedCommentId,
+  setExpandedCommentId,
+  loadMoreTop,
+  topLoadedCount,
+  topKids,
+}: HackerNewsStoryDetailsProps) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+        <div className="flex items-start gap-2">
+          <Badge
+            variant="outline"
+            className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700 text-[10px]"
+          >
+            HN
+          </Badge>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold leading-snug line-clamp-2">
+              {selectedStory.title}
+            </div>
+            <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
+              <span>{getDomain(selectedStory.url)}</span>
+              <span>•</span>
+              <span>{selectedStory.score ?? 0} points</span>
+              <span>•</span>
+              <span>{formatTime(selectedStory.time)}</span>
+              {loadingStoryDetails && (
+                <>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <RefreshCw className="h-3 w-3 animate-spin" />
+                    Loading...
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="ml-auto h-7 w-7"
+          >
+            <a
+              href={
+                selectedStory.url ||
+                `https://news.ycombinator.com/item?id=${selectedStory.story_id}`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ArrowUpRight className="h-4 w-4" />
+            </a>
+          </Button>
+        </div>
+      </div>
+
+      {loadingStoryDetails ? (
+        <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Loading story details...
+          </div>
+        </div>
+      ) : null}
+
+      <div className="flex-1 min-h-0">
+        <ScrollArea className="h-full">
+          <div className="p-3 space-y-3">
+            {/* Story Text Content */}
+            {selectedStory.text ||
+            selectedStory.summary ||
+            fullStoryDetails?.text ? (
+              <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
+                <CardContent className="p-3">
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <div
+                      className="text-sm leading-relaxed"
+                      dangerouslySetInnerHTML={{
+                        __html:
+                          selectedStory.text ||
+                          selectedStory.summary ||
+                          fullStoryDetails?.text ||
+                          "",
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {/* Relevant Comments */}
+            {!!selectedStory.relevant_comments?.length && (
+              <RelevantCommentsPanel
+                relevantComments={selectedStory.relevant_comments || []}
+              />
+            )}
+
+            {/* All Comments */}
+            <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-medium">Comments</h3>
+                  <div className="text-[11px] text-muted-foreground ml-auto">
+                    {selectedStory.comment_count ?? 0} total
+                  </div>
+                </div>
+                {loadingComments && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Loading comments...
+                  </div>
+                )}
+                {!loadingComments &&
+                  topLoadedIds.length === 0 &&
+                  topKids.length === 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      No comments yet.
+                    </div>
+                  )}
+                {!loadingComments &&
+                  topLoadedIds.length === 0 &&
+                  topKids.length > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      Loading comments...
+                    </div>
+                  )}
+                {!loadingComments && topLoadedIds.length > 0 && (
+                  <div className="space-y-3 max-w-full">
+                    {topLoadedIds.map((cid) => (
+                      <Comment
+                        key={cid}
+                        id={cid}
+                        commentsMap={commentsMap}
+                        setCommentsMap={setCommentsMap}
+                        highlightIds={
+                          new Set(
+                            selectedStory.relevant_comments
+                              ?.map((c: { comment_id: string }) =>
+                                Number(c.comment_id)
+                              )
+                              .filter((id: number) => !isNaN(id)) || []
+                          )
+                        }
+                        expandedCommentId={expandedCommentId}
+                        setExpandedCommentId={setExpandedCommentId}
+                      />
+                    ))}
+                  </div>
+                )}
+                {topLoadedCount < topKids.length && (
+                  <div className="mt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={loadMoreTop}
+                      disabled={loadingComments}
+                    >
+                      {loadingComments
+                        ? "Loading more..."
+                        : "Load more comments"}
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+});
+
 export default function HackerNewsView({ agentId }: Props) {
   const dispatch = useDispatch<AppDispatch>();
   const agentType = useSelector(selectAgentType);
   const loadStatus = useSelector(selectAgentStatus);
   const hnPosts = useSelector(selectHackerNewsPosts);
-
-  const [query, setQuery] = React.useState("");
-  const [sortBy, setSortBy] = React.useState<"top" | "newest" | "comments">(
-    "top"
-  );
+  const agentData = useSelector(selectAgentData);
+  const agentState = useSelector(selectAgentState);
+  const agentDetails = useSelector(selectAgentDetails);
+  const agentDetailsStatus = useSelector(selectAgentDetailsStatus);
+  const isMobile = useIsMobile();
 
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
+  const [activeView, setActiveView] = React.useState<
+    "content" | "performance" | "config"
+  >("content");
+  const [hasInitialData, setHasInitialData] = React.useState(false);
+
   const isLoading =
     loadStatus === "loading" && (!hnPosts || hnPosts.length === 0);
 
   React.useEffect(() => {
-    if (!agentId) return;
-    dispatch(fetchAgentData(agentId));
-  }, [dispatch, agentId]);
+    const fetchData = async () => {
+      if (hasInitialData) return;
+      try {
+        await dispatch(fetchAgentData(agentId));
+        await dispatch(fetchAgentDetails(agentId));
+        setHasInitialData(true);
+      } catch (error) {
+        console.error("Failed to fetch agent data:", error);
+      }
+    };
+    if (agentId) fetchData();
+  }, [dispatch, agentId, hasInitialData]);
   const [loadingComments, setLoadingComments] = React.useState(false);
   const [loadingStoryDetails, setLoadingStoryDetails] = React.useState(false);
   const [fullStoryDetails, setFullStoryDetails] = React.useState<any>(null);
@@ -424,31 +1331,15 @@ export default function HackerNewsView({ agentId }: Props) {
 
   const filtered = React.useMemo(() => {
     let list = (hnPosts || []).slice(0);
-    if (query.trim()) {
-      const q = query.toLowerCase();
-      list = list.filter(
-        (s) =>
-          s.title.toLowerCase().includes(q) ||
-          getDomain(s.url).toLowerCase().includes(q)
-      );
-    }
-    switch (sortBy) {
-      case "top":
-        list.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-        break;
-      case "newest":
-        list.sort((a, b) => (b.time ?? 0) - (a.time ?? 0));
-        break;
-      case "comments":
-        list.sort((a, b) => (b.comment_count ?? 0) - (a.comment_count ?? 0));
-        break;
-    }
+    // Sorting and filtering will now be handled within HackerNewsContentManagement
     return list;
-  }, [hnPosts, query, sortBy]);
+  }, [hnPosts]);
 
   const selectedStory = React.useMemo(
     () =>
-      filtered.find((s) => Number(s.story_id) === selectedId) || filtered[0],
+      selectedId
+        ? filtered.find((s) => Number(s.story_id) === selectedId)
+        : null,
     [filtered, selectedId]
   );
 
@@ -578,6 +1469,13 @@ export default function HackerNewsView({ agentId }: Props) {
     [loadStoryAndFirstComments]
   );
 
+  // Set initial story when posts load - removed auto-selection
+  // React.useEffect(() => {
+  //   if (hnPosts && hnPosts.length > 0 && !selectedId) {
+  //     handleStorySelection(Number(hnPosts[0].story_id));
+  //   }
+  // }, [hnPosts, selectedId, handleStorySelection]);
+
   // Function to fetch full story details if text is missing
   const fetchFullStoryDetails = React.useCallback(async (storyId: number) => {
     try {
@@ -589,13 +1487,6 @@ export default function HackerNewsView({ agentId }: Props) {
       return null;
     }
   }, []);
-
-  // Set initial story when posts load
-  React.useEffect(() => {
-    if (hnPosts && hnPosts.length > 0 && !selectedId) {
-      handleStorySelection(Number(hnPosts[0].story_id));
-    }
-  }, [hnPosts, selectedId, handleStorySelection]);
 
   // Auto-fetch full story details if text is missing
   React.useEffect(() => {
@@ -644,297 +1535,153 @@ export default function HackerNewsView({ agentId }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2 bg-white dark:bg-gray-900/60">
-        <div className="relative flex-1">
-          <Input
-            placeholder="Search stories or domains..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="h-9"
-          />
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant={sortBy === "top" ? "default" : "outline"}
-            className="h-8 px-2"
-            onClick={() => setSortBy("top")}
-          >
-            <Hash className="h-3.5 w-3.5 mr-1" /> Top
-          </Button>
-          <Button
-            size="sm"
-            variant={sortBy === "newest" ? "default" : "outline"}
-            className="h-8 px-2"
-            onClick={() => setSortBy("newest")}
-          >
-            <Clock className="h-3.5 w-3.5 mr-1" /> New
-          </Button>
-          <Button
-            size="sm"
-            variant={sortBy === "comments" ? "default" : "outline"}
-            className="h-8 px-2"
-            onClick={() => setSortBy("comments")}
-          >
-            <MessageSquare className="h-3.5 w-3.5 mr-1" /> Comments
-          </Button>
+      <div className="border-b border-gray-200 dark:border-gray-800 px-4 py-1 flex-shrink-0 bg-white dark:bg-gray-900/60">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="h-10 w-10 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400">
+                <HNIcon className="h-5 w-5" />
+              </div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold">
+                  {agentDetails?.agent_name || agentData?.agent_name || "Agent"}
+                </h1>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "text-xs px-2 py-0.5 h-5",
+                    (agentDetails?.agent_status || agentState) === "active"
+                      ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50"
+                      : "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800/50"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-1.5 h-1.5 rounded-full mr-1.5",
+                      (agentDetails?.agent_status || agentState) === "active"
+                        ? "bg-green-500"
+                        : "bg-gray-400"
+                    )}
+                  />
+                  {(agentDetails?.agent_status || agentState) === "active"
+                    ? "Active"
+                    : "Paused"}
+                </Badge>
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  {hnPosts?.length || 0} posts
+                </span>
+              </div>
+            </div>
+            <div className="flex-1" />
+          </div>
+
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+              <Button
+                variant={activeView === "content" ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "h-8 w-8 p-0",
+                  activeView === "content"
+                    ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary"
+                    : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                )}
+                onClick={() => setActiveView("content")}
+                title="Content"
+              >
+                <MessageSquare className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={activeView === "performance" ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "h-8 w-8 p-0",
+                  activeView === "performance"
+                    ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary"
+                    : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                )}
+                onClick={() => setActiveView("performance")}
+                title="Analytics"
+              >
+                <BarChart2 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={activeView === "config" ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "h-8 w-8 p-0",
+                  activeView === "config"
+                    ? "bg-white dark:bg-gray-700 shadow-sm text-primary hover:bg-primary/10 hover:text-primary"
+                    : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                )}
+                onClick={() => setActiveView("config")}
+                title="Settings"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 flex gap-2 p-2">
-        {/* Left: Stories */}
-        <div className="flex-[2] min-w-0 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900/60">
-          <ScrollArea className="h-full">
-            <div className="divide-y divide-gray-200 dark:divide-gray-800">
-              {filtered.map((s) => {
-                const domain = getDomain(s.url);
-                const isSelected = s.story_id === selectedStory?.story_id;
-                return (
-                  <div
-                    key={s.story_id}
-                    className={cn(
-                      "p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors",
-                      isSelected && "bg-orange-50/40 dark:bg-orange-900/10"
-                    )}
-                    onClick={() => handleStorySelection(Number(s.story_id))}
-                    onMouseEnter={() => {
-                      // Pre-fetch story details on hover for better UX
-                      if (!storyCacheRef.current.has(Number(s.story_id))) {
-                        fetchItem(Number(s.story_id))
-                          .then((full) => {
-                            storyCacheRef.current.set(Number(s.story_id), full);
-                            // Also pre-fetch first few comments for instant loading
-                            if (
-                              (full as any)?.kids &&
-                              (full as any).kids.length > 0
-                            ) {
-                              const firstComments = (full as any).kids.slice(
-                                0,
-                                5
-                              );
-                              fetchCommentsBatch(
-                                firstComments,
-                                cacheRef.current
-                              ).catch(() => {
-                                // Silently fail for pre-fetch
-                              });
-                            }
-                          })
-                          .catch(() => {
-                            // Silently fail for pre-fetch
-                          });
-                      }
-                    }}
-                  >
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-1">
-                      <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">
-                        HN
-                      </span>
-                      <span className="truncate">{domain}</span>
-                      <a
-                        className="ml-auto inline-flex items-center gap-1 hover:underline"
-                        href={
-                          s.url ||
-                          `https://news.ycombinator.com/item?id=${s.story_id}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        Open <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-                    <div className="font-medium text-sm mb-1 line-clamp-1">
-                      {s.title}
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>{s.score ?? 0} points</span>
-                      <span>•</span>
-                      <span>{s.comment_count ?? 0} comments</span>
-                      <span className="ml-auto">{formatTime(s.time)}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </ScrollArea>
-        </div>
+      <div className="flex-1 flex flex-col min-h-0 max-w-full overflow-hidden">
+        {activeView === "content" && (
+          <>
+            <HackerNewsContentManagement
+              filteredPosts={filtered}
+              selectedStoryId={selectedId}
+              onSelectStory={handleStorySelection}
+              storyCacheRef={storyCacheRef}
+              fetchItem={fetchItem}
+              fetchCommentsBatch={fetchCommentsBatch}
+              cacheRef={cacheRef}
+              selectedStory={selectedStory}
+              fullStoryDetails={fullStoryDetails}
+              loadingStoryDetails={loadingStoryDetails}
+              loadingComments={loadingComments}
+              topLoadedIds={topLoadedIds}
+              commentsMap={commentsMap}
+              setCommentsMap={setCommentsMap}
+              highlightIds={
+                new Set(
+                  selectedStory?.relevant_comments
+                    ?.map((c: { comment_id: string }) => Number(c.comment_id))
+                    .filter((id: number) => !isNaN(id)) || []
+                )
+              }
+              expandedCommentId={expandedCommentId}
+              setExpandedCommentId={setExpandedCommentId}
+              loadMoreTop={loadMoreTop}
+              topLoadedCount={topLoadedCount}
+              topKids={topKids}
+            />
+          </>
+        )}
 
-        {/* Right: Details */}
-        <div className="flex-[3] min-w-0 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900/60">
-          {!selectedStory ? (
-            <div className="h-full flex items-center justify-center p-6">
-              <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                <RefreshCw className="h-6 w-6 animate-spin" />
-                <div className="text-sm">Select a story to view details</div>
+        {activeView === "performance" && (
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="text-muted-foreground mb-2">
+                <BarChart2 className="h-8 w-8 mx-auto" />
               </div>
+              <h3 className="text-sm font-medium mb-1">
+                Performance Analytics
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Analytics data is not available for HackerNews agents yet.
+              </p>
             </div>
-          ) : (
-            <div className="flex flex-col h-full">
-              <div className="p-3 border-b border-gray-200 dark:border-gray-800">
-                <div className="flex items-start gap-2">
-                  <Badge
-                    variant="outline"
-                    className="bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800/50 text-[10px]"
-                  >
-                    HN
-                  </Badge>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold leading-snug line-clamp-2">
-                      {selectedStory.title}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
-                      <span>{getDomain(selectedStory.url)}</span>
-                      <span>•</span>
-                      <span>{selectedStory.score ?? 0} points</span>
-                      <span>•</span>
-                      <span>{formatTime(selectedStory.time)}</span>
-                      {loadingStoryDetails && (
-                        <>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <RefreshCw className="h-3 w-3 animate-spin" />
-                            Loading...
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="icon"
-                    className="ml-auto h-7 w-7"
-                  >
-                    <a
-                      href={
-                        selectedStory.url ||
-                        `https://news.ycombinator.com/item?id=${selectedStory.story_id}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ArrowUpRight className="h-4 w-4" />
-                    </a>
-                  </Button>
-                </div>
-              </div>
+          </div>
+        )}
 
-              {loadingStoryDetails ? (
-                <div className="p-3 border-b border-gray-200 dark:border-gray-800">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    Loading story details...
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="flex-1 min-h-0">
-                <ScrollArea className="h-full">
-                  <div className="p-3 space-y-3">
-                    {/* Story Text Content */}
-                    {selectedStory.text ||
-                    selectedStory.summary ||
-                    fullStoryDetails?.text ? (
-                      <Card className="border-gray-200 dark:border-gray-800">
-                        <CardContent className="p-3">
-                          <div className="prose prose-sm dark:prose-invert max-w-none">
-                            <div
-                              className="text-sm leading-relaxed"
-                              dangerouslySetInnerHTML={{
-                                __html:
-                                  selectedStory.text ||
-                                  selectedStory.summary ||
-                                  fullStoryDetails?.text ||
-                                  "",
-                              }}
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ) : null}
-
-                    {/* Relevant Comments */}
-                    {!!selectedStory.relevant_comments?.length && (
-                      <RelevantCommentsPanel
-                        relevantComments={selectedStory.relevant_comments || []}
-                      />
-                    )}
-
-                    {/* All Comments */}
-                    <Card className="border-gray-200 dark:border-gray-800">
-                      <CardContent className="p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                          <h3 className="text-sm font-medium">Comments</h3>
-                          <div className="text-[11px] text-muted-foreground ml-auto">
-                            {selectedStory.comment_count ?? 0} total
-                          </div>
-                        </div>
-                        {loadingComments && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <RefreshCw className="h-4 w-4 animate-spin" />
-                            Loading comments...
-                          </div>
-                        )}
-                        {!loadingComments &&
-                          topLoadedIds.length === 0 &&
-                          topKids.length === 0 && (
-                            <div className="text-sm text-muted-foreground">
-                              No comments yet.
-                            </div>
-                          )}
-                        {!loadingComments &&
-                          topLoadedIds.length === 0 &&
-                          topKids.length > 0 && (
-                            <div className="text-sm text-muted-foreground">
-                              Loading comments...
-                            </div>
-                          )}
-                        {!loadingComments && topLoadedIds.length > 0 && (
-                          <div className="space-y-3 max-w-full">
-                            {topLoadedIds.map((cid) => (
-                              <Comment
-                                key={cid}
-                                id={cid}
-                                commentsMap={commentsMap}
-                                setCommentsMap={setCommentsMap}
-                                highlightIds={
-                                  new Set(
-                                    selectedStory.relevant_comments
-                                      ?.map((c) => Number(c.comment_id))
-                                      .filter((id) => !isNaN(id)) || []
-                                  )
-                                }
-                                expandedCommentId={expandedCommentId}
-                                setExpandedCommentId={setExpandedCommentId}
-                              />
-                            ))}
-                          </div>
-                        )}
-                        {topLoadedCount < topKids.length && (
-                          <div className="mt-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8"
-                              onClick={loadMoreTop}
-                              disabled={loadingComments}
-                            >
-                              {loadingComments
-                                ? "Loading more..."
-                                : "Load more comments"}
-                            </Button>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-                </ScrollArea>
-              </div>
-            </div>
-          )}
-        </div>
+        {activeView === "config" && (
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <ConfigurationSection
+              agentId={agentId}
+              setActiveView={setActiveView}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
