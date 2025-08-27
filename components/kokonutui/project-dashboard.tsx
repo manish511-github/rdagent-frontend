@@ -144,9 +144,9 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
       setEditedDescription(project.description);
       setEditedTargetAudience(project.target_audience);
       setEditedWebsiteLink(project.website_url);
-      setEditedKeywords(project.keywords.join(", "));
-      setEditedExcludedKeywords(project.excluded_keywords.join(", "));
-      setEditedCompetitors(project.competitors.join(", "));
+      setEditedKeywords((project.keywords || []).join(", "));
+      setEditedExcludedKeywords((project.excluded_keywords || []).join(", "));
+      setEditedCompetitors((project.competitors || []).join(", "));
     }
   }, [project]);
 
@@ -285,9 +285,9 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
       setEditedDescription(project.description);
       setEditedTargetAudience(project.target_audience);
       setEditedWebsiteLink(project.website_url);
-      setEditedKeywords(project.keywords.join(", "));
-      setEditedExcludedKeywords(project.excluded_keywords.join(", "));
-      setEditedCompetitors(project.competitors.join(", "));
+      setEditedKeywords((project.keywords || []).join(", "));
+      setEditedExcludedKeywords((project.excluded_keywords || []).join(", "));
+      setEditedCompetitors((project.competitors || []).join(", "));
     }
     setIsEditing(false);
   };
@@ -504,27 +504,29 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         </h3>
                         <div className="pl-8">
                           <div className="flex flex-wrap gap-2 p-2.5 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm">
-                            {project.competitors.map((competitor, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-2 bg-muted/30 hover:bg-muted/50 px-3 py-1.5 rounded-md text-sm transition-all duration-200 border border-border/30 hover:border-border/50 backdrop-blur-sm"
-                              >
-                                <span
-                                  className={cn(
-                                    "inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-medium text-white shadow-sm",
-                                    index % 3 === 0 &&
-                                      "bg-blue-500/90 dark:bg-blue-600/90",
-                                    index % 3 === 1 &&
-                                      "bg-green-500/90 dark:bg-green-600/90",
-                                    index % 3 === 2 &&
-                                      "bg-amber-500/90 dark:bg-amber-600/90"
-                                  )}
+                            {(project.competitors || []).map(
+                              (competitor, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center gap-2 bg-muted/30 hover:bg-muted/50 px-3 py-1.5 rounded-md text-sm transition-all duration-200 border border-border/30 hover:border-border/50 backdrop-blur-sm"
                                 >
-                                  {competitor.charAt(0)}
-                                </span>
-                                <span>{competitor}</span>
-                              </div>
-                            ))}
+                                  <span
+                                    className={cn(
+                                      "inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-medium text-white shadow-sm",
+                                      index % 3 === 0 &&
+                                        "bg-blue-500/90 dark:bg-blue-600/90",
+                                      index % 3 === 1 &&
+                                        "bg-green-500/90 dark:bg-green-600/90",
+                                      index % 3 === 2 &&
+                                        "bg-amber-500/90 dark:bg-amber-600/90"
+                                    )}
+                                  >
+                                    {competitor.charAt(0)}
+                                  </span>
+                                  <span>{competitor}</span>
+                                </div>
+                              )
+                            )}
                           </div>
                         </div>
                       </div>
@@ -555,7 +557,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         </h3>
                         <div className="pl-8">
                           <div className="flex flex-wrap gap-1.5 p-2.5 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm">
-                            {project.keywords.map((keyword, index) => (
+                            {(project.keywords || []).map((keyword, index) => (
                               <Badge
                                 key={index}
                                 variant="secondary"
@@ -577,15 +579,17 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                         </h3>
                         <div className="pl-8">
                           <div className="flex flex-wrap gap-1.5 p-2.5 rounded-md bg-background/40 dark:bg-card/40 border border-border/10 shadow-sm backdrop-blur-sm">
-                            {project.excluded_keywords.map((keyword, index) => (
-                              <Badge
-                                key={index}
-                                variant="outline"
-                                className="rounded-md text-xs font-normal py-1 px-2.5 text-muted-foreground hover:bg-muted/60 transition-all duration-200 backdrop-blur-sm"
-                              >
-                                {keyword}
-                              </Badge>
-                            ))}
+                            {(project.excluded_keywords || []).map(
+                              (keyword, index) => (
+                                <Badge
+                                  key={index}
+                                  variant="outline"
+                                  className="rounded-md text-xs font-normal py-1 px-2.5 text-muted-foreground hover:bg-muted/60 transition-all duration-200 backdrop-blur-sm"
+                                >
+                                  {keyword}
+                                </Badge>
+                              )
+                            )}
                           </div>
                         </div>
                       </div>

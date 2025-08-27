@@ -52,14 +52,18 @@ import { useMutation } from "@tanstack/react-query";
 import Cookies from "js-cookie";
 import { getApiUrl } from "../../lib/config";
 import { Checkbox } from "@/components/ui/checkbox";
- 
 
 const platforms = [
   { value: "reddit", label: "Reddit", icon: "reddit" },
   { value: "hackernews", label: "HackerNews", icon: "hackernews" },
   // { value: "linkedin", label: "LinkedIn", icon: "linkedin" },
   { value: "twitter", label: "Twitter", icon: "twitter", comingSoon: true },
-  { value: "instagram", label: "Instagram", icon: "instagram", comingSoon: true },
+  {
+    value: "instagram",
+    label: "Instagram",
+    icon: "instagram",
+    comingSoon: true,
+  },
 ];
 
 const goalOptions = [
@@ -103,8 +107,8 @@ const getPlatformGradient = (platform: string) => {
       return "from-sky-400 to-blue-600";
     case "instagram":
       return "from-purple-500 to-pink-600";
-          case "hackernews":
-        return "from-orange-500 to-red-600";
+    case "hackernews":
+      return "from-orange-500 to-red-600";
     case "email":
       return "from-emerald-500 to-teal-600";
     default:
@@ -250,7 +254,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
     goal: string;
     instructions: string;
     expectations: string;
-    mode: string;
+    mode: string | null;
     reviewPeriod: string;
     reviewMinutes: string;
     advancedSettings: Record<string, any>;
@@ -261,7 +265,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
     goal: "",
     instructions: "",
     expectations: "",
-    mode: "auto",
+    mode: null,
     reviewPeriod: "daily",
     reviewMinutes: "30",
     advancedSettings: {},
@@ -332,7 +336,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
         goal: "",
         instructions: "",
         expectations: "",
-        mode: "auto",
+        mode: null,
         reviewPeriod: "daily",
         reviewMinutes: "30",
         advancedSettings: {},
@@ -445,8 +449,6 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
     }
   };
 
-  
-
   const createAgentHandler = () => {
     if (!projectId) {
       toast({
@@ -482,7 +484,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
       instructions: formData.instructions,
       expectations: formData.expectations,
       project_id: projectId,
-      mode: formData.mode,
+      mode: null,
       review_period: formData.reviewPeriod,
       review_minutes: formData.reviewMinutes,
       advanced_settings: formData.advancedSettings,
@@ -683,9 +685,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
               </div>
               {/* Goal Selection UI */}
               <div className="space-y-3">
-                <Label className="text-sm font-medium">
-                  Select Your Goal
-                </Label>
+                <Label className="text-sm font-medium">Select Your Goal</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {goalOptions.map((goal) => {
                     const Icon = goal.icon;
@@ -717,7 +717,9 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                             </div>
                           </div>
                           <div className="flex-1">
-                            <h3 className="text-sm font-semibold mb-1">{goal.label}</h3>
+                            <h3 className="text-sm font-semibold mb-1">
+                              {goal.label}
+                            </h3>
                             <p className="text-xs text-zinc-600 dark:text-zinc-400">
                               {goal.description}
                             </p>
@@ -847,15 +849,23 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                 <Label className="text-sm font-medium">Agent Keywords</Label>
                 <div className="flex flex-wrap gap-2 mb-2 min-h-[40px] p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 backdrop-blur supports-[backdrop-filter]:bg-white/40 dark:supports-[backdrop-filter]:bg-slate-900/30">
                   {agentKeywords.length === 0 && (
-                    <span className="text-xs text-muted-foreground">No keywords yet. Add your first keyword.</span>
+                    <span className="text-xs text-muted-foreground">
+                      No keywords yet. Add your first keyword.
+                    </span>
                   )}
                   {agentKeywords.map((kw: string, idx: number) => (
                     <span
                       key={kw}
                       className="inline-flex items-center gap-1 pl-1.5 pr-1 py-0.5 rounded-full text-[11px] border bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 shadow-sm hover:shadow transition-all"
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${getKeywordDotColor(idx)}`} />
-                      <span className="px-0.5 font-medium text-slate-700 dark:text-slate-200">{kw}</span>
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${getKeywordDotColor(
+                          idx
+                        )}`}
+                      />
+                      <span className="px-0.5 font-medium text-slate-700 dark:text-slate-200">
+                        {kw}
+                      </span>
                       <Button
                         type="button"
                         size="icon"
@@ -936,7 +946,11 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                   <div className="flex items-center justify-between mb-2">
                     <Label className="text-sm font-medium">Schedule Type</Label>
                   </div>
-                  <RadioGroup value={scheduleType} onValueChange={setScheduleType} className="flex gap-2">
+                  <RadioGroup
+                    value={scheduleType}
+                    onValueChange={setScheduleType}
+                    className="flex gap-2"
+                  >
                     <div
                       className={cn(
                         "relative cursor-pointer rounded-full border px-3 py-1.5 text-xs transition-colors",
@@ -945,8 +959,17 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                           : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
                       )}
                     >
-                      <RadioGroupItem value="daily" id="schedule-daily" className="sr-only" />
-                      <Label htmlFor="schedule-daily" className="cursor-pointer">Daily</Label>
+                      <RadioGroupItem
+                        value="daily"
+                        id="schedule-daily"
+                        className="sr-only"
+                      />
+                      <Label
+                        htmlFor="schedule-daily"
+                        className="cursor-pointer"
+                      >
+                        Daily
+                      </Label>
                     </div>
                     <div
                       className={cn(
@@ -956,8 +979,17 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                           : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
                       )}
                     >
-                      <RadioGroupItem value="weekly" id="schedule-weekly" className="sr-only" />
-                      <Label htmlFor="schedule-weekly" className="cursor-pointer">Weekly</Label>
+                      <RadioGroupItem
+                        value="weekly"
+                        id="schedule-weekly"
+                        className="sr-only"
+                      />
+                      <Label
+                        htmlFor="schedule-weekly"
+                        className="cursor-pointer"
+                      >
+                        Weekly
+                      </Label>
                     </div>
                     <div
                       className={cn(
@@ -967,8 +999,17 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                           : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
                       )}
                     >
-                      <RadioGroupItem value="monthly" id="schedule-monthly" className="sr-only" />
-                      <Label htmlFor="schedule-monthly" className="cursor-pointer">Monthly</Label>
+                      <RadioGroupItem
+                        value="monthly"
+                        id="schedule-monthly"
+                        className="sr-only"
+                      />
+                      <Label
+                        htmlFor="schedule-monthly"
+                        className="cursor-pointer"
+                      >
+                        Monthly
+                      </Label>
                     </div>
                   </RadioGroup>
                 </div>
@@ -990,14 +1031,17 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                       className={cn(
                         "relative rounded-xl border-2 p-4 transition-all duration-200",
                         "group",
-                        platform.comingSoon 
+                        platform.comingSoon
                           ? "cursor-not-allowed opacity-50 border-zinc-200 dark:border-zinc-800"
                           : "cursor-pointer hover:shadow-lg hover:border-cyan-400 hover:-translate-y-0.5",
                         formData.platform === platform.value
                           ? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 shadow-lg"
                           : "border-zinc-200 dark:border-zinc-800"
                       )}
-                      onClick={() => !platform.comingSoon && handleInputChange("platform", platform.value)}
+                      onClick={() =>
+                        !platform.comingSoon &&
+                        handleInputChange("platform", platform.value)
+                      }
                     >
                       <div className="flex flex-col items-center gap-3">
                         <div
@@ -1111,13 +1155,13 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                           </Button>
 
                           {redditLoading && !redditConnected && (
-                                                      <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setRedditLoading(false)}
-                          >
-                            Cancel
-                          </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setRedditLoading(false)}
+                            >
+                              Cancel
+                            </Button>
                           )}
                         </div>
                       )}
@@ -1615,7 +1659,12 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
 
         <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-6 border-t mt-4">
           {currentStep > 1 ? (
-            <Button variant="outline" size="sm" onClick={goToPrevStep} className="gap-2 h-8">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToPrevStep}
+              className="gap-2 h-8"
+            >
               <ChevronLeft className="h-4 w-4" />
               Back
             </Button>

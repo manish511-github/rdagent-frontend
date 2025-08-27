@@ -5,6 +5,7 @@ import { createSelector } from "@reduxjs/toolkit";
 import { fetchAgentResults, AgentPostsParams } from "../../lib/api";
 import { getApiUrl } from "../../lib/config";
 import type { ApiAgent } from "../slices/agentsSlice";
+import { HackerNewsPostType } from "@/types/agentDataTypes";
 
 // Types
 export type AgentType = "twitter" | "reddit" | "hackernews" | "mixed";
@@ -106,6 +107,7 @@ export interface AgentState {
   agentType: AgentType;
   redditPosts: RedditPost[];
   twitterPosts: TwitterPost[];
+  hackernewsPosts: HackerNewsPostType[];
   agentStatus: "active" | "paused" | "completed" | "error";
   lastUpdated: string | null;
   agentData: AgentData | null;
@@ -168,6 +170,7 @@ const initialState: AgentState = {
   agentType: "mixed",
   redditPosts: [],
   twitterPosts: [],
+  hackernewsPosts: [],
   agentStatus: "active",
   lastUpdated: null,
   agentData: null,
@@ -236,14 +239,22 @@ const transformPostsToDisplayPosts = (
 ): DisplayPost[] => {
   // Debug: Log the first post to see what we're working with
 
-  
   return posts.map((post: any, index: number) => {
     if (post.post_id || platform === "reddit") {
       // Reddit post
       return {
         id: post.post_id || `reddit_${index}`,
         platform: "reddit" as const,
-        author: post.post_author || post.author || post.user || post.username || post.user_name || post.by || post.op || post.poster || "Unknown",
+        author:
+          post.post_author ||
+          post.author ||
+          post.user ||
+          post.username ||
+          post.user_name ||
+          post.by ||
+          post.op ||
+          post.poster ||
+          "Unknown",
         time: post.created_utc
           ? new Date(post.created_utc).toLocaleString()
           : "Unknown",
@@ -293,11 +304,19 @@ const transformPostsToDisplayPosts = (
         id: String(post.id ?? `hn_${index}`),
         platform: "hackernews" as const,
         author: post.by || "Unknown",
-        time: post.time ? new Date(post.time * 1000).toLocaleString() : "Unknown",
+        time: post.time
+          ? new Date(post.time * 1000).toLocaleString()
+          : "Unknown",
         status: "processed",
         title: post.title || "",
         content: post.text || post.story_text || post.comment_text || "",
-        tag: ((): string => { try { return new URL(post.url).hostname; } catch { return "news.ycombinator.com"; } })(),
+        tag: ((): string => {
+          try {
+            return new URL(post.url).hostname;
+          } catch {
+            return "news.ycombinator.com";
+          }
+        })(),
         relevance: post.score || 0,
         sentiment: "neutral",
         keywords: [],
@@ -484,7 +503,7 @@ export const fetchAgentData = createAsyncThunk(
       // Transform posts based on agent type
       let transformedRedditPosts: RedditPost[] = [];
       let transformedTwitterPosts: TwitterPost[] = [];
-
+      let transformedHackerNewsPosts: HackerNewsPostType[] = [];
       if (agentType === "twitter") {
         // For Twitter agents, transform posts into TwitterPost format
         transformedTwitterPosts =
@@ -503,9 +522,12 @@ export const fetchAgentData = createAsyncThunk(
       } else if (agentType === "reddit") {
         // For Reddit agents, use posts directly from API response
         transformedRedditPosts = agentData.results?.posts || [];
-        
+
         // Debug: Log the first post to see available fields
         // Removed debug logging as it's no longer needed
+      } else if (agentType === "hackernews") {
+        // For Hacker News agents, use posts directly from API response
+        transformedHackerNewsPosts = agentData.results?.posts || [];
       }
 
       console.log("Determined Agent Type:", agentType); // Debug log
@@ -523,6 +545,7 @@ export const fetchAgentData = createAsyncThunk(
         platform: agentType,
         posts: transformedRedditPosts,
         twitter_posts: transformedTwitterPosts,
+        hackernews_posts: transformedHackerNewsPosts,
       };
     } catch (error) {
       return rejectWithValue(
@@ -824,6 +847,7 @@ const agentSlice = createSlice({
         state.agentType = action.payload.platform;
         state.redditPosts = action.payload.posts;
         state.twitterPosts = action.payload.twitter_posts;
+        state.hackernewsPosts = action.payload.hackernews_posts;
         state.agentStatus = action.payload.status;
         state.lastUpdated = new Date().toISOString();
         state.agentData = {
@@ -935,6 +959,8 @@ export const selectAgentType = (state: RootState) => state.agent.agentType;
 export const selectRedditPosts = (state: RootState) => state.agent.redditPosts;
 export const selectTwitterPosts = (state: RootState) =>
   state.agent.twitterPosts;
+export const selectHackerNewsPosts = (state: RootState) =>
+  state.agent.hackernewsPosts;
 export const selectAgentState = (state: RootState) => state.agent.agentStatus;
 export const selectLastUpdated = (state: RootState) => state.agent.lastUpdated;
 export const selectAgentData = (state: RootState) => state.agent.agentData;
