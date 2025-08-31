@@ -4,8 +4,7 @@ import Cookies from "js-cookie";
 import { createSelector } from "@reduxjs/toolkit";
 import { fetchAgentResults, AgentPostsParams } from "../../lib/api";
 import { getApiUrl } from "../../lib/config";
-import type { ApiAgent } from "../slices/agentsSlice";
-import { HackerNewsPostType } from "@/types/agentDataTypes";
+import { ApiAgent, HackerNewsPostType } from "@/types/agentDataTypes";
 
 // Types
 export type AgentType = "twitter" | "reddit" | "hackernews" | "mixed";

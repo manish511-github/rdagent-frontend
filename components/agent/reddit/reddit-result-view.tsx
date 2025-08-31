@@ -9,7 +9,6 @@ import {
   selectAgentData,
   selectAgentState,
   selectAgentType,
-  updateAgentStatus,
   type DisplayPost,
   type PostStatus,
   fetchAgentDetails,
@@ -1132,8 +1131,10 @@ const ContentDetails = React.memo(function ContentDetails({
           <div className="w-full">
             <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2 mb-3">
-                <span className="font-semibold text-base">u/{"Unknown"}</span>
-                <span className="text-sm text-muted-foreground">
+                <span className="font-semibold text-sm">
+                  u/{content.author || "Unknown"}
+                </span>
+                <span className="text-xs text-muted-foreground">
                   {content.time}
                 </span>
               </div>

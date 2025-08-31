@@ -14,6 +14,7 @@ import {
   selectReplyDraft,
   selectReplyGenerating,
 } from "@/store/features/agentSlice";
+import { selectAgents } from "@/store/slices/agentsSlice";
 import Cookies from "js-cookie";
 import { getApiUrl } from "../../lib/config";
 
@@ -42,31 +43,35 @@ export default function ResponseComposer({
   // Use Redux state for post-specific reply drafts
   const response = useSelector(selectReplyDraft(post.id));
   const generating = useSelector(selectReplyGenerating(post.id));
+  const agents = useSelector(selectAgents);
+
+  // Find the specific agent by ID
+  const agent = agents.find((a) => a.id === parseInt(agentId));
+
+  // Extract OAuth username from agent data
+  const oauthUsername = agent?.oauth_account?.provider_username;
 
   const handleGenerate = async () => {
     dispatch(setReplyGenerating({ postId: post.id, generating: true }));
     // Replace with your actual AI call
     let token = Cookies.get("access_token");
-    const aiResponse = await fetch(
-      getApiUrl("reddit/generate-reply"),
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            post_id: post.id,
-            agent_id: parseInt(agentId),
-            user_text: "",
-          }),
-        }
-    ).then((r) => r.json());
+    const aiResponse = await fetch(getApiUrl("reddit/generate-reply"), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        post_id: post.id,
+        agent_id: parseInt(agentId),
+        user_text: "",
+      }),
+    }).then((r) => r.json());
     console.log(aiResponse);
-      dispatch(
+    dispatch(
       setReplyDraft({ postId: post.id, content: aiResponse.reply || "" })
-      );
-      dispatch(setReplyGenerating({ postId: post.id, generating: false }));
+    );
+    dispatch(setReplyGenerating({ postId: post.id, generating: false }));
   };
 
   const handleSend = () => {
@@ -115,7 +120,7 @@ export default function ResponseComposer({
 
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">
-            Posting as <strong>HexnodeBot</strong>
+            Posting as <strong>{oauthUsername || "Unknown User"}</strong>
           </span>
 
           <Button

@@ -1,41 +1,21 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Search,
-  Filter,
   Plus,
-  Settings,
-  ChevronDown,
-  Check,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   Target,
-  Sparkles,
-  BarChart3,
   MessageSquare,
   Users,
   Eye,
   TrendingUp,
   Activity,
-  Layers,
   BrainCircuit,
-  Rocket,
   Shield,
-  Star,
   MoreVertical,
-  Hash,
-  Globe,
-  Smile,
-  Image,
-  FileText,
-  Building2,
-  Video,
-  Music,
-  CheckCircle,
   LoaderCircle,
   Grid3X3,
   List,
@@ -51,36 +31,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { PlatformIcon, RedditIcon } from "./platform-icons";
 import Layout from "./layout";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/use-toast";
 import Cookies from "js-cookie";
-import { refreshAccessToken } from "@/lib/utils";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "@/store/store";
 import { getApiUrl } from "../../lib/config";
@@ -89,65 +44,21 @@ import {
   createAgent,
   updateAgentStatus,
   selectAgents,
-  selectAgentsStatus,
   selectAgentsError,
   selectAgentsLoading,
   selectCreateAgentStatus,
-  clearAgents,
-  clearError,
   clearCreateStatus,
   updateAgentStatusLocally,
-  type Agent as ReduxAgent,
-  type ApiAgent as ReduxApiAgent,
 } from "@/store/slices/agentsSlice";
+import type {
+  Agent as ReduxAgent,
+  ApiAgent as ReduxApiAgent,
+} from "@/types/agentDataTypes";
 import {
   selectCurrentProject,
   fetchCurrentProject,
 } from "@/store/slices/currentProjectSlice";
 import { AgentCreateModal } from "../agent/agent-create-modal";
-
-// Mock data for agents
-
-// Platform options for the form
-const platformOptions = [
-  { value: "reddit", label: "Reddit", icon: "reddit" },
-  { value: "linkedin", label: "LinkedIn", icon: "linkedin" },
-  { value: "twitter", label: "Twitter", icon: "twitter" },
-  { value: "instagram", label: "Instagram", icon: "instagram" },
-  { value: "tiktok", label: "TikTok", icon: "tiktok" },
-];
-
-// Goal options for the form
-const goalOptions = [
-  {
-    value: "lead_generation",
-    label: "Lead Generation",
-    icon: Users,
-    description: "Find and engage with potential customers",
-    color: "from-zinc-800 to-zinc-950",
-  },
-  {
-    value: "brand_awareness",
-    label: "Brand Awareness",
-    icon: Eye,
-    description: "Increase brand visibility and recognition",
-    color: "from-zinc-800 to-zinc-950",
-  },
-  {
-    value: "engagement",
-    label: "Engagement",
-    icon: MessageSquare,
-    description: "Build community and foster interactions",
-    color: "from-zinc-800 to-zinc-950",
-  },
-  {
-    value: "support",
-    label: "Customer Support",
-    icon: Shield,
-    description: "Provide assistance and resolve issues",
-    color: "from-zinc-800 to-zinc-950",
-  },
-];
 
 // Helper functions
 const getPlatformGradient = (platform: string) => {
@@ -197,76 +108,6 @@ const getGoalIcon = (goal: string) => {
   }
 };
 
-// Add platform settings types
-type PlatformSettings = {
-  reddit?: {
-    subreddit: string;
-    timeRange: string;
-    relevanceThreshold: number;
-    minUpvotes: number;
-    monitorComments: boolean;
-    targetAudience?: string;
-    keywords?: string;
-    schedule?: {
-      type: string;
-    };
-  };
-  twitter?: {
-    keywords: string;
-    accountsToMonitor: string;
-    timeRange: string;
-    minEngagement: number;
-    relevanceThreshold: number;
-    language: string;
-    sentiment: string;
-    mode: string;
-    reviewPeriod: string;
-    action: string;
-    targetAudience?: string;
-  };
-  instagram?: {
-    keywords: string;
-    accountsToMonitor: string;
-    timeRange: string;
-    minEngagement: number;
-    relevanceThreshold: number;
-    contentType: string;
-    sentiment: string;
-    mode: string;
-    reviewPeriod: string;
-    action: string;
-    targetAudience?: string;
-  };
-  linkedin?: {
-    keywords: string;
-    accountsToMonitor: string;
-    timeRange: string;
-    minEngagement: number;
-    relevanceThreshold: number;
-    contentType: string;
-    industryFilter: string;
-    sentiment: string;
-    mode: string;
-    reviewPeriod: string;
-    action: string;
-    targetAudience?: string;
-  };
-  tiktok?: {
-    keywords: string;
-    accountsToMonitor: string;
-    timeRange: string;
-    minEngagement: number;
-    relevanceThreshold: number;
-    contentType: string;
-    soundFilter: string;
-    sentiment: string;
-    mode: string;
-    reviewPeriod: string;
-    action: string;
-    targetAudience?: string;
-  };
-};
-
 // Use Redux types for Agent and ApiAgent
 type Agent = ReduxAgent;
 type ApiAgent = ReduxApiAgent;
@@ -275,93 +116,6 @@ type ApiAgent = ReduxApiAgent;
 function getAuthToken(): string | undefined {
   return Cookies.get("token");
 }
-
-// fetchAgents is now handled by Redux slice
-
-// updateAgentStatus is now handled by Redux slice
-
-// createNewAgent is now handled by Redux slice
-
-// Add API call function
-async function generateAgentProfile(input: {
-  agent_name: string;
-  goals: string[];
-  project_id: string;
-  existing_context?: string;
-}) {
-  const response = await fetch(
-    getApiUrl("agents/generate-instruction-personality"),
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(input),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to generate agent profile");
-  }
-
-  return response.json();
-}
-
-// Add new API call function for expected outcomes
-async function generateExpectedOutcomes(input: {
-  agent_name: string;
-  goals: string[];
-  project_id: string;
-  instructions: string;
-}) {
-  const response = await fetch(getApiUrl("agents/generate-expected-outcomes"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to generate expected outcomes");
-  }
-
-  return response.json();
-}
-
-// Add this type definition
-type Project = {
-  uuid: string;
-  id: string;
-  keywords: string[];
-  title?: string;
-  description?: string;
-  status?: string;
-  progress?: number;
-  dueDate?: string;
-  startDate?: string;
-  lastUpdated?: string;
-  priority?: string;
-  category?: string;
-  budget?: number;
-  budgetSpent?: number;
-  team?: Array<{
-    name: string;
-    avatar: string;
-    initials: string;
-    role: string;
-  }>;
-  tags?: string[];
-  metrics?: {
-    tasks: number;
-    completed: number;
-    comments: number;
-    attachments: number;
-  };
-  health?: string;
-  starred?: boolean;
-  icon?: any;
-};
 
 export default function AgentsPage() {
   const router = useRouter();
@@ -418,13 +172,7 @@ export default function AgentsPage() {
     return id;
   })();
 
-  // Use currentProject from currentProject slice instead of searching projects.items
-  const project = currentProject;
-
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-  // Add SSE connection state
-  const [sseConnection, setSseConnection] = useState<EventSource | null>(null);
 
   // Add validation for project ID
   useEffect(() => {
@@ -498,8 +246,6 @@ export default function AgentsPage() {
       eventSource.close();
     };
 
-    setSseConnection(eventSource);
-
     // Cleanup on unmount
     return () => {
       eventSource.close();
@@ -510,8 +256,6 @@ export default function AgentsPage() {
   useEffect(() => {
     if (projectId) {
       dispatch(fetchAgents(projectId));
-    } else {
-      dispatch(clearAgents());
     }
   }, [projectId, dispatch]);
 
@@ -553,7 +297,7 @@ export default function AgentsPage() {
   }, [error, router, toast]);
 
   // Redux action for updating agent status
-  const handleUpdateAgentStatus = async (agentId: string, status: string) => {
+  const handleUpdateAgentStatus = async (agentId: number, status: string) => {
     if (!projectId) return;
 
     try {
@@ -561,7 +305,7 @@ export default function AgentsPage() {
       dispatch(updateAgentStatusLocally({ agentId, status }));
 
       const result = await dispatch(
-        updateAgentStatus({ projectId, agentId, status })
+        updateAgentStatus({ projectId, agentId: agentId.toString(), status })
       );
 
       if (updateAgentStatus.fulfilled.match(result)) {
@@ -615,12 +359,12 @@ export default function AgentsPage() {
   };
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterPlatform, setFilterPlatform] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
 
-  // Filter agents based on search query and filters
+  // Filter agents based on search query
   const filteredAgents = agents.filter((agent) => {
-    const matchesSearch =
+    if (!searchQuery) return true;
+
+    return (
       (agent.agent_name || "")
         .toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
@@ -629,17 +373,12 @@ export default function AgentsPage() {
         .includes(searchQuery.toLowerCase()) ||
       (agent.expectations || "")
         .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-    const matchesPlatform =
-      filterPlatform === "all" || agent.agent_platform === filterPlatform;
-    const matchesStatus =
-      filterStatus === "all" || agent.agent_status === filterStatus;
-
-    return matchesSearch && matchesPlatform && matchesStatus;
+        .includes(searchQuery.toLowerCase())
+    );
   });
 
   // Toggle agent status
-  const toggleAgentStatus = (id: string, e: React.MouseEvent) => {
+  const toggleAgentStatus = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
     const agent = agents.find((a) => a.id === id);
     if (agent) {
@@ -677,15 +416,9 @@ export default function AgentsPage() {
     (sum, a) => sum + (a.advanced_settings?.conversions || 0),
     0
   );
-  const avgPerformance = Math.round(
-    agents.reduce(
-      (sum, a) => sum + (a.advanced_settings?.performance || 0),
-      0
-    ) / agents.length
-  );
 
   // Navigate to agent detail page
-  const navigateToAgentDetail = (agentId: string) => {
+  const navigateToAgentDetail = (agentId: number) => {
     if (!projectId) {
       toast({
         title: "Error",
@@ -711,10 +444,14 @@ export default function AgentsPage() {
                   AI Agents
                 </h2>
                 <p className="text-slate-200 text-xs md:text-sm leading-relaxed max-w-xl font-normal">
-                  Deploy intelligent agents to automate engagement, generate leads, and grow your business on autopilot.
+                  Deploy intelligent agents to automate engagement, generate
+                  leads, and grow your business on autopilot.
                 </p>
                 <div className="flex gap-2 pt-1">
-                  <Button className="gap-1.5 h-7 text-xs bg-white text-slate-900 hover:bg-white/90" onClick={() => setIsCreateModalOpen(true)}>
+                  <Button
+                    className="gap-1.5 h-7 text-xs bg-white text-slate-900 hover:bg-white/90"
+                    onClick={() => setIsCreateModalOpen(true)}
+                  >
                     <Plus className="h-3 w-3" /> Create agent
                   </Button>
                 </div>
@@ -727,8 +464,12 @@ export default function AgentsPage() {
                       <span className="text-xs text-slate-300">Active</span>
                     </div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-xl font-bold text-white">{totalActive}</span>
-                      <span className="text-xs text-slate-300">/ {agents.length}</span>
+                      <span className="text-xl font-bold text-white">
+                        {totalActive}
+                      </span>
+                      <span className="text-xs text-slate-300">
+                        / {agents.length}
+                      </span>
                     </div>
                   </div>
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
@@ -737,7 +478,9 @@ export default function AgentsPage() {
                       <span className="text-xs text-slate-300">Messages</span>
                     </div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-xl font-bold text-white">{totalMessages}</span>
+                      <span className="text-xl font-bold text-white">
+                        {totalMessages}
+                      </span>
                     </div>
                   </div>
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
@@ -746,7 +489,9 @@ export default function AgentsPage() {
                       <span className="text-xs text-slate-300">Engaged</span>
                     </div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-xl font-bold text-white">{totalEngagement}</span>
+                      <span className="text-xl font-bold text-white">
+                        {totalEngagement}
+                      </span>
                     </div>
                   </div>
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
@@ -755,7 +500,9 @@ export default function AgentsPage() {
                       <span className="text-xs text-slate-300">Converts</span>
                     </div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-xl font-bold text-white">{totalConversions}</span>
+                      <span className="text-xl font-bold text-white">
+                        {totalConversions}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -768,10 +515,18 @@ export default function AgentsPage() {
         <div className="flex items-center justify-between gap-2 mb-4 w-full">
           <div className="flex items-center gap-2">
             <div className="flex items-center border rounded-md p-0.5 h-7">
-              <Button variant="secondary" size="sm" className="h-6 w-6 p-0 rounded-sm">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-6 w-6 p-0 rounded-sm"
+              >
                 <Grid3X3 className="h-3.5 w-3.5" />
               </Button>
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-sm">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 rounded-sm"
+              >
                 <List className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -787,7 +542,10 @@ export default function AgentsPage() {
                 className="w-[200px] h-7 text-xs pl-7 pr-2"
               />
             </div>
-            <Button className="h-7 text-xs gap-1 px-2.5" onClick={() => setIsCreateModalOpen(true)}>
+            <Button
+              className="h-7 text-xs gap-1 px-2.5"
+              onClick={() => setIsCreateModalOpen(true)}
+            >
               <Plus className="h-3 w-3" />
               <span>New agent</span>
             </Button>
@@ -959,75 +717,11 @@ export default function AgentsPage() {
           isCreateModalOpen={isCreateModalOpen}
           setIsCreateModalOpen={setIsCreateModalOpen}
           projectId={projectId}
-          project={project}
+          project={currentProject}
           handleCreateAgent={handleCreateAgent}
           createStatus={createStatus}
         />
       </div>
     </Layout>
   );
-}
-
-// Add animations
-const dataStream = `@keyframes dataStream {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}`;
-
-const float = `@keyframes float {
-  0% {
-    transform: translateY(0) translateX(0);
-  }
-  25% {
-    transform: translateY(-10px) translateX(10px);
-  }
-  50% {
-    transform: translateY(0) translateX(20px);
-  }
-  75% {
-    transform: translateY(10px) translateX(10px);
-  }
-  100% {
-    transform: translateY(0) translateX(0);
-  }
-}`;
-
-// Add this at the end of the file, after the animations
-const scrollbarStyles = `
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: rgb(203 213 225);
-    border-radius: 20px;
-    transition: background-color 0.2s ease;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: rgb(148 163 184);
-  }
-
-  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: rgb(51 65 85);
-  }
-
-  .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: rgb(71 85 105);
-  }
-`;
-
-// Add the styles to the document
-if (typeof document !== "undefined") {
-  const style = document.createElement("style");
-  style.textContent = scrollbarStyles;
-  document.head.appendChild(style);
 }
