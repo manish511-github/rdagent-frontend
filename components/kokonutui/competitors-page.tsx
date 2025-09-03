@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
+// Removed multi-select Checkbox for single-add flow
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/components/ui/use-toast"
@@ -25,6 +25,8 @@ import DataTable from "@/components/kokonutui/competitors-table/data-table"
 import { columns as competitorColumns, type CompetitorRow } from "@/components/kokonutui/competitors-table/columns"
 import { setAnalysisFromApi } from "@/store/slices/competitorAnalysisSlice"
 import { getApiUrl } from "@/lib/config"
+import Cookies from "js-cookie"
+import { refreshAccessToken } from "@/lib/utils"
 
 type Competitor = {
   name: string
@@ -93,6 +95,41 @@ async function fetchCompetitors(userId: number, projectId: string, signal?: Abor
   }>
 }
 
+async function fetchCompetitorSuggestions(projectUuid: string, signal?: AbortSignal) {
+  let token = Cookies.get("access_token");
+  let response = await fetch(getApiUrl(`/company/competitor/suggest?project_uuid=${projectUuid}&k=5`), {
+    signal,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'accept': 'application/json'
+    },
+  });
+
+  // If unauthorized, try to refresh the token and retry once
+  if (response.status === 401) {
+    token = await refreshAccessToken();
+    if (token) {
+      response = await fetch(getApiUrl(`/company/competitor/suggest?project_uuid=${projectUuid}&k=5`), {
+        signal,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'accept': 'application/json'
+        },
+      });
+    }
+  }
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to fetch competitor suggestions");
+  }
+
+  const json = await response.json();
+  return json?.data?.suggestions ?? [];
+}
+
+
+
 async function postCompetitor(body: {
   our_url: string
   competitor_url: string
@@ -134,7 +171,27 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
   const [urlError, setUrlError] = useState<string>("")
   const [isAdding, setIsAdding] = useState<boolean>(false)
   const [competitors, setCompetitors] = useState<Competitor[]>([])
-  const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(new Set())
+  // Single-add flow; no multi-select needed
+  const [hiddenSuggestions, setHiddenSuggestions] = useState<Set<string>>(new Set())
+
+  // Helpers to normalize website domains for comparison
+  const normalizeDomain = (value: string): string => {
+    try {
+      if (!value) return ""
+      let input = value.trim()
+      if (!/^https?:\/\//i.test(input)) {
+        input = `https://${input}`
+      }
+      const url = new URL(input)
+      return url.hostname.toLowerCase().replace(/^www\./, "")
+    } catch {
+      return value.toLowerCase().replace(/^www\./, "")
+    }
+  }
+  const sourceIdToDomain = (sourceId?: string): string => {
+    if (!sourceId) return ""
+    return sourceId.replace(/_/g, ".").toLowerCase().replace(/^www\./, "")
+  }
 
   // Toolbar and derived list state
   const [query, setQuery] = useState("")
@@ -143,15 +200,17 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "archived">("all")
 
-  const suggested: Array<{ name: string; website: string; industry: string; founded: string; headline: string }> = [
-    { name: "Globex", website: "https://globex.com", industry: "Analytics", founded: "2016", headline: "AI-powered marketing analytics for modern teams" },
-    { name: "Initech", website: "https://initech.com", industry: "Automation", founded: "2012", headline: "Workflow automation to scale operations faster" },
-    { name: "Umbrella", website: "https://umbrella.com", industry: "Security", founded: "2010", headline: "Security-first platform for critical infrastructure" },
-  ]
-
   // Server data via TanStack Query
   const userId = user?.id
   const resolvedProjectId = currentProject?.uuid ?? projectId
+
+  // Fetch suggestions from API
+  const suggestionsQuery = useQuery({
+    queryKey: ["competitor-suggestions", resolvedProjectId],
+    enabled: !!resolvedProjectId,
+    queryFn: ({ signal }) => fetchCompetitorSuggestions(resolvedProjectId as string, signal),
+  })
+
   const queryKey = ["competitors", userId, resolvedProjectId]
   const competitorsQuery = useQuery({
     queryKey,
@@ -159,9 +218,29 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
     queryFn: ({ signal }) => fetchCompetitors(userId as number, resolvedProjectId as string, signal),
     refetchInterval: (data) => (Array.isArray(data) && data.some((c: any) => c.status === 'running') ? 5000 : false),
   })
+
+  const suggested = suggestionsQuery.data || []
  
    const isEnabled = !!userId && !!resolvedProjectId
    const isPending = !isEnabled || competitorsQuery.isLoading
+
+  const existingDomains = useMemo(() => {
+    const set = new Set<string>()
+    // From already added/loaded competitors in local state
+    competitors.forEach((c) => {
+      if (c.website) set.add(normalizeDomain(c.website))
+    })
+    // From API competitors in the table/grid
+    ;(competitorsQuery.data as any[] | undefined)?.forEach((row) => {
+      if (row?.competitor_source_id) set.add(sourceIdToDomain(row.competitor_source_id))
+    })
+    // From hidden suggestions this session
+    hiddenSuggestions.forEach((d) => set.add(d))
+    return set
+  }, [competitors, competitorsQuery.data, hiddenSuggestions])
+  const visibleSuggested = (suggested as any[]).filter(
+    (s: any) => !existingDomains.has(normalizeDomain(s.website || ""))
+  )
 
   const filteredAndSorted = useMemo(() => {
     // Don't compute if data is still loading
@@ -212,6 +291,83 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
     mutationFn: postCompetitor,
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
     onError: () => toast({ title: 'Failed to create competitor', variant: 'destructive' })
+  })
+
+  // Fetch competitor details mutation
+  const fetchDetailsMutation = useMutation({
+    mutationFn: async (competitorUrl: string) => {
+      let token = Cookies.get("access_token");
+      let response = await fetch(getApiUrl(`/company/competitor`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          our_url: currentProject?.website_url || '',
+          competitor_url: competitorUrl,
+          project_id: resolvedProjectId,
+          user_id: userId as number,
+          run_now: true,
+          scrape: true,
+          overview: true,
+          features: true,
+          pricing: true,
+          compare_features: true,
+          compare_pricing: true,
+          social_media: true,
+          youtube: true,
+          twitter: true,
+          facebook: true,
+          news: true
+        })
+      });
+
+      // If unauthorized, try to refresh the token and retry once
+      if (response.status === 401) {
+        token = await refreshAccessToken();
+        if (token) {
+          response = await fetch(getApiUrl(`/company/competitor`), {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              our_url: currentProject?.website_url || '',
+              competitor_url: competitorUrl,
+              project_id: resolvedProjectId,
+              user_id: userId as number,
+              run_now: true,
+              scrape: true,
+              overview: true,
+              features: true,
+              pricing: true,
+              compare_features: true,
+              compare_pricing: true,
+              social_media: true,
+              youtube: true,
+              twitter: true,
+              facebook: true,
+              news: true
+            })
+          });
+        }
+      }
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch competitor details");
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey })
+      toast({ title: 'Competitor analysis started', description: 'We\'re analyzing the competitor. This may take a few minutes.' })
+      // You can add navigation to the analysis page here if needed
+    },
+    onError: () => toast({ title: 'Failed to analyze competitor', variant: 'destructive' })
   })
 
   // Delete competitor mutation
@@ -400,34 +556,37 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
     setUrlError(validateUrl(websiteUrl) ? "" : "Enter a valid URL or domain (example.com)")
   }, [websiteUrl])
 
-  function handleQuickAddSuggestion(s: { name: string; website: string; industry: string; founded: string; headline: string }) {
+  function handleQuickAddSuggestion(s: { company_name: string; website: string; description: string }) {
     const { slug } = deriveSlugFromUrl(s.website)
-    const comp: Competitor = { name: s.name, slug, founded: s.founded, industry: s.industry, headline: s.headline, website: s.website }
+    const comp: Competitor = { 
+      name: s.company_name, 
+      slug, 
+      founded: '—', 
+      industry: '—', 
+      headline: s.description, 
+      website: s.website 
+    }
     setCompetitors((prev) => [comp, ...prev])
-    toast({ title: "Competitor added", description: `${s.name} added to your list.` })
-  }
-
-  function toggleSuggestion(website: string) {
-    setSelectedSuggestions((prev) => {
+    // Hide this suggestion going forward
+    const key = (s.website || "").toLowerCase()
+    setHiddenSuggestions((prev) => {
       const next = new Set(prev)
-      if (next.has(website)) next.delete(website)
-      else next.add(website)
+      next.add(key)
       return next
     })
-  }
-
-  function addSelectedSuggestions() {
-    const toAdd = suggested.filter((s) => selectedSuggestions.has(s.website))
-    if (toAdd.length === 0) return
-    const mapped = toAdd.map((s) => {
-      const { slug } = deriveSlugFromUrl(s.website)
-      return { name: s.name, slug, founded: s.founded, industry: s.industry, headline: s.headline, website: s.website } as Competitor
-    })
-    setCompetitors((prev) => [...mapped, ...prev])
-    toast({ title: "Competitors added", description: `${toAdd.length} added to your list.` })
-    setSelectedSuggestions(new Set())
+    
+    // Fetch competitor details from API
+    const competitorUrl = s.website.startsWith('http') ? s.website : `https://${s.website}`
+    fetchDetailsMutation.mutate(competitorUrl)
+    
+    toast({ title: "Competitor added", description: `${s.company_name} added to your list and analysis started.` })
+    // Close modal after adding
     setShowAddDialog(false)
   }
+
+  // Single-add flow: no toggle for suggestions
+
+  // Single-add flow: remove bulk add handler
 
   // Reset modal state on close
   useEffect(() => {
@@ -436,7 +595,6 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
       setUrlError("")
       setIsAdding(false)
       setActiveTab("url")
-      setSelectedSuggestions(new Set())
     }
   }, [showAddDialog])
 
@@ -704,37 +862,79 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
             </TabsContent>
 
             <TabsContent value="suggestions" className="space-y-3 mt-3">
-              <div className="grid gap-2">
-                {suggested.map((s) => (
-                  <div key={s.website} className="flex items-center justify-between gap-3 border rounded-md p-3">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <Checkbox
-                        checked={selectedSuggestions.has(s.website)}
-                        onCheckedChange={() => toggleSuggestion(s.website)}
-                        className="mt-0.5"
-                      />
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium truncate flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground" /> {s.name}
+              <div className="grid gap-2 max-h-80 overflow-y-auto pr-1">
+                {suggestionsQuery.isLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center justify-between gap-3 border rounded-md p-3">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <Skeleton className="h-4 w-4 mt-0.5" />
+                          <div className="min-w-0 space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-24" />
+                            <Skeleton className="h-3 w-48" />
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground truncate flex items-center gap-2">
-                          <Globe className="h-3.5 w-3.5" /> {new URL(s.website).hostname}
+                        <Skeleton className="h-8 w-16" />
+                      </div>
+                    ))}
+                  </div>
+                ) : suggestionsQuery.isError ? (
+                  <div className="text-sm text-destructive text-center py-4 space-y-3">
+                    <p>Failed to load suggestions.</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => suggestionsQuery.refetch()}
+                      disabled={suggestionsQuery.isRefetching}
+                      className="gap-2"
+                    >
+                      {suggestionsQuery.isRefetching && <Loader2 className="h-3 w-3 animate-spin" />}
+                      Try Again
+                    </Button>
+                  </div>
+                ) : (
+                  visibleSuggested.map((s: any) => (
+                  <div
+                    key={s.website}
+                    className="flex items-center justify-between gap-3 rounded-md p-3 border bg-white/70 dark:bg-gray-900/50 supports-[backdrop-filter]:bg-white/40 dark:supports-[backdrop-filter]:bg-gray-900/30"
+                  >
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <div className="min-w-0 space-y-1">
+                        <div className="text-sm font-medium flex items-center gap-2 min-w-0">
+                          <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="truncate" title={s.company_name}>{s.company_name}</span>
                         </div>
-                        <div className="text-xs text-muted-foreground truncate">{s.headline}</div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-2 min-w-0">
+                          <Globe className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span className="truncate" title={s.website}>{s.website}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground line-clamp-2 break-words">
+                          {s.description}
+                        </div>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" className="h-8" onClick={() => handleQuickAddSuggestion(s)}>Add</Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-8 px-3 whitespace-nowrap"
+                      onClick={() => handleQuickAddSuggestion(s)}
+                      disabled={fetchDetailsMutation.isPending}
+                    >
+                      {fetchDetailsMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          Analyzing
+                        </>
+                      ) : (
+                        <>Add</>
+                      )}
+                    </Button>
                   </div>
-                ))}
+                ))
+                )}
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Button variant="ghost" className="px-0 h-7" onClick={() => setSelectedSuggestions(new Set(suggested.map((s) => s.website)))}>Select all</Button>
-                  <span>•</span>
-                  <Button variant="ghost" className="px-0 h-7" onClick={() => setSelectedSuggestions(new Set())}>Clear</Button>
-                </div>
-                <Button disabled={selectedSuggestions.size === 0} onClick={addSelectedSuggestions}>Add selected</Button>
-              </div>
+              {/* Single-add flow: no bulk actions */}
             </TabsContent>
           </Tabs>
 
