@@ -11,6 +11,8 @@ import {
   selectAgentState,
   selectAgentType,
   updateAgentStatus,
+  setCurrentAgentId,
+  clearAgentData,
   type DisplayPost,
   type PostStatus,
 } from "@/store/features/agentSlice";
@@ -73,6 +75,7 @@ import {
   updateAgentDetails,
   type AgentDetails,
 } from "@/store/features/agentSlice";
+import { selectAgentById } from "@/store/slices/agentsSlice";
 import MarkdownRender from "../markdown-render";
 import ResponseComposer from "./response-generator";
 import { InfinitePostsList } from "./infinite-posts-list";
@@ -797,6 +800,9 @@ const ConfigurationSection = React.memo(function ConfigurationSection({
         schedule: form.schedule || undefined,
       } as any;
 
+      // Ensure current agent ID is set before updating
+      dispatch(setCurrentAgentId(agentId));
+
       await dispatch(
         updateAgentDetails({ agentId, updates: payload }) as any
       ).unwrap();
@@ -1462,19 +1468,25 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   const agentState = useSelector(selectAgentState);
   const agentDetails = useSelector(selectAgentDetails);
   const agentDetailsStatus = useSelector(selectAgentDetailsStatus);
+  const agentFromList = useSelector(selectAgentById(agentId));
   const isMobile = useIsMobile();
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(
-    agentDetails?.agent_name || agentData?.agent_name || "Agent"
+    agentFromList?.agent_name ||
+      agentDetails?.agent_name ||
+      agentData?.agent_name ||
+      "Agent"
   );
 
-  // Update editedName when agentDetails changes
+  // Update editedName when agent data changes
   useEffect(() => {
-    if (agentDetails?.agent_name) {
+    if (agentFromList?.agent_name) {
+      setEditedName(agentFromList.agent_name);
+    } else if (agentDetails?.agent_name) {
       setEditedName(agentDetails.agent_name);
     }
-  }, [agentDetails?.agent_name]);
+  }, [agentFromList?.agent_name, agentDetails?.agent_name]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [showDetailPane, setShowDetailPane] = useState(true);
   const [selectedContentId, setSelectedContentId] = useState<string | null>(
@@ -1491,21 +1503,42 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   const [isConfigExpanded, setIsConfigExpanded] = useState(false);
   const [activeView, setActiveView] = useState("content");
 
-  const [hasInitialData, setHasInitialData] = useState(false);
+  // Use ref to track the current agent ID to prevent infinite loops
+  const currentAgentIdRef = React.useRef<string | null>(null);
 
-  // Update useEffect to handle loading state and prevent repeated calls
+  // Update useEffect to handle loading state and ensure agent details are always fetched
   useEffect(() => {
     const fetchData = async () => {
-      // Skip if already loading or has data
-      if (isLoading || hasInitialData) return;
+      // Skip if already loading or has data for this agent
+      if (isLoading || currentAgentIdRef.current === agentId) return;
 
       setIsLoading(true);
       try {
-        console.log("Dispatching fetchAgentData for agentId:", agentId);
-        await dispatch(fetchAgentData(agentId));
-        // Also fetch agent details for comprehensive agent information
+        // Set current agent ID in the store
+        dispatch(setCurrentAgentId(agentId));
+
+        // Always fetch agent details from /agents/{id}/details endpoint
+        console.log(
+          "Fetching agent details from /agents/{id}/details for agentId:",
+          agentId
+        );
         await dispatch(fetchAgentDetails(agentId));
-        setHasInitialData(true);
+
+        // Also fetch agent data for posts/results if needed
+        if (!agentFromList) {
+          console.log(
+            "Fetching agent data from /agents/{id}/results for agentId:",
+            agentId
+          );
+          await dispatch(fetchAgentData(agentId));
+        } else {
+          console.log(
+            "Using agent data from agents list, skipping /agents/{id}/results call"
+          );
+        }
+
+        // Mark this agent as fetched
+        currentAgentIdRef.current = agentId;
       } catch (error) {
         console.error("Failed to fetch agent data:", error);
         // Add error state handling here if needed
@@ -1514,10 +1547,10 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
       }
     };
 
-    if (agentId) {
+    if (agentId && currentAgentIdRef.current !== agentId) {
       fetchData();
     }
-  }, [dispatch, agentId, isLoading, hasInitialData]); // Include isLoading to prevent double fetches
+  }, [dispatch, agentId, agentFromList]); // Only depend on stable values
 
   // Debounced search to improve performance
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
@@ -1683,13 +1716,21 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
     );
   }, [filteredContent, selectedContentId]);
 
-  // Memoize the agent object
+  // Memoize the agent object - prioritize data from agents list, then agent details, then agent data
   const agent = React.useMemo(
     () => ({
       id: agentId,
-      name: agentDetails?.agent_name || agentData?.agent_name || editedName,
-      platform: agentDetails?.agent_platform || agentType,
-      status: agentDetails?.agent_status || agentState,
+      name:
+        agentFromList?.agent_name ||
+        agentDetails?.agent_name ||
+        agentData?.agent_name ||
+        editedName,
+      platform:
+        agentFromList?.agent_platform ||
+        agentDetails?.agent_platform ||
+        agentType,
+      status:
+        agentFromList?.agent_status || agentDetails?.agent_status || agentState,
       lastActive: "5 mins ago",
       keyMetric: {
         value: displayPosts.length.toString(),
@@ -1697,6 +1738,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
       },
       secondaryMetric: {
         value:
+          agentFromList?.goals?.split(",").length?.toString() ||
           agentDetails?.goals?.split(",").length?.toString() ||
           agentData?.goals?.length?.toString() ||
           "0",
@@ -1705,12 +1747,14 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
       healthScore: 90,
       weeklyActivity: displayPosts.length,
       description:
+        agentFromList?.description ||
         agentDetails?.description ||
         agentData?.description ||
         "Identifies potential leads by monitoring relevant subreddits.",
     }),
     [
       agentId,
+      agentFromList,
       agentDetails,
       agentData,
       editedName,
@@ -1764,15 +1808,22 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
         <div className="flex items-center justify-center h-96">
           <div className="flex flex-col items-center gap-4">
             <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
-            <p className="text-muted-foreground">Loading agent details...</p>
+            <p className="text-muted-foreground">
+              {agentFromList
+                ? "Fetching latest agent details..."
+                : "Loading agent details..."}
+            </p>
           </div>
         </div>
       </Layout>
     );
   }
 
+  // Determine the platform type from available data
+  const platformType = agentFromList?.agent_platform || agentType;
+
   // If this is a HackerNews agent, render the HN view backed by store data
-  if (agentType === "hackernews") {
+  if (platformType === "hackernews") {
     return (
       <Layout>
         <div className="h-full">
@@ -1783,7 +1834,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
   }
 
   // If this is a Reddit agent, render the Reddit Result View
-  if (agentType === "reddit") {
+  if (platformType === "reddit") {
     return (
       <Layout>
         <div className="h-full">

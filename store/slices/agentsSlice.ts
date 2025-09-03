@@ -302,4 +302,12 @@ export const selectUpdateAgentStatus = (state: { agents: AgentsState }) =>
 export const selectLastFetchedProjectId = (state: { agents: AgentsState }) =>
   state.agents.lastFetchedProjectId;
 
+// Selector to get a specific agent by ID
+export const selectAgentById =
+  (agentId: string | number) => (state: { agents: AgentsState }) => {
+    const numericId =
+      typeof agentId === "string" ? parseInt(agentId, 10) : agentId;
+    return state.agents.agents.find((agent) => agent.id === numericId);
+  };
+
 export default agentsSlice.reducer;
