@@ -108,13 +108,15 @@ export function SeoTraffic({ data }: { data: SeoTrafficData | null | undefined }
     )
   }
   const visitsSeries = useMemo(() => {
-    const entries = Object.entries(data.EstimatedMonthlyVisits)
+    const monthly = data?.EstimatedMonthlyVisits ?? {}
+    const entries = Object.entries(monthly as Record<string, number>)
     entries.sort(([a], [b]) => a.localeCompare(b))
     return entries.map(([date, value]) => ({ date: date.slice(0, 7), visits: value }))
   }, [data])
 
   const trafficSources = useMemo(() => {
-    return Object.entries(data.TrafficSources).map(([name, value]) => ({ name, value }))
+    const src = data?.TrafficSources ?? {}
+    return Object.entries(src as Record<string, number>).map(([name, value]) => ({ name, value }))
   }, [data])
 
   const countryShares = useMemo(() => {
@@ -135,8 +137,9 @@ export function SeoTraffic({ data }: { data: SeoTrafficData | null | undefined }
   }, [visitsSeries])
 
   const channelMix = useMemo(() => {
-    const organic = data.TrafficSources["Search"] ?? 0
-    const paid = data.TrafficSources["Paid Referrals"] ?? 0
+    const traffic = (data?.TrafficSources ?? {}) as Record<string, number>
+    const organic = traffic["Search"] ?? 0
+    const paid = traffic["Paid Referrals"] ?? 0
     const nonSearch = Math.max(0, 1 - organic)
     return { organic, paid, nonSearch }
   }, [data])
@@ -186,7 +189,14 @@ export function SeoTraffic({ data }: { data: SeoTrafficData | null | undefined }
     "#ec4899", // Pink
   ]
 
-  const engagements = data.Engagments
+  const engagements: Engagements = (data?.Engagments as Engagements) || {
+    BounceRate: "0",
+    Month: "",
+    Year: "",
+    PagePerVisit: "0",
+    Visits: "0",
+    TimeOnSite: "0",
+  }
 
   const overviewMetrics = [
     { icon: MousePointer2, value: formatNumber(Number(engagements.Visits)), label: "Visits" },
@@ -205,17 +215,17 @@ export function SeoTraffic({ data }: { data: SeoTrafficData | null | undefined }
           <div className="grid grid-cols-2 gap-3">
             <div>
               <div className="text-xs text-gray-500">Global Rank</div>
-              <div className="text-lg font-semibold">{formatNumber(Number(data.GlobalRank.Rank))}</div>
+              <div className="text-lg font-semibold">{formatNumber(Number(data?.GlobalRank?.Rank || 0))}</div>
             </div>
             <div>
-              <div className="text-xs text-gray-500">Country Rank ({data.CountryRank.CountryCode})</div>
-              <div className="text-lg font-semibold">{formatNumber(Number(data.CountryRank.Rank))}</div>
+              <div className="text-xs text-gray-500">Country Rank ({data?.CountryRank?.CountryCode || "N/A"})</div>
+              <div className="text-lg font-semibold">{formatNumber(Number(data?.CountryRank?.Rank || 0))}</div>
             </div>
                          <div className="col-span-2">
                <div className="text-xs text-gray-500">Category Rank</div>
                <div className="flex items-center gap-2">
-                 <div className="text-sm font-medium text-gray-900 dark:text-gray-100">#{String(data.CategoryRank.Rank)}</div>
-                 <div className="text-xs text-gray-500 truncate" title={data.CategoryRank.Category}>• {data.CategoryRank.Category.replaceAll("_", " ")}</div>
+                                   <div className="text-sm font-medium text-gray-900 dark:text-gray-100">#{String(data?.CategoryRank?.Rank || 0)}</div>
+                                   <div className="text-xs text-gray-500 truncate" title={data?.CategoryRank?.Category || "N/A"}>• {(data?.CategoryRank?.Category || "N/A").replaceAll("_", " ")}</div>
                </div>
              </div>
           </div>

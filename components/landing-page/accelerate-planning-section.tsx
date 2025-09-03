@@ -14,24 +14,18 @@ const planningSteps = [
     description:
       "Leverage AI-powered agents to monitor, analyze, and engage with relevant Reddit posts and communities. Instantly discover trending discussions, track mentions of your brand or products, and identify new marketing opportunities. Automate outreach, respond to user queries, and boost your brand presence on Reddit—all while gaining actionable insights to refine your strategy.",
     icon: LayoutList,
-    image: "/placeholder.svg?height=500&width=400",
+    image: "/images/reddit_light.png",
+    darkImage: "/images/reddit_dark.png",
     alignment: "left",
   },
   {
     title: "Hacker News Marketing",
     description:
-      "Leverage AI-powered agents to monitor and analyze Hacker News for posts and comments specifically about your company or products. Instantly track relevant mentions, discover discussions tied to your offerings, and identify marketing opportunities. Automate thoughtful responses and participate in product-related threads to boost your brand’s visibility and reputation—while gaining insights to enhance your outreach.",
+      "Leverage AI-powered agents to monitor and analyze Hacker News for posts and comments specifically about your company or products. Instantly track relevant mentions, discover discussions tied to your offerings, and identify marketing opportunities. Automate thoughtful responses and participate in product-related threads to boost your brand's visibility and reputation—while gaining insights to enhance your outreach.",
     icon: LocateFixed,
-    image: "/placeholder.svg?height=500&width=400",
+    image: "/images/hackernews_light.png",
+    darkImage: "/images/hackernews_dark.png",
     alignment: "right",
-  },
-  {
-    title: "Twitter Marketing",
-    description:
-      "Tap into the real-time pulse of your industry with Twitter—one of the most dynamic platforms for brand visibility and customer engagement. Market-Agent’s AI agents monitor and analyze tweets specifically about your company and products, helping you track brand mentions, boost awareness, and identify high-potential leads from product-focused conversations. Effortlessly schedule posts for maximum reach and track the impact of every tweet. With Twitter’s vast, active audience and our intelligent automation, you can amplify your brand, connect with prospects, and stay ahead of trends—all centered around your products.",
-    icon: Users,
-    image: "/placeholder.svg?height=500&width=400",
-    alignment: "left",
   },
 ]
 
@@ -133,11 +127,11 @@ export function AcceleratePlanningSection() {
                           whileHover={{ scale: 1.05 }}
                         >
                           <Image
-                            src={step.image || "/placeholder.svg"}
+                            src={step.darkImage && theme === 'dark' ? step.darkImage : (step.image || "/placeholder.svg")}
                             width={400}
                             height={500}
                             alt={step.title}
-                            className="m-2 rounded-md object-contain shadow-md lg:rounded-xl lg:shadow-lg dark:invert transition-all duration-300 hover:shadow-xl"
+                            className="m-2 rounded-md object-contain shadow-md lg:rounded-xl lg:shadow-lg transition-all duration-300 hover:shadow-xl"
                           />
                         </motion.div>
                         <motion.div

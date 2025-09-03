@@ -11,6 +11,7 @@ import {
   Linkedin,
   Instagram,
   Mail,
+  PenTool,
 } from "lucide-react";
 import { NavItem } from "./nav-item";
 import type { FC } from "react";
@@ -91,6 +92,15 @@ export const ProjectNavigation: FC<ProjectNavigationProps> = ({
           isMounted={isMounted}
         >
           Competitors
+        </NavItem>
+        <NavItem
+          href={currentProject ? `/projects/${currentProject.uuid}/post-generator` : "#"}
+          icon={PenTool}
+          isActive={pathname === `/projects/${currentProject?.uuid}/post-generator`}
+          isCollapsed={isCollapsed}
+          isMounted={isMounted}
+        >
+          Post Generator
         </NavItem>
         <NavItem
           href={

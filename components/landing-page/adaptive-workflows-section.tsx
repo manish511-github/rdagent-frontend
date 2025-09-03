@@ -7,18 +7,18 @@ const workflows = [
   {
     title: "Customizable AI Agents",
     description: "Easily adapt agents to your industry, audience, and goals for truly personalized automation.",
-    image: "/placeholder.svg?height=233&width=416",
+    image: "/images/customisation_adapt.jpg",
   },
   {
     title: "Adaptive Audience Engagement",
     description:
-      "AI agents interact with your audience in your brand’s voice, while allowing you to step in for a personal touch whenever you choose.",
-    image: "/placeholder.svg?height=233&width=416",
+      "AI agents interact with your audience in your brand's voice, while allowing you to step in for a personal touch whenever you choose.",
+    image: "/images/audience_engagement.jpg",
   },
   {
-    title: "Smart Post Scheduling",
-    description: "Schedule posts in advance to reach your audience at the perfect time and boost engagement.",
-    image: "/placeholder.svg?height=233&width=416",
+    title: "Competitor Analysis",
+    description: "Gain deep insights into competitors' strategies, performance, and market positioning to inform your own marketing decisions.",
+    image: "/images/competitor_analysis_2.jpg",
   },
 ]
 
@@ -65,7 +65,7 @@ export function AdaptiveWorkflowsSection() {
                       alt={workflow.title}
                       width={416}
                       height={233}
-                      className="rounded-md shadow-md lg:rounded-xl lg:shadow-lg dark:invert"
+                      className={`rounded-md shadow-md lg:rounded-xl lg:shadow-lg ${workflow.image === "/images/competitor_analysis_2.jpg" || workflow.image === "/images/audience_engagement.jpg" || workflow.image === "/images/customisation_adapt.jpg" ? "" : "dark:invert"}`}
                     />
                   </div>
                 </div>
