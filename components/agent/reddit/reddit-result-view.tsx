@@ -8,14 +8,13 @@ import {
   selectDisplayPosts,
   selectAgentData,
   selectAgentState,
-  selectAgentType,
-  updateAgentStatus,
   type DisplayPost,
   type PostStatus,
   fetchAgentDetails,
   selectAgentDetails,
   selectAgentDetailsStatus,
   updateAgentDetails,
+  setCurrentAgentId,
   type AgentDetails,
 } from "@/store/features/agentSlice";
 import {
@@ -39,7 +38,6 @@ import {
   Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1132,8 +1130,10 @@ const ContentDetails = React.memo(function ContentDetails({
           <div className="w-full">
             <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2 mb-3">
-                <span className="font-semibold text-base">u/{"Unknown"}</span>
-                <span className="text-sm text-muted-foreground">
+                <span className="font-semibold text-sm">
+                  u/{content.author || "Unknown"}
+                </span>
+                <span className="text-xs text-muted-foreground">
                   {content.time}
                 </span>
               </div>
@@ -1376,7 +1376,6 @@ const ContentManagement = React.memo(function ContentManagement({
   const [selectedPost, setSelectedPost] = React.useState<DisplayPost | null>(
     null
   );
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
   return (
@@ -1402,8 +1401,6 @@ const ContentManagement = React.memo(function ContentManagement({
                   placeholder="Search posts, keywords, authors..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => setIsSearchFocused(true)}
-                  onBlur={() => setIsSearchFocused(false)}
                   className="pl-10 pr-10 h-9 text-sm bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 transition-colors"
                 />
                 {searchQuery && (
@@ -1587,7 +1584,6 @@ const ContentManagement = React.memo(function ContentManagement({
 export default function RedditResultView({ agentId }: { agentId: string }) {
   const dispatch = useDispatch<AppDispatch>();
   const displayPosts = useSelector(selectDisplayPosts);
-  const agentType = useSelector(selectAgentType);
   const agentData = useSelector(selectAgentData);
   const agentState = useSelector(selectAgentState);
   const agentDetails = useSelector(selectAgentDetails);
@@ -1604,24 +1600,28 @@ export default function RedditResultView({ agentId }: { agentId: string }) {
   const [sortBy, setSortBy] = useState("relevance");
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
   const [activeView, setActiveView] = useState("content");
-  const [hasInitialData, setHasInitialData] = useState(false);
+  // Use ref to track the current agent ID to prevent infinite loops
+  const currentAgentIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      if (isLoading || hasInitialData) return;
+      if (isLoading || currentAgentIdRef.current === agentId) return;
       setIsLoading(true);
       try {
+        // Set current agent ID in the store
+        dispatch(setCurrentAgentId(agentId));
         await dispatch(fetchAgentData(agentId));
         await dispatch(fetchAgentDetails(agentId));
-        setHasInitialData(true);
+        // Mark this agent as fetched
+        currentAgentIdRef.current = agentId;
       } catch (error) {
         console.error("Failed to fetch agent data:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    if (agentId) fetchData();
-  }, [dispatch, agentId, isLoading, hasInitialData]);
+    if (agentId && currentAgentIdRef.current !== agentId) fetchData();
+  }, [dispatch, agentId]); // Only depend on stable values
 
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
   useEffect(() => {

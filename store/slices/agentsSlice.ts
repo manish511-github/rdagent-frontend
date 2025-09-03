@@ -2,114 +2,12 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import Cookies from "js-cookie";
 import { refreshAccessToken } from "@/lib/utils";
 import { getApiUrl } from "../../lib/config";
-
-// Platform settings types
-type PlatformSettings = {
-  reddit?: {
-    subreddit: string;
-    timeRange: string;
-    relevanceThreshold: number;
-    minUpvotes: number;
-    monitorComments: boolean;
-    targetAudience?: string;
-    keywords?: string;
-    schedule?: {
-      type: string;
-    };
-  };
-  twitter?: {
-    keywords: string;
-    accountsToMonitor: string;
-    timeRange: string;
-    minEngagement: number;
-    relevanceThreshold: number;
-    language: string;
-    sentiment: string;
-    mode: string;
-    reviewPeriod: string;
-    action: string;
-    targetAudience?: string;
-  };
-  instagram?: {
-    keywords: string;
-    accountsToMonitor: string;
-    timeRange: string;
-    minEngagement: number;
-    relevanceThreshold: number;
-    contentType: string;
-    sentiment: string;
-    mode: string;
-    reviewPeriod: string;
-    action: string;
-    targetAudience?: string;
-  };
-  linkedin?: {
-    keywords: string;
-    accountsToMonitor: string;
-    timeRange: string;
-    minEngagement: number;
-    relevanceThreshold: number;
-    contentType: string;
-    industryFilter: string;
-    sentiment: string;
-    mode: string;
-    reviewPeriod: string;
-    action: string;
-    targetAudience?: string;
-  };
-  tiktok?: {
-    keywords: string;
-    accountsToMonitor: string;
-    timeRange: string;
-    minEngagement: number;
-    relevanceThreshold: number;
-    contentType: string;
-    soundFilter: string;
-    sentiment: string;
-    mode: string;
-    reviewPeriod: string;
-    action: string;
-    targetAudience?: string;
-  };
-};
-
-// Agent type definition
-export interface Agent {
-  id: string;
-  agent_name: string;
-  agent_platform: string;
-  agent_status: string;
-  goals: string;
-  instructions: string;
-  expectations: string;
-  project_id: string;
-  mode: string;
-  review_period: string;
-  review_minutes: string;
-  advanced_settings: Record<string, any>;
-  platform_settings: PlatformSettings;
-  created_at: string;
-}
-
-// API Agent type for creating new agents
-export interface ApiAgent {
-  agent_name: string;
-  agent_platform: string;
-  agent_status: string;
-  goals: string;
-  instructions: string;
-  expectations: string;
-  project_id: string;
-  mode: string;
-  review_period: string;
-  review_minutes: string;
-  advanced_settings: Record<string, any>;
-  platform_settings: PlatformSettings;
-  agent_keywords?: string[];
-  schedule?: {
-    schedule_type: string;
-  };
-}
+import {
+  Agent,
+  ApiAgent,
+  CreateAgentPayload,
+  PlatformSettings,
+} from "@/types/agentDataTypes";
 
 interface AgentsState {
   agents: Agent[];
@@ -178,7 +76,7 @@ export const fetchAgents = createAsyncThunk(
 // Async thunk to create a new agent
 export const createAgent = createAsyncThunk(
   "agents/createAgent",
-  async (agentData: ApiAgent, { rejectWithValue, dispatch }) => {
+  async (agentData: CreateAgentPayload, { rejectWithValue, dispatch }) => {
     try {
       let token = Cookies.get("access_token");
       let response = await fetch(getApiUrl("agents"), {
@@ -403,5 +301,13 @@ export const selectUpdateAgentStatus = (state: { agents: AgentsState }) =>
   state.agents.updateStatus;
 export const selectLastFetchedProjectId = (state: { agents: AgentsState }) =>
   state.agents.lastFetchedProjectId;
+
+// Selector to get a specific agent by ID
+export const selectAgentById =
+  (agentId: string | number) => (state: { agents: AgentsState }) => {
+    const numericId =
+      typeof agentId === "string" ? parseInt(agentId, 10) : agentId;
+    return state.agents.agents.find((agent) => agent.id === numericId);
+  };
 
 export default agentsSlice.reducer;

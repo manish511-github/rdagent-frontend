@@ -4,8 +4,7 @@ import Cookies from "js-cookie";
 import { createSelector } from "@reduxjs/toolkit";
 import { fetchAgentResults, AgentPostsParams } from "../../lib/api";
 import { getApiUrl } from "../../lib/config";
-import type { ApiAgent } from "../slices/agentsSlice";
-import { HackerNewsPostType } from "@/types/agentDataTypes";
+import { ApiAgent, HackerNewsPostType } from "@/types/agentDataTypes";
 
 // Types
 export type AgentType = "twitter" | "reddit" | "hackernews" | "mixed";
@@ -100,43 +99,51 @@ export interface AgentData {
 }
 
 export interface AgentState {
-  agentId: string | null;
-  name: string;
+  // Global state (shared across all agents)
+  currentAgentId: string | null;
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
-  agentType: AgentType;
-  redditPosts: RedditPost[];
-  twitterPosts: TwitterPost[];
-  hackernewsPosts: HackerNewsPostType[];
-  agentStatus: "active" | "paused" | "completed" | "error";
-  lastUpdated: string | null;
-  agentData: AgentData | null;
-  // Infinite scroll state
-  posts: DisplayPost[];
-  pagination: {
-    currentPage: number;
-    hasNextPage: boolean;
-    isLoadingMore: boolean;
-    totalCount: number;
-    limit: number;
-  };
-  filters: {
-    sortBy: string;
-    order: string;
-    statusFilter: string;
-    searchQuery: string;
-  };
-  // Post-specific reply drafts
-  replyDrafts: Record<
+
+  // Agent-specific data storage
+  agents: Record<
     string,
     {
-      content: string;
-      generating: boolean;
+      name: string;
+      agentType: AgentType;
+      redditPosts: RedditPost[];
+      twitterPosts: TwitterPost[];
+      hackernewsPosts: HackerNewsPostType[];
+      agentStatus: "active" | "paused" | "completed" | "error";
+      lastUpdated: string | null;
+      agentData: AgentData | null;
+      // Infinite scroll state per agent
+      posts: DisplayPost[];
+      pagination: {
+        currentPage: number;
+        hasNextPage: boolean;
+        isLoadingMore: boolean;
+        totalCount: number;
+        limit: number;
+      };
+      filters: {
+        sortBy: string;
+        order: string;
+        statusFilter: string;
+        searchQuery: string;
+      };
+      // Post-specific reply drafts per agent
+      replyDrafts: Record<
+        string,
+        {
+          content: string;
+          generating: boolean;
+        }
+      >;
+      // Details view/state per agent
+      agentDetails: AgentDetails | null;
+      agentDetailsStatus: "idle" | "loading" | "succeeded" | "failed";
     }
   >;
-  // Details view/state
-  agentDetails: AgentDetails | null;
-  agentDetailsStatus: "idle" | "loading" | "succeeded" | "failed";
 }
 
 // Unified interface for displaying posts in the UI
@@ -163,41 +170,25 @@ export interface DisplayPost {
 }
 
 const initialState: AgentState = {
-  agentId: null,
-  name: "",
+  // Global state
+  currentAgentId: null,
   status: "idle",
   error: null,
-  agentType: "mixed",
-  redditPosts: [],
-  twitterPosts: [],
-  hackernewsPosts: [],
-  agentStatus: "active",
-  lastUpdated: null,
-  agentData: null,
-  // Infinite scroll state
-  posts: [],
-  pagination: {
-    currentPage: 1,
-    hasNextPage: false,
-    isLoadingMore: false,
-    totalCount: 0,
-    limit: 50,
-  },
-  filters: {
-    sortBy: "combined_relevance", // This will be set by component on first load
-    order: "desc",
-    statusFilter: "all",
-    searchQuery: "",
-  },
-  // Post-specific reply drafts
-  replyDrafts: {},
-  // Details state
-  agentDetails: null,
-  agentDetailsStatus: "idle",
+  // Agent-specific data storage
+  agents: {},
 };
 
 interface AgentConnection {
   eventSource: EventSource;
+}
+
+// OAuth Account interface for nested oauth_account object
+export interface OAuthAccount {
+  id: number;
+  provider: string;
+  provider_user_id: string;
+  provider_username: string | null;
+  image_url: string | null;
 }
 
 // Details types aligned with backend GET /agents/{agent_id}/details
@@ -225,6 +216,7 @@ export interface AgentDetails {
   mode: string; // copilot | assisted | autonomous
   review_minutes: number | null;
   oauth_account_id: string | number | null;
+  oauth_account: OAuthAccount | null; // Added OAuth account details
   advanced_settings: Record<string, any>;
   platform_settings: Record<string, any>;
   created_at: string;
@@ -536,16 +528,19 @@ export const fetchAgentData = createAsyncThunk(
 
       // Return the transformed data
       return {
-        id: agentData.id,
-        agent_id: agentData.agent_id,
-        project_id: agentData.project_id,
-        status: agentData.status,
-        error: agentData.error,
-        created_at: agentData.created_at,
-        platform: agentType,
-        posts: transformedRedditPosts,
-        twitter_posts: transformedTwitterPosts,
-        hackernews_posts: transformedHackerNewsPosts,
+        agentId,
+        agentData: {
+          id: agentData.id,
+          agent_id: agentData.agent_id,
+          project_id: agentData.project_id,
+          status: agentData.status,
+          error: agentData.error,
+          created_at: agentData.created_at,
+          platform: agentType,
+          posts: transformedRedditPosts,
+          twitter_posts: transformedTwitterPosts,
+          hackernews_posts: transformedHackerNewsPosts,
+        },
       };
     } catch (error) {
       return rejectWithValue(
@@ -726,115 +721,249 @@ const agentSlice = createSlice({
   name: "agent",
   initialState,
   reducers: {
+    setCurrentAgentId: (state, action) => {
+      state.currentAgentId = action.payload;
+    },
     setAgentId: (state, action) => {
-      state.agentId = action.payload;
+      // Legacy action for backward compatibility
+      state.currentAgentId = action.payload;
     },
     setAgentName: (state, action) => {
-      state.name = action.payload;
+      if (state.currentAgentId && state.agents[state.currentAgentId]) {
+        state.agents[state.currentAgentId].name = action.payload;
+      }
     },
     setAgentStatus: (state, action) => {
-      state.agentStatus = action.payload;
+      if (state.currentAgentId && state.agents[state.currentAgentId]) {
+        state.agents[state.currentAgentId].agentStatus = action.payload;
+      }
     },
     setAgentType: (state, action) => {
-      state.agentType = action.payload;
+      if (state.currentAgentId && state.agents[state.currentAgentId]) {
+        state.agents[state.currentAgentId].agentType = action.payload;
+      }
     },
     clearError: (state) => {
       state.error = null;
     },
     updateAgentData: (state, action) => {
-      state.agentData = action.payload;
-      state.name = action.payload.name;
-      state.agentType = action.payload.platform;
-      state.agentStatus = action.payload.status as
-        | "active"
-        | "paused"
-        | "completed"
-        | "error";
-      state.lastUpdated = new Date().toISOString();
+      // Legacy action for backward compatibility
+      if (state.currentAgentId && state.agents[state.currentAgentId]) {
+        state.agents[state.currentAgentId].agentData = action.payload;
+        state.agents[state.currentAgentId].name = action.payload.name;
+        state.agents[state.currentAgentId].agentType = action.payload.platform;
+        state.agents[state.currentAgentId].agentStatus = action.payload
+          .status as "active" | "paused" | "completed" | "error";
+        state.agents[state.currentAgentId].lastUpdated =
+          new Date().toISOString();
+      }
     },
-    // Infinite scroll reducers
+    // Infinite scroll reducers (agent-specific)
     setFilters: (state, action) => {
-      state.filters = { ...state.filters, ...action.payload };
+      if (state.currentAgentId && state.agents[state.currentAgentId]) {
+        state.agents[state.currentAgentId].filters = {
+          ...state.agents[state.currentAgentId].filters,
+          ...action.payload,
+        };
+      }
     },
     resetPosts: (state) => {
-      state.posts = [];
-      state.pagination = {
-        currentPage: 1,
-        hasNextPage: false,
-        isLoadingMore: false,
-        totalCount: 0,
-        limit: 50,
-      };
+      if (state.currentAgentId && state.agents[state.currentAgentId]) {
+        state.agents[state.currentAgentId].posts = [];
+        state.agents[state.currentAgentId].pagination = {
+          currentPage: 1,
+          hasNextPage: false,
+          isLoadingMore: false,
+          totalCount: 0,
+          limit: 50,
+        };
+      }
     },
-    // Reply draft management
+    // Reply draft management (agent-specific)
     setReplyDraft: (state, action) => {
       const { postId, content } = action.payload;
-      if (!state.replyDrafts[postId]) {
-        state.replyDrafts[postId] = { content: "", generating: false };
+      if (state.currentAgentId && state.agents[state.currentAgentId]) {
+        const agent = state.agents[state.currentAgentId];
+        if (!agent.replyDrafts[postId]) {
+          agent.replyDrafts[postId] = { content: "", generating: false };
+        }
+        agent.replyDrafts[postId].content = content;
       }
-      state.replyDrafts[postId].content = content;
     },
     setReplyGenerating: (state, action) => {
       const { postId, generating } = action.payload;
-      if (!state.replyDrafts[postId]) {
-        state.replyDrafts[postId] = { content: "", generating: false };
+      if (state.currentAgentId && state.agents[state.currentAgentId]) {
+        const agent = state.agents[state.currentAgentId];
+        if (!agent.replyDrafts[postId]) {
+          agent.replyDrafts[postId] = { content: "", generating: false };
+        }
+        agent.replyDrafts[postId].generating = generating;
       }
-      state.replyDrafts[postId].generating = generating;
     },
     clearReplyDraft: (state, action) => {
       const { postId } = action.payload;
-      if (state.replyDrafts[postId]) {
-        state.replyDrafts[postId].content = "";
+      if (state.currentAgentId && state.agents[state.currentAgentId]) {
+        const agent = state.agents[state.currentAgentId];
+        if (agent.replyDrafts[postId]) {
+          agent.replyDrafts[postId].content = "";
+        }
       }
     },
     removeReplyDraft: (state, action) => {
       const { postId } = action.payload;
-      delete state.replyDrafts[postId];
+      if (state.currentAgentId && state.agents[state.currentAgentId]) {
+        const agent = state.agents[state.currentAgentId];
+        delete agent.replyDrafts[postId];
+      }
+    },
+    // Clear agent data when navigating between agents
+    clearAgentData: (state, action) => {
+      const agentId = action.payload;
+      if (state.agents[agentId]) {
+        // Reset to initial state for this agent
+        state.agents[agentId] = {
+          name: "",
+          agentType: "mixed",
+          redditPosts: [],
+          twitterPosts: [],
+          hackernewsPosts: [],
+          agentStatus: "active",
+          lastUpdated: null,
+          agentData: null,
+          posts: [],
+          pagination: {
+            currentPage: 1,
+            hasNextPage: false,
+            isLoadingMore: false,
+            totalCount: 0,
+            limit: 50,
+          },
+          filters: {
+            sortBy: "combined_relevance",
+            order: "desc",
+            statusFilter: "all",
+            searchQuery: "",
+          },
+          replyDrafts: {},
+          agentDetails: null,
+          agentDetailsStatus: "idle",
+        };
+      }
     },
   },
   extraReducers: (builder) => {
     builder
-      // Infinite scroll reducers
-      .addCase(fetchAgentPosts.pending, (state) => {
+      // Infinite scroll reducers (agent-specific)
+      .addCase(fetchAgentPosts.pending, (state, action) => {
+        const agentId = action.meta.arg.agentId;
+        if (!state.agents[agentId]) {
+          state.agents[agentId] = {
+            name: "",
+            agentType: "mixed",
+            redditPosts: [],
+            twitterPosts: [],
+            hackernewsPosts: [],
+            agentStatus: "active",
+            lastUpdated: null,
+            agentData: null,
+            posts: [],
+            pagination: {
+              currentPage: 1,
+              hasNextPage: false,
+              isLoadingMore: false,
+              totalCount: 0,
+              limit: 50,
+            },
+            filters: {
+              sortBy: "combined_relevance",
+              order: "desc",
+              statusFilter: "all",
+              searchQuery: "",
+            },
+            replyDrafts: {},
+            agentDetails: null,
+            agentDetailsStatus: "idle",
+          };
+        }
         state.status = "loading";
         state.error = null;
-        state.pagination.isLoadingMore = false;
+        state.agents[agentId].pagination.isLoadingMore = false;
       })
       .addCase(fetchAgentPosts.fulfilled, (state, action) => {
+        const agentId = action.meta.arg.agentId;
         state.status = "succeeded";
-        state.posts = action.payload.posts;
-        state.pagination = {
-          ...state.pagination,
+        state.agents[agentId].posts = action.payload.posts;
+        state.agents[agentId].pagination = {
+          ...state.agents[agentId].pagination,
           currentPage: action.payload.currentPage,
           hasNextPage: action.payload.hasNextPage,
           totalCount: action.payload.totalCount,
           isLoadingMore: false,
         };
-        state.lastUpdated = new Date().toISOString();
+        state.agents[agentId].lastUpdated = new Date().toISOString();
       })
       .addCase(fetchAgentPosts.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload as string;
-        state.pagination.isLoadingMore = false;
+        if (state.currentAgentId) {
+          state.agents[state.currentAgentId].pagination.isLoadingMore = false;
+        }
       })
-      .addCase(loadMoreAgentPosts.pending, (state) => {
-        state.pagination.isLoadingMore = true;
+      .addCase(loadMoreAgentPosts.pending, (state, action) => {
+        const agentId = action.meta.arg.agentId;
+        if (!state.agents[agentId]) {
+          state.agents[agentId] = {
+            name: "",
+            agentType: "mixed",
+            redditPosts: [],
+            twitterPosts: [],
+            hackernewsPosts: [],
+            agentStatus: "active",
+            lastUpdated: null,
+            agentData: null,
+            posts: [],
+            pagination: {
+              currentPage: 1,
+              hasNextPage: false,
+              isLoadingMore: false,
+              totalCount: 0,
+              limit: 50,
+            },
+            filters: {
+              sortBy: "combined_relevance",
+              order: "desc",
+              statusFilter: "all",
+              searchQuery: "",
+            },
+            replyDrafts: {},
+            agentDetails: null,
+            agentDetailsStatus: "idle",
+          };
+        }
+        state.agents[agentId].pagination.isLoadingMore = true;
         state.error = null;
       })
       .addCase(loadMoreAgentPosts.fulfilled, (state, action) => {
-        state.posts = [...state.posts, ...action.payload.posts];
-        state.pagination = {
-          ...state.pagination,
+        const agentId = action.meta.arg.agentId;
+        state.agents[agentId].posts = [
+          ...state.agents[agentId].posts,
+          ...action.payload.posts,
+        ];
+        state.agents[agentId].pagination = {
+          ...state.agents[agentId].pagination,
           currentPage: action.payload.currentPage,
           hasNextPage: action.payload.hasNextPage,
           totalCount: action.payload.totalCount,
           isLoadingMore: false,
         };
-        state.lastUpdated = new Date().toISOString();
+        state.agents[agentId].lastUpdated = new Date().toISOString();
       })
       .addCase(loadMoreAgentPosts.rejected, (state, action) => {
-        state.pagination.isLoadingMore = false;
+        state.status = "failed";
         state.error = action.payload as string;
+        if (state.currentAgentId) {
+          state.agents[state.currentAgentId].pagination.isLoadingMore = false;
+        }
       })
       // Existing reducers
       .addCase(fetchAgentData.pending, (state) => {
@@ -843,25 +972,59 @@ const agentSlice = createSlice({
       })
       .addCase(fetchAgentData.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.agentId = action.payload.agent_id;
-        state.agentType = action.payload.platform;
-        state.redditPosts = action.payload.posts;
-        state.twitterPosts = action.payload.twitter_posts;
-        state.hackernewsPosts = action.payload.hackernews_posts;
-        state.agentStatus = action.payload.status;
-        state.lastUpdated = new Date().toISOString();
-        state.agentData = {
-          id: action.payload.id,
-          agent_name: state.name,
-          platform: action.payload.platform,
+        state.currentAgentId = action.payload.agentId;
+
+        // Initialize agent data if it doesn't exist
+        if (!state.agents[action.payload.agentId]) {
+          state.agents[action.payload.agentId] = {
+            name: "",
+            agentType: "mixed",
+            redditPosts: [],
+            twitterPosts: [],
+            hackernewsPosts: [],
+            agentStatus: "active",
+            lastUpdated: null,
+            agentData: null,
+            posts: [],
+            pagination: {
+              currentPage: 1,
+              hasNextPage: false,
+              isLoadingMore: false,
+              totalCount: 0,
+              limit: 50,
+            },
+            filters: {
+              sortBy: "combined_relevance",
+              order: "desc",
+              statusFilter: "all",
+              searchQuery: "",
+            },
+            replyDrafts: {},
+            agentDetails: null,
+            agentDetailsStatus: "idle",
+          };
+        }
+
+        // Update agent-specific data
+        const agent = state.agents[action.payload.agentId];
+        agent.agentType = action.payload.agentData.platform;
+        agent.redditPosts = action.payload.agentData.posts;
+        agent.twitterPosts = action.payload.agentData.twitter_posts;
+        agent.hackernewsPosts = action.payload.agentData.hackernews_posts;
+        agent.agentStatus = action.payload.agentData.status;
+        agent.lastUpdated = new Date().toISOString();
+        agent.agentData = {
+          id: action.payload.agentData.id,
+          agent_name: agent.name,
+          platform: action.payload.agentData.platform,
           description: "",
           goals: [],
-          status: action.payload.status,
-          created_at: action.payload.created_at,
+          status: action.payload.agentData.status,
+          created_at: action.payload.agentData.created_at,
           updated_at: new Date().toISOString(),
           results: {
-            posts: action.payload.posts,
-            twitter_posts: action.payload.twitter_posts,
+            posts: action.payload.agentData.posts,
+            twitter_posts: action.payload.agentData.twitter_posts,
           },
         };
       })
@@ -881,54 +1044,165 @@ const agentSlice = createSlice({
         state.error = action.error.message || "Failed to connect to agent";
       })
       .addCase(updateAgentContent.fulfilled, (state, action) => {
-        state.redditPosts = action.payload.redditPosts;
-        state.twitterPosts = action.payload.twitterPosts;
-        state.lastUpdated = new Date().toISOString();
+        // This action is deprecated but keeping for backward compatibility
+        if (state.currentAgentId) {
+          state.agents[state.currentAgentId].redditPosts =
+            action.payload.redditPosts;
+          state.agents[state.currentAgentId].twitterPosts =
+            action.payload.twitterPosts;
+          state.agents[state.currentAgentId].lastUpdated =
+            new Date().toISOString();
+        }
       })
-      .addCase(updateAgentStatus.pending, (state) => {
+      .addCase(updateAgentStatus.pending, (state, action) => {
+        const agentId = action.meta.arg.agentId;
+        if (!state.agents[agentId]) {
+          state.agents[agentId] = {
+            name: "",
+            agentType: "mixed",
+            redditPosts: [],
+            twitterPosts: [],
+            hackernewsPosts: [],
+            agentStatus: "active",
+            lastUpdated: null,
+            agentData: null,
+            posts: [],
+            pagination: {
+              currentPage: 1,
+              hasNextPage: false,
+              isLoadingMore: false,
+              totalCount: 0,
+              limit: 50,
+            },
+            filters: {
+              sortBy: "combined_relevance",
+              order: "desc",
+              statusFilter: "all",
+              searchQuery: "",
+            },
+            replyDrafts: {},
+            agentDetails: null,
+            agentDetailsStatus: "idle",
+          };
+        }
         state.status = "loading";
         state.error = null;
       })
       .addCase(updateAgentStatus.fulfilled, (state, action) => {
+        const agentId = action.meta.arg.agentId;
         state.status = "succeeded";
-        state.agentStatus = action.payload.status;
-        state.lastUpdated = new Date().toISOString();
+        state.agents[agentId].agentStatus = action.payload.status;
+        state.agents[agentId].lastUpdated = new Date().toISOString();
       })
       .addCase(updateAgentStatus.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload as string;
       })
-      // Agent details reducers
-      .addCase(fetchAgentDetails.pending, (state) => {
-        state.agentDetailsStatus = "loading";
+      // Agent details reducers (agent-specific)
+      .addCase(fetchAgentDetails.pending, (state, action) => {
+        const agentId = action.meta.arg;
+        if (!state.agents[agentId]) {
+          state.agents[agentId] = {
+            name: "",
+            agentType: "mixed",
+            redditPosts: [],
+            twitterPosts: [],
+            hackernewsPosts: [],
+            agentStatus: "active",
+            lastUpdated: null,
+            agentData: null,
+            posts: [],
+            pagination: {
+              currentPage: 1,
+              hasNextPage: false,
+              isLoadingMore: false,
+              totalCount: 0,
+              limit: 50,
+            },
+            filters: {
+              sortBy: "combined_relevance",
+              order: "desc",
+              statusFilter: "all",
+              searchQuery: "",
+            },
+            replyDrafts: {},
+            agentDetails: null,
+            agentDetailsStatus: "idle",
+          };
+        }
+        state.agents[agentId].agentDetailsStatus = "loading";
         state.error = null;
       })
       .addCase(fetchAgentDetails.fulfilled, (state, action) => {
-        state.agentDetailsStatus = "succeeded";
-        state.agentDetails = action.payload as AgentDetails;
+        const agentId = action.meta.arg;
+        state.agents[agentId].agentDetailsStatus = "succeeded";
+        state.agents[agentId].agentDetails = action.payload as AgentDetails;
+        // keep name in sync if relevant
+        if (state.agents[agentId].agentDetails?.agent_name) {
+          state.agents[agentId].name =
+            state.agents[agentId].agentDetails.agent_name;
+        }
+        if (state.agents[agentId].agentDetails?.agent_status) {
+          state.agents[agentId].agentStatus = state.agents[agentId].agentDetails
+            .agent_status as any;
+        }
       })
       .addCase(fetchAgentDetails.rejected, (state, action) => {
-        state.agentDetailsStatus = "failed";
+        const agentId = action.meta.arg;
+        state.agents[agentId].agentDetailsStatus = "failed";
         state.error = action.payload as string;
       })
-      .addCase(updateAgentDetails.pending, (state) => {
-        // reuse status to show progress if needed
-        state.agentDetailsStatus = "loading";
+      .addCase(updateAgentDetails.pending, (state, action) => {
+        const agentId = action.meta.arg.agentId;
+        if (!state.agents[agentId]) {
+          state.agents[agentId] = {
+            name: "",
+            agentType: "mixed",
+            redditPosts: [],
+            twitterPosts: [],
+            hackernewsPosts: [],
+            agentStatus: "active",
+            lastUpdated: null,
+            agentData: null,
+            posts: [],
+            pagination: {
+              currentPage: 1,
+              hasNextPage: false,
+              isLoadingMore: false,
+              totalCount: 0,
+              limit: 50,
+            },
+            filters: {
+              sortBy: "combined_relevance",
+              order: "desc",
+              statusFilter: "all",
+              searchQuery: "",
+            },
+            replyDrafts: {},
+            agentDetails: null,
+            agentDetailsStatus: "idle",
+          };
+        }
+        state.agents[agentId].agentDetailsStatus = "loading";
         state.error = null;
       })
       .addCase(updateAgentDetails.fulfilled, (state, action) => {
-        state.agentDetailsStatus = "succeeded";
-        state.agentDetails = action.payload as AgentDetails;
-        // keep high-level name/status in sync if relevant
-        if (state.agentDetails?.agent_name) {
-          state.name = state.agentDetails.agent_name;
+        const agentId = action.meta.arg.agentId;
+        state.agents[agentId].agentDetailsStatus = "succeeded";
+        state.agents[agentId].agentDetails = action.payload as AgentDetails;
+        // keep name/status in sync if relevant
+        if (state.agents[agentId].agentDetails?.agent_name) {
+          state.agents[agentId].name =
+            state.agents[agentId].agentDetails.agent_name;
         }
-        if (state.agentDetails?.agent_status) {
-          state.agentStatus = state.agentDetails.agent_status as any;
+        if (state.agents[agentId].agentDetails?.agent_status) {
+          state.agents[agentId].agentStatus = state.agents[agentId].agentDetails
+            .agent_status as any;
         }
       })
       .addCase(updateAgentDetails.rejected, (state, action) => {
-        state.agentDetailsStatus = "failed";
+        const agentId = action.meta.arg.agentId;
+        state.agents[agentId].agentDetailsStatus = "failed";
         state.error = action.payload as string;
       });
   },
@@ -936,7 +1210,8 @@ const agentSlice = createSlice({
 
 // Actions
 export const {
-  setAgentId,
+  setCurrentAgentId,
+  setAgentId, // Legacy for backward compatibility
   setAgentName,
   setAgentStatus,
   setAgentType,
@@ -948,64 +1223,172 @@ export const {
   setReplyGenerating,
   clearReplyDraft,
   removeReplyDraft,
+  clearAgentData,
 } = agentSlice.actions;
 
-// Selectors
-export const selectAgentId = (state: RootState) => state.agent.agentId;
-export const selectAgentName = (state: RootState) => state.agent.name;
-export const selectAgentStatus = (state: RootState) => state.agent.status;
-export const selectAgentError = (state: RootState) => state.agent.error;
-export const selectAgentType = (state: RootState) => state.agent.agentType;
-export const selectRedditPosts = (state: RootState) => state.agent.redditPosts;
-export const selectTwitterPosts = (state: RootState) =>
-  state.agent.twitterPosts;
-export const selectHackerNewsPosts = (state: RootState) =>
-  state.agent.hackernewsPosts;
-export const selectAgentState = (state: RootState) => state.agent.agentStatus;
-export const selectLastUpdated = (state: RootState) => state.agent.lastUpdated;
-export const selectAgentData = (state: RootState) => state.agent.agentData;
-export const selectAgentDetails = (state: RootState) =>
-  state.agent.agentDetails;
-export const selectAgentDetailsStatus = (state: RootState) =>
-  state.agent.agentDetailsStatus;
-export const selectPostById = (postId: string) => (state: RootState) => {
-  const index = state.agent.redditPosts.findIndex(
-    (post) => post.post_id === postId
-  );
-  if (index === -1) {
-    return null;
-  }
-  return state.agent.redditPosts[index];
+// Helper function to get current agent data
+const getCurrentAgentData = (state: RootState) => {
+  if (!state.agent.currentAgentId) return null;
+  return state.agent.agents[state.agent.currentAgentId];
 };
 
-// Infinite scroll selectors
-export const selectPosts = (state: RootState) => state.agent.posts;
-export const selectPagination = (state: RootState) => state.agent.pagination;
-export const selectFilters = (state: RootState) => state.agent.filters;
-export const selectHasNextPage = (state: RootState) =>
-  state.agent.pagination.hasNextPage;
-export const selectIsLoadingMore = (state: RootState) =>
-  state.agent.pagination.isLoadingMore;
-export const selectCurrentPage = (state: RootState) =>
-  state.agent.pagination.currentPage;
-export const selectTotalCount = (state: RootState) =>
-  state.agent.pagination.totalCount;
+// Selectors
+export const selectCurrentAgentId = (state: RootState) =>
+  state.agent.currentAgentId;
+export const selectAgentStatus = (state: RootState) => state.agent.status;
+export const selectAgentError = (state: RootState) => state.agent.error;
 
-// Reply draft selectors
-export const selectReplyDraft = (postId: string) => (state: RootState) =>
-  state.agent.replyDrafts[postId]?.content || "";
-export const selectReplyGenerating = (postId: string) => (state: RootState) =>
-  state.agent.replyDrafts[postId]?.generating || false;
-export const selectAllReplyDrafts = (state: RootState) =>
-  state.agent.replyDrafts;
+// Agent-specific selectors that use current agent
+export const selectAgentName = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.name || ""
+);
 
-// Memoized selector for display posts (legacy - keeping for backward compatibility)
+export const selectAgentType = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.agentType || "mixed"
+);
+
+export const selectRedditPosts = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.redditPosts || []
+);
+
+export const selectTwitterPosts = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.twitterPosts || []
+);
+
+export const selectHackerNewsPosts = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.hackernewsPosts || []
+);
+
+export const selectAgentState = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.agentStatus || "active"
+);
+
+export const selectLastUpdated = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.lastUpdated || null
+);
+
+export const selectAgentData = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.agentData || null
+);
+
+export const selectAgentDetails = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.agentDetails || null
+);
+
+export const selectAgentDetailsStatus = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.agentDetailsStatus || "idle"
+);
+
+// Legacy selector for backward compatibility
+export const selectAgentId = selectCurrentAgentId;
+export const selectPostById = (postId: string) =>
+  createSelector([getCurrentAgentData], (agentData) => {
+    if (!agentData) return null;
+    const index = agentData.redditPosts.findIndex(
+      (post) => post.post_id === postId
+    );
+    if (index === -1) {
+      return null;
+    }
+    return agentData.redditPosts[index];
+  });
+
+// Infinite scroll selectors (agent-specific)
+export const selectPosts = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.posts || []
+);
+
+export const selectPagination = createSelector(
+  [getCurrentAgentData],
+  (agentData) =>
+    agentData?.pagination || {
+      currentPage: 1,
+      hasNextPage: false,
+      isLoadingMore: false,
+      totalCount: 0,
+      limit: 50,
+    }
+);
+
+export const selectFilters = createSelector(
+  [getCurrentAgentData],
+  (agentData) =>
+    agentData?.filters || {
+      sortBy: "combined_relevance",
+      order: "desc",
+      statusFilter: "all",
+      searchQuery: "",
+    }
+);
+
+export const selectHasNextPage = createSelector(
+  [selectPagination],
+  (pagination) => pagination.hasNextPage
+);
+
+export const selectIsLoadingMore = createSelector(
+  [selectPagination],
+  (pagination) => pagination.isLoadingMore
+);
+
+export const selectCurrentPage = createSelector(
+  [selectPagination],
+  (pagination) => pagination.currentPage
+);
+
+export const selectTotalCount = createSelector(
+  [selectPagination],
+  (pagination) => pagination.totalCount
+);
+
+// Reply draft selectors (agent-specific)
+export const selectReplyDraft = (postId: string) =>
+  createSelector(
+    [getCurrentAgentData],
+    (agentData) => agentData?.replyDrafts[postId]?.content || ""
+  );
+
+export const selectReplyGenerating = (postId: string) =>
+  createSelector(
+    [getCurrentAgentData],
+    (agentData) => agentData?.replyDrafts[postId]?.generating || false
+  );
+
+export const selectAllReplyDrafts = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.replyDrafts || {}
+);
+
+// OAuth account selectors (agent-specific)
+export const selectAgentOauthUsername = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.agentDetails?.oauth_account?.provider_username
+);
+
+export const selectAgentOauthAccount = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.agentDetails?.oauth_account
+);
+
+// Memoized selector for display posts (works with current agent)
 export const selectDisplayPosts = createSelector(
-  [
-    (state: RootState) => state.agent.redditPosts,
-    (state: RootState) => state.agent.twitterPosts,
-  ],
-  (redditPosts, twitterPosts) => {
+  [getCurrentAgentData],
+  (agentData) => {
+    if (!agentData) return [];
+
+    const { redditPosts, twitterPosts } = agentData;
+
     const transformedRedditPosts = redditPosts.map((post) => ({
       id: `${post.post_id}`,
       platform: "reddit" as const,

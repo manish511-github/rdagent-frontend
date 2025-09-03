@@ -14,6 +14,7 @@ import {
   selectAgentDetails,
   selectAgentDetailsStatus,
   updateAgentDetails,
+  setCurrentAgentId,
   type AgentDetails,
 } from "@/store/features/agentSlice";
 import { Button } from "@/components/ui/button";
@@ -1300,19 +1301,25 @@ export default function HackerNewsView({ agentId }: Props) {
   const isLoading =
     loadStatus === "loading" && (!hnPosts || hnPosts.length === 0);
 
+  // Use ref to track the current agent ID to prevent infinite loops
+  const currentAgentIdRef = React.useRef<string | null>(null);
+
   React.useEffect(() => {
     const fetchData = async () => {
-      if (hasInitialData) return;
+      if (currentAgentIdRef.current === agentId) return;
       try {
+        // Set current agent ID in the store
+        dispatch(setCurrentAgentId(agentId));
         await dispatch(fetchAgentData(agentId));
         await dispatch(fetchAgentDetails(agentId));
-        setHasInitialData(true);
+        // Mark this agent as fetched
+        currentAgentIdRef.current = agentId;
       } catch (error) {
         console.error("Failed to fetch agent data:", error);
       }
     };
-    if (agentId) fetchData();
-  }, [dispatch, agentId, hasInitialData]);
+    if (agentId && currentAgentIdRef.current !== agentId) fetchData();
+  }, [dispatch, agentId]); // Only depend on stable values
   const [loadingComments, setLoadingComments] = React.useState(false);
   const [loadingStoryDetails, setLoadingStoryDetails] = React.useState(false);
   const [fullStoryDetails, setFullStoryDetails] = React.useState<any>(null);
