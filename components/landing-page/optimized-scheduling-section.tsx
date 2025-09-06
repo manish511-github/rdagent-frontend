@@ -132,8 +132,8 @@ export function OptimizedSchedulingSection() {
               <CardHeader className="pb-3">
                 <CardHeading
                   icon={Globe}
-                  title="Advanced Analytics"
-                  description="Smart analytics system, track and optimize your marketing campaigns."
+                  title="AI Post Generator"
+                  description="Create on-brand posts instantly with AI. Choose tone, format, and schedule in one click."
                 />
               </CardHeader>
 
@@ -142,9 +142,109 @@ export function OptimizedSchedulingSection() {
                   <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--background)_100%)]"></div>
                   <div className="aspect-76/59 border">
                     <DualModeImage
-                      darkSrc="/origin-cal-dark.png"
-                      lightSrc="/origin-cal.png"
-                      alt="analytics illustration"
+                      darkSrc="/images/post_generator.png"
+                      lightSrc="/images/post_generator_light.png"
+                      alt="AI post generator illustration"
+                      width={1207}
+                      height={929}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </FeatureCard>
+
+            <FeatureCard>
+              <CardHeader className="pb-3">
+                <CardHeading
+                  icon={Globe}
+                  title="News Analysis"
+                  description="Stay ahead with real-time news monitoring and competitor intelligence tracking."
+                />
+              </CardHeader>
+
+              <CardContent>
+                <div className="relative mb-6 sm:mb-0">
+                  <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--background)_100%)]"></div>
+                  <div className="aspect-76/59 border">
+                    <DualModeImage
+                      darkSrc="/images/news_analysis_dark.png"
+                      lightSrc="/images/news_analysis_light.png"
+                      alt="news analysis illustration"
+                      width={1207}
+                      height={929}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </FeatureCard>
+
+            <FeatureCard>
+              <CardHeader className="pb-3">
+                <CardHeading
+                  icon={Globe}
+                  title="Feature Analysis"
+                  description="Deep dive into competitor features and capabilities with comprehensive analysis tools."
+                />
+              </CardHeader>
+
+              <CardContent>
+                <div className="relative mb-6 sm:mb-0">
+                  <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--background)_100%)]"></div>
+                  <div className="aspect-76/59 border">
+                    <DualModeImage
+                      darkSrc="/images/feature_dark.png"
+                      lightSrc="/images/feature_light.png"
+                      alt="feature analysis illustration"
+                      width={1207}
+                      height={929}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </FeatureCard>
+
+            <FeatureCard>
+              <CardHeader className="pb-3">
+                <CardHeading
+                  icon={Globe}
+                  title="YouTube Analysis"
+                  description="Comprehensive YouTube channel and video performance analytics with competitor insights."
+                />
+              </CardHeader>
+
+              <CardContent>
+                <div className="relative mb-6 sm:mb-0">
+                  <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--background)_100%)]"></div>
+                  <div className="aspect-76/59 border">
+                    <DualModeImage
+                      darkSrc="/images/youtube-dark.png"
+                      lightSrc="/images/youtube-light.png"
+                      alt="YouTube analysis illustration"
+                      width={1207}
+                      height={929}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </FeatureCard>
+
+            <FeatureCard>
+              <CardHeader className="pb-3">
+                <CardHeading
+                  icon={Globe}
+                  title="Twitter Analysis"
+                  description="Advanced Twitter analytics and engagement tracking with real-time social media insights."
+                />
+              </CardHeader>
+
+              <CardContent>
+                <div className="relative mb-6 sm:mb-0">
+                  <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--background)_100%)]"></div>
+                  <div className="aspect-76/59 border">
+                    <DualModeImage
+                      darkSrc="/images/twitter-dark.png"
+                      lightSrc="/images/twitter-light.png"
+                      alt="Twitter analysis illustration"
                       width={1207}
                       height={929}
                     />
