@@ -956,7 +956,7 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
                           Analyzing
                         </>
                       ) : (
-                        <>Add</>
+                        <>Analyse</>
                       )}
                     </Button>
                   </div>

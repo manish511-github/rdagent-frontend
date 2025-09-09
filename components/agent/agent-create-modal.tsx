@@ -858,11 +858,6 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                       key={kw}
                       className="inline-flex items-center gap-1 pl-1.5 pr-1 py-0.5 rounded-full text-[11px] border bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 shadow-sm hover:shadow transition-all"
                     >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${getKeywordDotColor(
-                          idx
-                        )}`}
-                      />
                       <span className="px-0.5 font-medium text-slate-700 dark:text-slate-200">
                         {kw}
                       </span>

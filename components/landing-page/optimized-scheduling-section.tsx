@@ -105,29 +105,7 @@ export function OptimizedSchedulingSection() {
         <div className="absolute inset-0 [background:radial-gradient(circle_500px_at_50%_200px,var(--primary)/3%,transparent_100%)]"></div>
         <div className="container relative border-x py-16 md:py-32">
           <div className="mx-auto grid gap-6 lg:grid-cols-2">
-            <FeatureCard>
-              <CardHeader className="pb-3">
-                <CardHeading
-                  icon={Globe}
-                  title="Real-time optimization"
-                  description="Advanced tracking system, Instantly locate all your assets and optimize performance."
-                />
-              </CardHeader>
-
-              <div className="relative mb-6 border-t border-dashed sm:mb-0">
-                <div className="absolute inset-0 [background:radial-gradient(125%_125%_at_50%_0%,transparent_40%,var(--primary),var(--background)_100%)]"></div>
-                <div className="aspect-76/59 p-1 px-6">
-                  <DualModeImage
-                    darkSrc="/mail2.png"
-                    lightSrc="/mail2-light.png"
-                    alt="optimization illustration"
-                    width={1207}
-                    height={929}
-                  />
-                </div>
-              </div>
-            </FeatureCard>
-
+      
             <FeatureCard>
               <CardHeader className="pb-3">
                 <CardHeading
@@ -253,23 +231,56 @@ export function OptimizedSchedulingSection() {
               </CardContent>
             </FeatureCard>
 
+            <FeatureCard>
+              <CardHeader className="pb-3">
+                <CardHeading
+                  icon={Globe}
+                  title="SEO Traffic Analysis"
+                  description="Comprehensive SEO analysis and traffic insights for competitor websites with detailed performance metrics."
+                />
+              </CardHeader>
+
+              <CardContent>
+                <div className="relative mb-6 sm:mb-0">
+                  <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--background)_100%)]"></div>
+                  <div className="aspect-76/59 border">
+                    <DualModeImage
+                      darkSrc="/images/seo-traffic-dark.png"
+                      lightSrc="/images/seo-traffic-light.png"
+                      alt="SEO traffic analysis illustration"
+                      width={1207}
+                      height={929}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </FeatureCard>
+
             <FeatureCard className="mt-4 lg:col-span-2">
               <div className="relative border-t border-dashed">
                 <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-border/0 via-border/50 to-border/0"></div>
                 <div className="p-8 md:p-12">
-                  <p className="mx-auto mb-8 max-w-md text-balance text-center text-2xl font-semibold">
-                    Smart AI automation with real-time optimization and insights.
-                  </p>
-
-                  <div className="flex justify-center gap-6">
-                    <div className="bg-gradient-to-b from-border/50 to-border/0 p-px">
-                      <div className="relative bg-gradient-to-b from-background to-muted/10 flex items-center space-x-4 rounded-lg p-4">
-                        <div className="relative flex aspect-square size-14 items-center rounded-lg border border-border/50 bg-muted/10 p-3 shadow-sm transition-all hover:border-border hover:bg-muted/20">
-                          <span className="absolute right-2 top-1.5 text-xs font-medium opacity-70">fn</span>
-                          <Globe className="mt-auto size-4" />
-                        </div>
-                        <div className="flex aspect-square size-14 items-center justify-center rounded-lg border border-border/50 bg-muted/10 p-3 shadow-sm transition-all hover:border-border hover:bg-muted/20">
-                          <span className="font-medium">K</span>
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-center">
+                    <div className="lg:col-span-3">
+                      <p className="mx-auto mb-8 max-w-md text-balance text-center text-2xl font-semibold">
+                        Smart AI automation with real-time optimization and insights.
+                      </p>
+                    </div>
+                    
+                    <div className="lg:col-span-1">
+                      <div className="bg-gradient-to-b from-border/50 to-border/0 p-px rounded-lg">
+                        <div className="relative bg-gradient-to-b from-background to-muted/10 flex flex-col items-center justify-center rounded-lg p-6 h-32">
+                          <div className="flex items-center space-x-3 mb-3">
+                            <div className="relative flex aspect-square size-10 items-center rounded-lg border border-border/50 bg-muted/10 p-2 shadow-sm transition-all hover:border-border hover:bg-muted/20">
+                              <span className="absolute right-1 top-0.5 text-xs font-medium opacity-70">fn</span>
+                              <Globe className="mt-auto size-3" />
+                            </div>
+                            <div className="flex aspect-square size-10 items-center justify-center rounded-lg border border-border/50 bg-muted/10 p-2 shadow-sm transition-all hover:border-border hover:bg-muted/20">
+                              <span className="font-medium text-sm">K</span>
+                            </div>
+                          </div>
+                          <h3 className="text-sm font-semibold text-center mb-1">Powered by AI</h3>
+                          <p className="text-xs text-muted-foreground text-center">Cutting edge AI models</p>
                         </div>
                       </div>
                     </div>

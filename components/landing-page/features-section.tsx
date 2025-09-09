@@ -21,7 +21,9 @@ const features = [
     description:
       "Stay effortlessly informed as AI agents continuously scan and track posts about your company and products. Instantly surface relevant conversations and trends, so you never miss what matters most to your brand.",
     icon: PocketKnife,
-    image: "/placeholder.svg?height=510&width=400",
+    // imageLight / imageDark keep the same order the user requested
+    imageLight: "/images/agent-keyword-light.png",
+    imageDark: "/images/agent-keyword-dark.png",
   },
   {
     id: "automated-scheduling",
@@ -29,7 +31,8 @@ const features = [
     description:
       "Grow your customer base with AI-powered lead discovery. Our agents analyze online discussions to identify and qualify prospects who are already interested in your offerings—delivering high-quality leads directly to you.",
     icon: CalendarClock,
-    image: "/placeholder.svg?height=510&width=400",
+    imageLight: "/images/reddit-post-light.png",
+    imageDark: "/images/reddit-post-dark.png",
   },
   {
     id: "personalized-insights",
@@ -37,7 +40,8 @@ const features = [
     description:
       "Boost your brand’s visibility and reputation with intelligent, sentiment-driven engagement. AI agents analyze the tone of conversations and automatically join in with tailored responses or content, ensuring your brand always delivers the right message at the right moment.",
     icon: ChartBar,
-    image: "/placeholder.svg?height=510&width=400",
+    imageLight: "/images/agent-post-light.png",
+    imageDark: "/images/agent-post-dark.png",
   },
 ];
 
@@ -146,81 +150,84 @@ export function FeaturesSection() {
           </TabsList>
 
           <div className="flex-1">
-            {(() => {
-              const activeFeature = features.find((f) => f.id === activeTab);
-              if (!activeFeature) return null;
-              return (
-                <AnimatePresence mode="wait">
-                  <TabsContent
-                    key={activeTab}
-                    value={activeTab}
-                    className="m-0 px-6 py-[38px] max-lg:border-x"
+            <AnimatePresence mode="wait">
+              {features.map((feature) => (
+                <TabsContent
+                  key={feature.id}
+                  value={feature.id}
+                  className="m-0 px-6 py-[38px] max-lg:border-x"
+                >
+                  <motion.div
+                    key={feature.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.5 }}
+                    className="flex justify-center"
                   >
-                    <motion.div
-                      key={activeTab}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.5 }}
-                      className="flex justify-center"
-                    >
-                      <div>
-                        {mounted && (
-                          <>
-                            <div className="px-6 lg:px-10">
-                              <motion.div
-                                className="w-full border-2 border-dashed opacity-20 border-black dark:border-white h-10"
-                                style={{
-                                  backgroundImage: dashedBorderSvg,
-                                }}
-                              />
-                            </div>
-                            <div className="relative grid grid-cols-[auto_1fr_auto] items-stretch">
-                              <motion.div
-                                className="border-2 border-dashed h-full w-6 lg:w-10 opacity-20 border-black dark:border-white"
-                                style={{
-                                  backgroundImage: dashedBorderSvg,
-                                }}
-                              />
-                              <motion.div
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ duration: 0.6, delay: 0.2 }}
-                                whileHover={{ scale: 1.05 }}
-                              >
-                                <Image
-                                  src={
-                                    activeFeature.image || "/placeholder.svg"
-                                  }
-                                  alt={activeFeature.title}
-                                  width={400}
-                                  height={510}
-                                  className="m-3 rounded-md object-contain shadow-md lg:rounded-xl lg:shadow-lg dark:invert transition-all duration-300 hover:shadow-xl"
-                                />
-                              </motion.div>
-                              <motion.div
-                                className="h-full border-2 border-dashed w-6 lg:w-10 opacity-20 border-black dark:border-white"
-                                style={{
-                                  backgroundImage: dashedBorderSvg,
-                                }}
-                              />
-                            </div>
-                            <div className="px-6 lg:px-10">
-                              <motion.div
-                                className="w-full border-2 border-dashed h-6 lg:h-10 opacity-20 border-black dark:border-white"
-                                style={{
-                                  backgroundImage: dashedBorderSvg,
-                                }}
-                              />
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </motion.div>
-                  </TabsContent>
-                </AnimatePresence>
-              );
-            })()}
+                    <div>
+                      {mounted && (
+                        <>
+                          <div className="px-6 lg:px-10">
+                            <motion.div
+                              className="w-full border-2 border-dashed opacity-20 border-black dark:border-white h-10"
+                              style={{
+                                backgroundImage: dashedBorderSvg,
+                              }}
+                            />
+                          </div>
+                          <div className="relative grid grid-cols-[auto_1fr_auto] items-stretch">
+                            <motion.div
+                              className="border-2 border-dashed h-full w-6 lg:w-10 opacity-20 border-black dark:border-white"
+                              style={{
+                                backgroundImage: dashedBorderSvg,
+                              }}
+                            />
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ duration: 0.4, delay: 0.1 }}
+                            >
+                              {(() => {
+                                const imgSrc = mounted
+                                  ? theme === "dark"
+                                    ? feature.imageDark ?? feature.imageLight
+                                    : feature.imageLight ?? feature.imageDark
+                                  : feature.imageLight ?? feature.imageDark ?? "/placeholder.svg";
+                                return (
+                                  <div className="relative m-3 w-[400px] h-[400px]">
+                                    <Image
+                                      src={imgSrc}
+                                      alt={feature.title}
+                                      fill
+                                      className="rounded-md object-contain shadow-md lg:rounded-xl lg:shadow-lg transition-all duration-300"
+                                    />
+                                  </div>
+                                );
+                              })()}
+                            </motion.div>
+                            <motion.div
+                              className="h-full border-2 border-dashed w-6 lg:w-10 opacity-20 border-black dark:border-white"
+                              style={{
+                                backgroundImage: dashedBorderSvg,
+                              }}
+                            />
+                          </div>
+                          <div className="px-6 lg:px-10">
+                            <motion.div
+                              className="w-full border-2 border-dashed h-6 lg:h-10 opacity-20 border-black dark:border-white"
+                              style={{
+                                backgroundImage: dashedBorderSvg,
+                              }}
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </motion.div>
+                </TabsContent>
+              ))}
+            </AnimatePresence>
           </div>
         </Tabs>
       </div>

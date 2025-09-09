@@ -9,8 +9,8 @@ const workflows = [
     title: "Customizable AI Agents",
     description: "Easily adapt agents to your industry, audience, and goals for truly personalized automation.",
     image: "/images/customisation_adapt.jpg",
-    darkImage: "/images/reddit-dark-card.png",
-    lightImage: "/images/reddit-light-card.png",
+    darkImage: "/images/personlised-agent-dark.png",
+    lightImage: "/images/personlised-agent-light.png",
     useDualMode: true,
   },
   {
@@ -18,16 +18,16 @@ const workflows = [
     description:
       "AI agents interact with your audience in your brand's voice, while allowing you to step in for a personal touch whenever you choose.",
     image: "/images/audience_engagement.jpg",
-    darkImage: "/images/post-gen-dark.png",
-    lightImage: "/images/post-gen-light.png",
+    darkImage: "/images/agent-engagement-dark-1.png",
+    lightImage: "/images/agent-engagement-light-1.png",
     useDualMode: true,
   },
   {
     title: "Competitor Analysis",
     description: "Gain deep insights into competitors' strategies, performance, and market positioning to inform your own marketing decisions.",
     image: "/images/competitor_analysis_2.jpg",
-    darkImage: "/images/competitor-analysis-dark.png",
-    lightImage: "/images/competitor-analysis-light.png",
+    darkImage: "/images/competitor-analysis-dark-1.png",
+    lightImage: "/images/competitor-analysis-light-1.png",
     useDualMode: true,
   },
 ]
