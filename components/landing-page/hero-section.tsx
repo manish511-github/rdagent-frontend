@@ -66,7 +66,7 @@ export function HeroSection() {
                   className="relative"
                 >
                   <Image
-                    src="/images/landing-page-dark-3.png"
+                    src="/images/landing-page-dark-4.png"
                     alt="ANIFaith Dashboard"
                     width={990}
                     height={600}
@@ -74,7 +74,7 @@ export function HeroSection() {
                     priority
                   />
                   <Image
-                    src="/images/landing-page-light-3.png"
+                    src="/images/landing-page-light-4.png"
                     alt="ANIFaith Dashboard"
                     width={990}
                     height={600}
