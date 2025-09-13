@@ -12,7 +12,7 @@ const planningSteps = [
   {
     title: "Reddit Marketing",
     description:
-      "Leverage AI-powered agents to monitor, analyze, and engage with relevant Reddit posts and communities. Instantly discover trending discussions, track mentions of your brand or products, and identify new marketing opportunities. Automate outreach, respond to user queries, and boost your brand presence on Reddit—all while gaining actionable insights to refine your strategy.",
+      "Monitor and engage with relevant Reddit communities using AI agents. Track brand mentions, discover trending discussions, and identify marketing opportunities. Respond to queries and boost your brand presence while gaining actionable insights.",
     icon: LayoutList,
     image: "/images/reddit_light.png",
     darkImage: "/images/reddit_dark.png",
@@ -21,7 +21,7 @@ const planningSteps = [
   {
     title: "Hacker News Marketing",
     description:
-      "Leverage AI-powered agents to monitor and analyze Hacker News for posts and comments specifically about your company or products. Instantly track relevant mentions, discover discussions tied to your offerings, and identify marketing opportunities. Automate thoughtful responses and participate in product-related threads to boost your brand's visibility and reputation—while gaining insights to enhance your outreach.",
+      "Monitor Hacker News for mentions of your company or products using AI agents. Track relevant discussions, identify marketing opportunities, and generate thoughtful responses to boost brand visibility and reputation.",
     icon: LocateFixed,
     image: "/images/hackernews_light.png",
     darkImage: "/images/hackernews_dark.png",

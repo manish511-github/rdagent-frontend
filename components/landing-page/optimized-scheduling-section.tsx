@@ -3,7 +3,7 @@
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Eye, Globe, LucideIcon } from "lucide-react"
+import { Eye, Globe, LucideIcon, BarChart3, TrendingUp, PenTool, Newspaper, Search, Youtube, Twitter, Globe2 } from "lucide-react"
 import { FadeIn } from "@/components/animations/fade-in"
 import { cn } from "@/lib/utils"
 import { ReactNode } from "react"
@@ -109,7 +109,7 @@ export function OptimizedSchedulingSection() {
             <FeatureCard>
               <CardHeader className="pb-3">
                 <CardHeading
-                  icon={Globe}
+                  icon={PenTool}
                   title="AI Post Generator"
                   description="Create on-brand posts instantly with AI. Choose tone, format, and schedule in one click."
                 />
@@ -120,8 +120,8 @@ export function OptimizedSchedulingSection() {
                   <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--background)_100%)]"></div>
                   <div className="aspect-76/59 border">
                     <DualModeImage
-                      darkSrc="/images/post_generator.png"
-                      lightSrc="/images/post_generator_light.png"
+                      darkSrc="/images/post-gen-dark-1.png"
+                      lightSrc="/images/post-gen-light-1.png"
                       alt="AI post generator illustration"
                       width={1207}
                       height={929}
@@ -134,7 +134,7 @@ export function OptimizedSchedulingSection() {
             <FeatureCard>
               <CardHeader className="pb-3">
                 <CardHeading
-                  icon={Globe}
+                  icon={Newspaper}
                   title="News Analysis"
                   description="Stay ahead with real-time news monitoring and competitor intelligence tracking."
                 />
@@ -145,8 +145,8 @@ export function OptimizedSchedulingSection() {
                   <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--background)_100%)]"></div>
                   <div className="aspect-76/59 border">
                     <DualModeImage
-                      darkSrc="/images/news_analysis_dark.png"
-                      lightSrc="/images/news_analysis_light.png"
+                      darkSrc="/images/news-dark.png"
+                      lightSrc="/images/news-light.png"
                       alt="news analysis illustration"
                       width={1207}
                       height={929}
@@ -159,7 +159,7 @@ export function OptimizedSchedulingSection() {
             <FeatureCard>
               <CardHeader className="pb-3">
                 <CardHeading
-                  icon={Globe}
+                  icon={Search}
                   title="Feature Analysis"
                   description="Deep dive into competitor features and capabilities with comprehensive analysis tools."
                 />
@@ -184,7 +184,7 @@ export function OptimizedSchedulingSection() {
             <FeatureCard>
               <CardHeader className="pb-3">
                 <CardHeading
-                  icon={Globe}
+                  icon={Youtube}
                   title="YouTube Analysis"
                   description="Comprehensive YouTube channel and video performance analytics with competitor insights."
                 />
@@ -209,7 +209,7 @@ export function OptimizedSchedulingSection() {
             <FeatureCard>
               <CardHeader className="pb-3">
                 <CardHeading
-                  icon={Globe}
+                  icon={Twitter}
                   title="Twitter Analysis"
                   description="Advanced Twitter analytics and engagement tracking with real-time social media insights."
                 />
@@ -234,7 +234,7 @@ export function OptimizedSchedulingSection() {
             <FeatureCard>
               <CardHeader className="pb-3">
                 <CardHeading
-                  icon={Globe}
+                  icon={Globe2}
                   title="SEO Traffic Analysis"
                   description="Comprehensive SEO analysis and traffic insights for competitor websites with detailed performance metrics."
                 />
@@ -263,24 +263,20 @@ export function OptimizedSchedulingSection() {
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-center">
                     <div className="lg:col-span-3">
                       <p className="mx-auto mb-8 max-w-md text-balance text-center text-2xl font-semibold">
-                        Smart AI automation with real-time optimization and insights.
+                        Comprehensive social media analytics and performance insights.
                       </p>
                     </div>
                     
                     <div className="lg:col-span-1">
                       <div className="bg-gradient-to-b from-border/50 to-border/0 p-px rounded-lg">
                         <div className="relative bg-gradient-to-b from-background to-muted/10 flex flex-col items-center justify-center rounded-lg p-6 h-32">
-                          <div className="flex items-center space-x-3 mb-3">
-                            <div className="relative flex aspect-square size-10 items-center rounded-lg border border-border/50 bg-muted/10 p-2 shadow-sm transition-all hover:border-border hover:bg-muted/20">
-                              <span className="absolute right-1 top-0.5 text-xs font-medium opacity-70">fn</span>
-                              <Globe className="mt-auto size-3" />
-                            </div>
-                            <div className="flex aspect-square size-10 items-center justify-center rounded-lg border border-border/50 bg-muted/10 p-2 shadow-sm transition-all hover:border-border hover:bg-muted/20">
-                              <span className="font-medium text-sm">K</span>
+                          <div className="flex items-center justify-center mb-3">
+                            <div className="flex aspect-square size-12 items-center justify-center rounded-lg border border-border/50 bg-muted/10 p-3 shadow-sm transition-all hover:border-border hover:bg-muted/20">
+                              <BarChart3 className="size-5" />
                             </div>
                           </div>
-                          <h3 className="text-sm font-semibold text-center mb-1">Powered by AI</h3>
-                          <p className="text-xs text-muted-foreground text-center">Cutting edge AI models</p>
+                          <h3 className="text-sm font-semibold text-center mb-1">Advanced Analytics</h3>
+                          <p className="text-xs text-muted-foreground text-center">AI-powered insights and metrics</p>
                         </div>
                       </div>
                     </div>
