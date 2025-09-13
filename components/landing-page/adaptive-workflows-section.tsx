@@ -2,23 +2,33 @@ import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Shapes } from "lucide-react"
 import { FadeIn } from "@/components/animations/fade-in" // Import FadeIn
+import { cn } from "@/lib/utils"
 
 const workflows = [
   {
     title: "Customizable AI Agents",
     description: "Easily adapt agents to your industry, audience, and goals for truly personalized automation.",
-    image: "/placeholder.svg?height=233&width=416",
+    image: "/images/customisation_adapt.jpg",
+    darkImage: "/images/personlised-agent-dark.png",
+    lightImage: "/images/personlised-agent-light.png",
+    useDualMode: true,
   },
   {
     title: "Adaptive Audience Engagement",
     description:
-      "AI agents interact with your audience in your brand’s voice, while allowing you to step in for a personal touch whenever you choose.",
-    image: "/placeholder.svg?height=233&width=416",
+      "AI agents interact with your audience in your brand's voice, while allowing you to step in for a personal touch whenever you choose.",
+    image: "/images/audience_engagement.jpg",
+    darkImage: "/images/agent-engagement-dark-1.png",
+    lightImage: "/images/agent-engagement-light-1.png",
+    useDualMode: true,
   },
   {
-    title: "Smart Post Scheduling",
-    description: "Schedule posts in advance to reach your audience at the perfect time and boost engagement.",
-    image: "/placeholder.svg?height=233&width=416",
+    title: "Competitor Analysis",
+    description: "Gain deep insights into competitors' strategies, performance, and market positioning to inform your own marketing decisions.",
+    image: "/images/competitor_analysis_2.jpg",
+    darkImage: "/images/competitor-analysis-dark-1.png",
+    lightImage: "/images/competitor-analysis-light-1.png",
+    useDualMode: true,
   },
 ]
 
@@ -60,13 +70,32 @@ export function AdaptiveWorkflowsSection() {
                     {workflow.description}
                   </p>
                   <div className="border-t py-4 lg:px-2">
-                    <Image
-                      src={workflow.image || "/placeholder.svg"}
-                      alt={workflow.title}
-                      width={416}
-                      height={233}
-                      className="rounded-md shadow-md lg:rounded-xl lg:shadow-lg dark:invert"
-                    />
+                    {workflow.useDualMode ? (
+                      <>
+                        <Image
+                          src={workflow.darkImage || "/placeholder.svg"}
+                          alt={`${workflow.title} dark`}
+                          width={416}
+                          height={233}
+                          className="hidden dark:block rounded-md shadow-md lg:rounded-xl lg:shadow-lg"
+                        />
+                        <Image
+                          src={workflow.lightImage || "/placeholder.svg"}
+                          alt={`${workflow.title} light`}
+                          width={416}
+                          height={233}
+                          className="block dark:hidden rounded-md shadow-md lg:rounded-xl lg:shadow-lg"
+                        />
+                      </>
+                    ) : (
+                      <Image
+                        src={workflow.image || "/placeholder.svg"}
+                        alt={workflow.title}
+                        width={416}
+                        height={233}
+                        className={`rounded-md shadow-md lg:rounded-xl lg:shadow-lg ${workflow.image === "/images/competitor_analysis_2.jpg" || workflow.image === "/images/audience_engagement.jpg" || workflow.image === "/images/customisation_adapt.jpg" ? "" : "dark:invert"}`}
+                      />
+                    )}
                   </div>
                 </div>
               </FadeIn>

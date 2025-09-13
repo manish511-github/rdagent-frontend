@@ -4,164 +4,91 @@ import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, TrendingUp, Users, Zap } from "lucide-react"
 import { FadeIn } from "@/components/animations/fade-in"
-import { useTheme } from "next-themes"
-import { getDashedBorderSvg } from "@/lib/utils"
 import { useState, useEffect } from "react"
 
 export function HeroSection() {
-  const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
   
   useEffect(() => {
     setMounted(true)
   }, [])
   
-  const dashedBorderSvg = mounted ? getDashedBorderSvg(theme) : ""
-
   return (
-    <section className="pb-16 text-center lg:pb-0 overflow-hidden">
-      <div className="flex">
-        {mounted && (
-          <motion.div
-            className="relative w-[159px] border-r p-1 max-lg:hidden"
-            initial={{ x: -100, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            <div
-              className="h-full w-full border-2 border-dashed opacity-20 border-black dark:border-white" // Added opacity-20
-              style={{
-                backgroundImage: dashedBorderSvg,
-              }}
-            />
-          </motion.div>
-        )}
+    <section className="overflow-hidden">
+      <div className="border-y">
+        <div className="container border-x py-20 md:py-28">
+          <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center">
+            <FadeIn>
+              <h1 className="text-balance text-center text-5xl font-semibold tracking-tighter md:text-6xl lg:text-7xl leading-tight">
+                Stop Guessing What Works on Social Media
+              </h1>
+            </FadeIn>
 
-        <div className="container mx-auto pt-16 pb-12 text-center md:pt-20 leading-7 lg:pt-24">
-          <FadeIn delay={0.3}>
-            <h1 className="mx-auto max-w-3xl text-center text-[2.5rem] leading-[1.2] tracking-[-1.6px] text-balance md:text-[4rem] md:!leading-[1.15] md:tracking-[-4.32px] lg:text-7xl font-semibold">
-              Turn <span className="font-playfair">Market Movements</span> into{" "}
-              <span className="font-montserrat">Marketing Momentum</span>
-            </h1>
-          </FadeIn>
+            <FadeIn delay={0.2}>
+              <p className="text-muted-foreground mx-auto mt-12 max-w-xl text-center text-lg md:text-xl">
+                Zooptics agents detect trends, analyze competitors, generate leads, and drive social engagement—keeping your marketing aligned with every market change.
+              </p>
+            </FadeIn>
 
-          <FadeIn delay={0.6} direction="up">
-            <p className="text-muted-foreground mx-auto mt-5 max-w-[500px] leading-[1.5] tracking-[-0.32px] md:mt-6 text-xl font-light">
-              ANIFaith agent detect trends, generate leads, and drive social engagement, keeping your marketing aligned
-              with every market change
-            </p>
-          </FadeIn>
-
-          <FadeIn delay={0.9} direction="up">
-            <Link href="/dashboard">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              >
-                <Button className="mt-6 gap-1 md:mt-8 lg:mt-10 bg-black text-white border border-black hover:bg-gray-800 dark:bg-white dark:text-black dark:border-white dark:hover:bg-gray-200">
-                  <span className="relative z-10">Get started</span>
-                  <motion.div
-                    animate={{ x: [0, 4, 0] }}
-                    transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
-                    className="relative z-10"
+            <FadeIn delay={0.4}>
+              <Link href="/signup" className="mt-8 inline-block">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                >
+                  <Button
+                    size="sm"
+                    className="rounded-full bg-black text-white border border-black hover:bg-gray-800 dark:bg-white dark:text-black dark:border-white dark:hover:bg-gray-200 gap-1 whitespace-nowrap"
                   >
-                    <ChevronRight className="size-4" />
-                  </motion.div>
-                </Button>
-              </motion.div>
-            </Link>
-          </FadeIn>
-        </div>
+                    <span className="relative z-10">Get started</span>
+                    <motion.div
+                      animate={{ x: [0, 2, 0] }}
+                      transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY, delay: 0.5 }}
+                      className="relative z-10"
+                    >
+                      <ChevronRight className="size-3" />
+                    </motion.div>
+                  </Button>
+                </motion.div>
+              </Link>
+            </FadeIn>
 
-        {mounted && (
-          <motion.div
-            className="relative w-[159px] p-1 max-lg:hidden border-r-0 border-l"
-            initial={{ x: 100, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            <div
-              className="h-full w-full border-2 border-dashed opacity-20 border-black dark:border-white" // Added opacity-20
-              style={{
-                backgroundImage: dashedBorderSvg,
-              }}
-            />
-          </motion.div>
-        )}
-      </div>
-
-      {mounted && (
-        <motion.div
-          className="flex h-8 gap-1 max-lg:hidden"
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: 1, delay: 0.5 }}
-        >
-          <div className="flex-1 border" />
-          <motion.div
-            className="h-full border-dashed w-52 border-2 opacity-20 border-black dark:border-white" // Added opacity-20
-            style={{
-              backgroundImage: dashedBorderSvg,
-            }}
-          />
-          <div className="w-24 border" />
-          <motion.div
-            className="h-full border-2 border-dashed w-52 opacity-20 border-black dark:border-white" // Added opacity-20
-            style={{
-              backgroundImage: dashedBorderSvg,
-            }}
-          />
-          <div className="w-24 border" />
-          <motion.div
-            className="h-full border-2 border-dashed w-52 opacity-20 border-black dark:border-white" // Added opacity-20
-            style={{
-              backgroundImage: dashedBorderSvg,
-            }}
-          />
-          <div className="flex-1 border" />
-        </motion.div>
-      )}
-
-      <div className="flex">
-        <div className="relative w-[159px] border-r p-1 max-lg:hidden" />
-        <div className=" mx-auto !pt-0">
-          <FadeIn delay={1.2} direction="up">
-            <Image
-              src="/images/projects.png"
-              alt="Projects Workspace Dashboard"
-              width={1800}
-              height={1240}
-              priority
-              sizes="(min-width: 1536px) 1320px, (min-width: 1280px) 1240px, (min-width: 1024px) 1140px, (min-width: 768px) 960px, 100vw"
-              className="mx-auto w-full rounded-xl border object-contain p-1 shadow-lg"
-            />
-          </FadeIn>
-        </div>
-        <div className="relative w-[159px] p-1 max-lg:hidden border-r-0 border-l" />
-      </div>
-
-      {mounted && (
-        <motion.div
-          className="flex max-lg:hidden"
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 1.5 }}
-        >
-          <div className="h-8 flex-1 border" />
-          <div className="h-[96px] w-[min(753px,55vw)] -translate-y-1.5">
-            <motion.div
-              className="h-full w-full border-2 border-dashed opacity-20 border-black dark:border-white" // Added opacity-20
-              style={{
-                backgroundImage: dashedBorderSvg,
-              }}
-            />
+            <FadeIn delay={0.6}>
+              <div className="mt-12 flex items-center justify-center">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.8 }}
+                  whileHover={{ scale: 1.02 }}
+                  className="relative"
+                >
+                  <Image
+                    src="/images/landing-page-dark-4.png"
+                    alt="ANIFaith Dashboard"
+                    width={990}
+                    height={600}
+                    className="hidden dark:block rounded-lg shadow-2xl"
+                    priority
+                  />
+                  <Image
+                    src="/images/landing-page-light-4.png"
+                    alt="ANIFaith Dashboard"
+                    width={990}
+                    height={600}
+                    className="block dark:hidden rounded-lg shadow-2xl"
+                    priority
+                  />
+                </motion.div>
+              </div>
+            </FadeIn>
           </div>
-          <div className="h-8 flex-1 border" />
-        </motion.div>
-      )}
+        </div>
+      </div>
+
+
     </section>
   )
 }

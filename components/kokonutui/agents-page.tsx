@@ -606,8 +606,8 @@ export default function AgentsPage() {
                 <Card
                   key={agent.id}
                   className={cn(
-                    "group relative overflow-hidden cursor-pointer transition-all duration-300 mb-4",
-                    "hover:shadow-lg hover:-translate-y-0.5",
+                    "group relative overflow-hidden cursor-pointer transition-all duration-300 mb-4 rounded-xl",
+                    "hover:shadow-lg hover:-translate-y-0.5 hover:border-cyan-200/50 dark:hover:border-cyan-900/40",
                     "bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800",
                     // Add disabled state for scheduled agents
                     agent.agent_status === "scheduled" &&
@@ -628,6 +628,9 @@ export default function AgentsPage() {
                     </div>
                   )}
 
+                  {/* Subtle gradient bar */}
+                  <div className="h-1 w-full bg-gradient-to-r from-sky-500/70 via-cyan-400/70 to-transparent" />
+
                   <CardHeader className="relative pb-3 pt-4 px-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
@@ -643,7 +646,7 @@ export default function AgentsPage() {
                           />
                         </div>
                         <div>
-                          <CardTitle className="text-base font-semibold">
+                          <CardTitle className="text-base font-semibold tracking-tight">
                             {agent.agent_name}
                           </CardTitle>
                           <div className="flex items-center gap-2 mt-1">
@@ -672,15 +675,84 @@ export default function AgentsPage() {
                       </Button>
                     </div>
 
-                    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
-                      {agent.instructions}
-                    </p>
+                    {/* description hidden */}
                   </CardHeader>
 
                   <CardContent className="relative px-4 py-2">
                     {/* Display agent goals */}
                     <div className="text-xs font-medium capitalize text-muted-foreground">
                       {agent.goals.replace("_", " ")}
+                    </div>
+                    {/* Compact meta cards */}
+                    <div className="mt-2 grid gap-1.5">
+                      <div className="rounded-md border bg-muted/30 px-2.5 py-2">
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <FileText className="h-3.5 w-3.5 text-foreground/70" />
+                          <span className="text-foreground/80 font-medium">Instruction</span>
+                        </div>
+                        <div className="text-[12px] mt-0.5 text-muted-foreground line-clamp-2">
+                          {agent.instructions || "-"}
+                        </div>
+                      </div>
+                      <div className="rounded-md border bg-muted/30 px-2.5 py-2">
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <Target className="h-3.5 w-3.5 text-foreground/70" />
+                          <span className="text-foreground/80 font-medium">Expectation</span>
+                        </div>
+                        <div className="text-[12px] mt-0.5 text-muted-foreground line-clamp-2">
+                          {agent.expectations || "-"}
+                        </div>
+                      </div>
+                      {(() => {
+                        const platformSettings = (agent as any)?.platform_settings;
+                        const reddit = platformSettings?.reddit;
+                        if (agent.agent_platform === "reddit" && reddit) {
+                          const subreddit = reddit.subreddit || "any";
+                          const timeRange = reddit.timeRange || "any range";
+                          const minUpvotes = typeof reddit.minUpvotes === "number" ? reddit.minUpvotes : 0;
+                          const relevance = typeof reddit.relevanceThreshold === "number" ? reddit.relevanceThreshold : 0;
+                          const comments = reddit.monitorComments ? "Monitors comments" : "Posts only";
+                          return (
+                            <div className="rounded-md border bg-muted/30 px-2.5 py-2">
+                              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+                                <RedditIcon className="h-3.5 w-3.5" />
+                                <span className="text-foreground/80 font-medium">Reddit Settings</span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] bg-background/60 backdrop-blur-sm shadow-sm">
+                                  <Hash className="h-3 w-3" /> r/{subreddit}
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] bg-background/60 backdrop-blur-sm shadow-sm">
+                                  <Clock className="h-3 w-3" /> {timeRange}
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] bg-background/60 backdrop-blur-sm shadow-sm">
+                                  <TrendingUp className="h-3 w-3" /> ≥{minUpvotes}
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] bg-background/60 backdrop-blur-sm shadow-sm">
+                                  {comments === "Monitors comments" ? (
+                                    <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                                  ) : (
+                                    <span className="inline-block h-2 w-2 rounded-full bg-slate-400" />
+                                  )}
+                                  {comments}
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] bg-background/60 backdrop-blur-sm shadow-sm">
+                                  <span className="h-2 w-2 rounded-full bg-cyan-500" /> Relevance {relevance}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                      {agent.review_minutes ? (
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <Clock className="h-3.5 w-3.5 text-foreground/70" />
+                          <span className="text-foreground/80 font-medium">Review</span>
+                          <span className="text-foreground/40">—</span>
+                          <span>every {agent.review_minutes} min</span>
+                        </div>
+                      ) : null}
                     </div>
                   </CardContent>
 

@@ -1,51 +1,81 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Eye, HelpCircle, Volume2, Lightbulb } from "lucide-react"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Eye, Globe, LucideIcon, BarChart3, TrendingUp, PenTool, Newspaper, Search, Youtube, Twitter, Globe2 } from "lucide-react"
 import { FadeIn } from "@/components/animations/fade-in"
-import { useTheme } from "next-themes"
-import { getDashedBorderSvg } from "@/lib/utils"
+import { cn } from "@/lib/utils"
+import { ReactNode } from "react"
 
-const schedulingFeatures = [
-  {
-    id: "unified-scheduling",
-    title: "Unified Management",
-    description: "Manage all your AI agents and access key market insights from one intuitive interface.",
-    icon: HelpCircle,
-    image: "/placeholder.svg?height=743&width=1312",
-  },
-  {
-    id: "insightful-performance",
-    title: "Competitor Insights",
-    description:
-      "Automatically track and analyze competitors to uncover strategies, strengths, and gaps—so you can outmaneuver them and stay ahead.",
-    icon: Volume2,
-    image: "/placeholder.svg?height=743&width=1312",
-  },
-  {
-    id: "effortless-integrations",
-    title: "Smart Lead Prioritization",
-    description:
-      "Use AI-driven analytics to identify, score, and prioritize high-potential leads, ensuring your efforts are focused on the most valuable prospects.",
-    icon: Lightbulb,
-    image: "/placeholder.svg?height=743&width=1312",
-  },
-]
+interface FeatureCardProps {
+  children: ReactNode
+  className?: string
+}
+
+const FeatureCard = ({ children, className }: FeatureCardProps) => (
+  <Card className={cn("group relative rounded-none bg-background/50 backdrop-blur-sm transition-all hover:bg-background/80", className)}>
+    <div className="absolute inset-0 border border-border/50 group-hover:border-border"></div>
+    <CardDecorator />
+    {children}
+  </Card>
+)
+
+const CardDecorator = () => (
+  <>
+    <span className="absolute -left-px -top-px block size-2 border-l-2 border-t-2 border-primary/50 group-hover:border-primary"></span>
+    <span className="absolute -right-px -top-px block size-2 border-r-2 border-t-2 border-primary/50 group-hover:border-primary"></span>
+    <span className="absolute -bottom-px -left-px block size-2 border-b-2 border-l-2 border-primary/50 group-hover:border-primary"></span>
+    <span className="absolute -bottom-px -right-px block size-2 border-b-2 border-r-2 border-primary/50 group-hover:border-primary"></span>
+    <div className="absolute inset-0 rounded-lg bg-gradient-to-b from-muted/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
+  </>
+)
+
+interface CardHeadingProps {
+  icon: LucideIcon
+  title: string
+  description: string
+}
+
+const CardHeading = ({ icon: Icon, title, description }: CardHeadingProps) => (
+  <div className="p-6">
+    <span className="text-muted-foreground flex items-center gap-2">
+      <Icon className="size-4" />
+      {title}
+    </span>
+    <p className="mt-8 text-2xl font-semibold">{description}</p>
+  </div>
+)
+
+interface DualModeImageProps {
+  darkSrc: string
+  lightSrc: string
+  alt: string
+  width: number
+  height: number
+  className?: string
+}
+
+const DualModeImage = ({ darkSrc, lightSrc, alt, width, height, className }: DualModeImageProps) => (
+  <>
+    <Image
+      src={darkSrc}
+      className={cn("hidden dark:block", className)}
+      alt={`${alt} dark`}
+      width={width}
+      height={height}
+    />
+    <Image
+      src={lightSrc}
+      className={cn("shadow dark:hidden", className)}
+      alt={`${alt} light`}
+      width={width}
+      height={height}
+    />
+  </>
+)
 
 export function OptimizedSchedulingSection() {
-  const [activeTab, setActiveTab] = useState("unified-scheduling")
-  const [mounted, setMounted] = useState(false)
-  const { theme } = useTheme()
-  
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-  
-  const dashedBorderSvg = mounted ? getDashedBorderSvg(theme) : ""
-
   return (
     <section id="optimized-scheduling">
       <div className="border-b">
@@ -70,77 +100,192 @@ export function OptimizedSchedulingSection() {
         </div>
       </div>
 
-      <div className="container border-x lg:!px-0">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="inline-flex items-center justify-center rounded-lg h-auto w-full bg-transparent p-0 max-lg:flex-col max-lg:divide-y lg:grid lg:grid-cols-3 lg:divide-x">
-            {schedulingFeatures.map((feature, index) => (
-              <TabsTrigger
-                key={feature.id}
-                value={feature.id}
-                className="group relative isolate inline-block h-full w-full rounded-none px-1 py-5 text-start whitespace-normal data-[state=active]:shadow-none max-lg:border-x last:max-lg:!border-b lg:border-b lg:px-8"
-              >
-                <div className="absolute bottom-[-1px] left-0 h-[1px] w-0 bg-gradient-to-r from-blue-600 via-sky-300 to-transparent transition-all duration-300 group-data-[state=active]:w-1/2" />
+      <div className="relative overflow-hidden border-x border-b">
+        <div className="absolute inset-0 bg-gradient-to-b from-background to-muted/30 dark:from-background dark:to-muted/10"></div>
+        <div className="absolute inset-0 [background:radial-gradient(circle_500px_at_50%_200px,var(--primary)/3%,transparent_100%)]"></div>
+        <div className="container relative border-x py-16 md:py-32">
+          <div className="mx-auto grid gap-6 lg:grid-cols-2">
+      
+            <FeatureCard>
+              <CardHeader className="pb-3">
+                <CardHeading
+                  icon={PenTool}
+                  title="AI Post Generator"
+                  description="Create on-brand posts instantly with AI. Choose tone, format, and schedule in one click."
+                />
+              </CardHeader>
 
-                {/* Corner decorations */}
-                <div className="size-2 rounded-[1px] absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 bg-gray-400" />
-                <div className="size-2 rounded-[1px] absolute bottom-0 left-0 -translate-x-1/2 translate-y-1/2 bg-gray-400" />
-                {feature.id === "effortless-integrations" && (
-                  <>
-                    <div className="size-2 rounded-[1px] absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 bg-gray-400" />
-                    <div className="size-2 rounded-[1px] absolute right-0 bottom-0 translate-x-1/2 translate-y-1/2 bg-gray-400" />
-                  </>
-                )}
-                <FadeIn delay={0.1 + index * 0.1}>
-                  {" "}
-                  {/* Added FadeIn here */}
-                  <div className="flex items-center gap-2 text-foreground">
-                    <div className="relative size-6">
-                      <div className="absolute inset-0 -rotate-45 rounded-full bg-gradient-to-l from-blue-600 via-sky-300 to-50% transition-all duration-1000 group-data-[state=inactive]:opacity-0" />
-                      <div className="absolute inset-[0.75px] rounded-full bg-gray-100" />
-                      <div className="absolute inset-[1.25px] grid place-items-center rounded-full bg-border">
-                        <feature.icon className="size-3.5" />
+              <CardContent>
+                <div className="relative mb-6 sm:mb-0">
+                  <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--background)_100%)]"></div>
+                  <div className="aspect-76/59 border">
+                    <DualModeImage
+                      darkSrc="/images/post-gen-dark-1.png"
+                      lightSrc="/images/post-gen-light-1.png"
+                      alt="AI post generator illustration"
+                      width={1207}
+                      height={929}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </FeatureCard>
+
+            <FeatureCard>
+              <CardHeader className="pb-3">
+                <CardHeading
+                  icon={Newspaper}
+                  title="News Analysis"
+                  description="Stay ahead with real-time news monitoring and competitor intelligence tracking."
+                />
+              </CardHeader>
+
+              <CardContent>
+                <div className="relative mb-6 sm:mb-0">
+                  <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--background)_100%)]"></div>
+                  <div className="aspect-76/59 border">
+                    <DualModeImage
+                      darkSrc="/images/news-dark.png"
+                      lightSrc="/images/news-light.png"
+                      alt="news analysis illustration"
+                      width={1207}
+                      height={929}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </FeatureCard>
+
+            <FeatureCard>
+              <CardHeader className="pb-3">
+                <CardHeading
+                  icon={Search}
+                  title="Feature Analysis"
+                  description="Deep dive into competitor features and capabilities with comprehensive analysis tools."
+                />
+              </CardHeader>
+
+              <CardContent>
+                <div className="relative mb-6 sm:mb-0">
+                  <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--background)_100%)]"></div>
+                  <div className="aspect-76/59 border">
+                    <DualModeImage
+                      darkSrc="/images/feature_dark.png"
+                      lightSrc="/images/feature_light.png"
+                      alt="feature analysis illustration"
+                      width={1207}
+                      height={929}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </FeatureCard>
+
+            <FeatureCard>
+              <CardHeader className="pb-3">
+                <CardHeading
+                  icon={Youtube}
+                  title="YouTube Analysis"
+                  description="Comprehensive YouTube channel and video performance analytics with competitor insights."
+                />
+              </CardHeader>
+
+              <CardContent>
+                <div className="relative mb-6 sm:mb-0">
+                  <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--background)_100%)]"></div>
+                  <div className="aspect-76/59 border">
+                    <DualModeImage
+                      darkSrc="/images/youtube-dark.png"
+                      lightSrc="/images/youtube-light.png"
+                      alt="YouTube analysis illustration"
+                      width={1207}
+                      height={929}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </FeatureCard>
+
+            <FeatureCard>
+              <CardHeader className="pb-3">
+                <CardHeading
+                  icon={Twitter}
+                  title="Twitter Analysis"
+                  description="Advanced Twitter analytics and engagement tracking with real-time social media insights."
+                />
+              </CardHeader>
+
+              <CardContent>
+                <div className="relative mb-6 sm:mb-0">
+                  <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--background)_100%)]"></div>
+                  <div className="aspect-76/59 border">
+                    <DualModeImage
+                      darkSrc="/images/twitter-dark.png"
+                      lightSrc="/images/twitter-light.png"
+                      alt="Twitter analysis illustration"
+                      width={1207}
+                      height={929}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </FeatureCard>
+
+            <FeatureCard>
+              <CardHeader className="pb-3">
+                <CardHeading
+                  icon={Globe2}
+                  title="SEO Traffic Analysis"
+                  description="Comprehensive SEO analysis and traffic insights for competitor websites with detailed performance metrics."
+                />
+              </CardHeader>
+
+              <CardContent>
+                <div className="relative mb-6 sm:mb-0">
+                  <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--background)_100%)]"></div>
+                  <div className="aspect-76/59 border">
+                    <DualModeImage
+                      darkSrc="/images/seo-traffic-dark.png"
+                      lightSrc="/images/seo-traffic-light.png"
+                      alt="SEO traffic analysis illustration"
+                      width={1207}
+                      height={929}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </FeatureCard>
+
+            <FeatureCard className="mt-4 lg:col-span-2">
+              <div className="relative border-t border-dashed">
+                <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-border/0 via-border/50 to-border/0"></div>
+                <div className="p-8 md:p-12">
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-center">
+                    <div className="lg:col-span-3">
+                      <p className="mx-auto mb-8 max-w-md text-balance text-center text-2xl font-semibold">
+                        Comprehensive social media analytics and performance insights.
+                      </p>
+                    </div>
+                    
+                    <div className="lg:col-span-1">
+                      <div className="bg-gradient-to-b from-border/50 to-border/0 p-px rounded-lg">
+                        <div className="relative bg-gradient-to-b from-background to-muted/10 flex flex-col items-center justify-center rounded-lg p-6 h-32">
+                          <div className="flex items-center justify-center mb-3">
+                            <div className="flex aspect-square size-12 items-center justify-center rounded-lg border border-border/50 bg-muted/10 p-3 shadow-sm transition-all hover:border-border hover:bg-muted/20">
+                              <BarChart3 className="size-5" />
+                            </div>
+                          </div>
+                          <h3 className="text-sm font-semibold text-center mb-1">Advanced Analytics</h3>
+                          <p className="text-xs text-muted-foreground text-center">AI-powered insights and metrics</p>
+                        </div>
                       </div>
                     </div>
-                    <h3 className="text-2xl tracking-[-0.36px]">{feature.title}</h3>
                   </div>
-                  <p className="text-muted-foreground mt-2 tracking-[-0.32px] font-light text-base">
-                    {feature.description}
-                  </p>
-                </FadeIn>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {schedulingFeatures.map((feature) => (
-            <TabsContent key={feature.id} value={feature.id} className="mt-0">
-              <div className="flex flex-1 flex-col px-2 py-4 max-lg:border-x">
-                {mounted && (
-                  <>
-                    <div
-                      className="w-full border-2 border-dashed h-5 opacity-20 border-black dark:border-white"
-                      style={{
-                        backgroundImage: dashedBorderSvg,
-                      }}
-                    />
-                    <Image
-                      src={feature.image || "/placeholder.svg"}
-                      alt={feature.title}
-                      width={1312}
-                      height={743}
-                      className="my-2 rounded-md object-contain shadow-md lg:rounded-xl lg:shadow-lg dark:invert"
-                    />
-                    <div
-                      className="w-full border-2 border-dashed h-5 opacity-20 border-black dark:border-white"
-                      style={{
-                        backgroundImage: dashedBorderSvg,
-                      }}
-                    />
-                  </>
-                )}
+                </div>
               </div>
-            </TabsContent>
-          ))}
-        </Tabs>
+            </FeatureCard>
+          </div>
+        </div>
       </div>
 
       <div className="h-8 w-full border-y md:h-12 lg:h-[112px]">
