@@ -53,8 +53,7 @@ export function Footer() {
                 </a>
               </div>
               <p className="mt-4 text-sm text-muted-foreground max-w-sm">
-                Empowering teams to achieve project success through effective
-                management and collaboration.
+              Stop flying blind in social media
               </p>
               <p className="text-sm text-muted-foreground">
                 © {new Date().getFullYear()} Zooptics. All rights reserved.

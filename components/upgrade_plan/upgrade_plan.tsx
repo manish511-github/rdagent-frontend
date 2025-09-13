@@ -46,10 +46,10 @@ interface UpgradePlanProps {
 
 const PLAN_MAPPING = {
   trial: 0,
-  basic_monthly: 1, // previously starter_monthly
-  basic_yearly: 2,  // previously starter_yearly
-  pro_monthly: 3,   // previously professional_monthly
-  pro_yearly: 4     // previously professional_yearly
+  pro_monthly: 1, // previously basic_monthly
+  pro_yearly: 2,  // previously basic_yearly
+  ultra_monthly: 3,   // previously pro_monthly
+  ultra_yearly: 4     // previously pro_yearly
 };
 
 const plans = {
@@ -65,14 +65,14 @@ const plans = {
         { title: "1 Project", description: "Set up and manage a single project to experience the platform." },
         { title: "1 Agent", description: "Deploy one AI agent to automate content creation." },
         { title: "10 Keywords", description: "Track up to 10 keywords with basic insights." },
-        { title: "10 Credits", description: "Use credits for generating AI-powered content and replies." },
+        { title: "10 Credits", description: "Use credits for generating AI-powered content, replies, and competitor analysis." },
         { title: "Weekly Scheduling", description: "Automate content delivery once per week." }
       ]
     },
     {
-      id: PLAN_MAPPING.basic_monthly,
+      id: PLAN_MAPPING.pro_monthly,
       name: "Pro",
-      planIdentifier: "basic_monthly",
+      planIdentifier: "pro_monthly",
       price: 29,
       description: "Ideal for individuals or small teams starting their AI content journey.",
       icon: Zap,
@@ -80,15 +80,15 @@ const plans = {
         { title: "2 Projects", description: "Run and manage up to two separate projects." },
         { title: "5 Agents", description: "Use up to five AI agents for different workflows." },
         { title: "20 Keywords", description: "Track 20 keywords with improved analytics." },
-        { title: "200 Credits", description: "Generate more AI content with 200 monthly credits." },
+        { title: "200 Credits", description: "Generate more AI content, replies, and competitor analysis with 200 monthly credits." },
         { title: "Weekly Scheduling", description: "Automate agent activity on a weekly basis." },
         { title: "Email Support", description: "Get direct assistance from our support team." }
       ]
     },
     {
-      id: PLAN_MAPPING.pro_monthly,
+      id: PLAN_MAPPING.ultra_monthly,
       name: "Ultra",
-      planIdentifier: "pro_monthly",
+      planIdentifier: "ultra_monthly",
       price: 49,
       description: "Perfect for growing teams who need speed, scale, and collaboration.",
       icon: Crown,
@@ -97,7 +97,7 @@ const plans = {
         { title: "5 Projects", description: "Manage up to five active projects simultaneously." },
         { title: "10 Agents", description: "Deploy and manage 10 AI agents across all projects." },
         { title: "50 Keywords per Agent", description: "Track 50 keywords per agent for deeper insights." },
-        { title: "500 Credits", description: "Power large-scale AI content generation with 500 credits." },
+        { title: "500 Credits", description: "Power large-scale AI content generation, replies, and competitor analysis with 500 credits." },
         { title: "Twice-Weekly Scheduling", description: "Automate agent tasks two times per week." },
         { title: "Priority Support", description: "Receive faster help from our priority support channel." }
       ]
@@ -115,31 +115,31 @@ const plans = {
         { title: "1 Project", description: "Set up and manage a single project to experience the platform." },
         { title: "1 Agent", description: "Deploy one AI agent to automate content creation." },
         { title: "10 Keywords", description: "Track up to 10 keywords with basic insights." },
-        { title: "10 Credits", description: "Use credits for generating AI-powered content and replies." },
+        { title: "10 Credits", description: "Use credits for generating AI-powered content, replies, and competitor analysis." },
         { title: "Weekly Scheduling", description: "Automate content delivery once per week." }
       ]
     },
     {
-      id: PLAN_MAPPING.basic_yearly,
+      id: PLAN_MAPPING.pro_yearly,
       name: "Pro",
-      planIdentifier: "basic_yearly",
-      price: 348, // 29 x 12 (apply discount if needed)
+      planIdentifier: "pro_yearly",
+      price: 226, // 29 x 12 with 35% discount
       description: "Ideal for individuals or small teams starting their AI content journey — save with yearly billing.",
       icon: Zap,
       features: [
         { title: "2 Projects", description: "Run and manage up to two separate projects." },
         { title: "5 Agents", description: "Use up to five AI agents for different workflows." },
         { title: "20 Keywords", description: "Track 20 keywords with improved analytics." },
-        { title: "100 Credits", description: "Generate more AI content with 100 monthly credits." },
+        { title: "100 Credits", description: "Generate more AI content, replies, and competitor analysis with 100 monthly credits." },
         { title: "Weekly Scheduling", description: "Automate agent activity on a weekly basis." },
         { title: "Email Support", description: "Get direct assistance from our support team." }
       ]
     },
     {
-      id: PLAN_MAPPING.pro_yearly,
+      id: PLAN_MAPPING.ultra_yearly,
       name: "Ultra",
-      planIdentifier: "pro_yearly",
-      price: 948, // 79 x 12 (apply discount if needed)
+      planIdentifier: "ultra_yearly",
+      price: 382, // 49 x 12 with 35% discount
       description: "Perfect for growing teams who need speed, scale, and collaboration — save with yearly billing.",
       icon: Crown,
       popular: true,
@@ -147,7 +147,7 @@ const plans = {
         { title: "5 Projects", description: "Manage up to five active projects simultaneously." },
         { title: "10 Agents", description: "Deploy and manage 10 AI agents across all projects." },
         { title: "50 Keywords per Agent", description: "Track 50 keywords per agent for deeper insights." },
-        { title: "500 Credits", description: "Power large-scale AI content generation with 500 credits." },
+        { title: "500 Credits", description: "Power large-scale AI content generation, replies, and competitor analysis with 500 credits." },
         { title: "Twice-Weekly Scheduling", description: "Automate agent tasks two times per week." },
         { title: "Priority Support", description: "Receive faster help from our priority support channel." }
       ]
