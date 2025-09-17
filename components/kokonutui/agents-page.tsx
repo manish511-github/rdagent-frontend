@@ -19,6 +19,8 @@ import {
   LoaderCircle,
   Grid3X3,
   List,
+  Hash,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +33,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { PlatformIcon, RedditIcon } from "./platform-icons";
 import Layout from "./layout";
 import { cn } from "@/lib/utils";
@@ -39,6 +46,10 @@ import Cookies from "js-cookie";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "@/store/store";
 import { getApiUrl } from "../../lib/config";
+import {
+  selectAgentLimitUsed,
+  selectAgentLimitTotal,
+} from "@/store/slices/userSlice";
 import {
   fetchAgents,
   createAgent,
@@ -133,6 +144,16 @@ export default function AgentsPage() {
   const createStatus = useSelector((state: RootState) =>
     selectCreateAgentStatus(state)
   );
+
+  // Agent limits from user slice
+  const agentLimitUsed = useSelector((state: RootState) =>
+    selectAgentLimitUsed(state)
+  );
+  const agentLimitTotal = useSelector((state: RootState) =>
+    selectAgentLimitTotal(state)
+  );
+  const isAgentLimitReached =
+    agentLimitUsed >= agentLimitTotal && agentLimitTotal > 0;
 
   // Get current project from currentProject slice (has full project data including keywords)
   const currentProject = useSelector((state: RootState) =>
@@ -542,13 +563,43 @@ export default function AgentsPage() {
                 className="w-[200px] h-7 text-xs pl-7 pr-2"
               />
             </div>
-            <Button
-              className="h-7 text-xs gap-1 px-2.5"
-              onClick={() => setIsCreateModalOpen(true)}
-            >
-              <Plus className="h-3 w-3" />
-              <span>New agent</span>
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <div>
+                  <Button
+                    className="h-7 text-xs gap-1 px-2.5"
+                    onClick={() => {
+                      if (!isAgentLimitReached) {
+                        setIsCreateModalOpen(true);
+                      }
+                    }}
+                    disabled={isAgentLimitReached}
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span>New agent</span>
+                  </Button>
+                </div>
+              </PopoverTrigger>
+              {isAgentLimitReached && (
+                <PopoverContent className="w-80 p-4" side="bottom" align="end">
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Agent Limit Reached</h4>
+                    <p className="text-sm text-muted-foreground">
+                      You've reached your agent limit ({agentLimitUsed}/
+                      {agentLimitTotal}). Upgrade your plan to create more
+                      agents.
+                    </p>
+                    <Button
+                      size="sm"
+                      className="w-full mt-2"
+                      onClick={() => router.push("/upgrade")}
+                    >
+                      Upgrade Plan
+                    </Button>
+                  </div>
+                </PopoverContent>
+              )}
+            </Popover>
           </div>
         </div>
 
@@ -688,7 +739,9 @@ export default function AgentsPage() {
                       <div className="rounded-md border bg-muted/30 px-2.5 py-2">
                         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                           <FileText className="h-3.5 w-3.5 text-foreground/70" />
-                          <span className="text-foreground/80 font-medium">Instruction</span>
+                          <span className="text-foreground/80 font-medium">
+                            Instruction
+                          </span>
                         </div>
                         <div className="text-[12px] mt-0.5 text-muted-foreground line-clamp-2">
                           {agent.instructions || "-"}
@@ -697,26 +750,39 @@ export default function AgentsPage() {
                       <div className="rounded-md border bg-muted/30 px-2.5 py-2">
                         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                           <Target className="h-3.5 w-3.5 text-foreground/70" />
-                          <span className="text-foreground/80 font-medium">Expectation</span>
+                          <span className="text-foreground/80 font-medium">
+                            Expectation
+                          </span>
                         </div>
                         <div className="text-[12px] mt-0.5 text-muted-foreground line-clamp-2">
                           {agent.expectations || "-"}
                         </div>
                       </div>
                       {(() => {
-                        const platformSettings = (agent as any)?.platform_settings;
+                        const platformSettings = (agent as any)
+                          ?.platform_settings;
                         const reddit = platformSettings?.reddit;
                         if (agent.agent_platform === "reddit" && reddit) {
                           const subreddit = reddit.subreddit || "any";
                           const timeRange = reddit.timeRange || "any range";
-                          const minUpvotes = typeof reddit.minUpvotes === "number" ? reddit.minUpvotes : 0;
-                          const relevance = typeof reddit.relevanceThreshold === "number" ? reddit.relevanceThreshold : 0;
-                          const comments = reddit.monitorComments ? "Monitors comments" : "Posts only";
+                          const minUpvotes =
+                            typeof reddit.minUpvotes === "number"
+                              ? reddit.minUpvotes
+                              : 0;
+                          const relevance =
+                            typeof reddit.relevanceThreshold === "number"
+                              ? reddit.relevanceThreshold
+                              : 0;
+                          const comments = reddit.monitorComments
+                            ? "Monitors comments"
+                            : "Posts only";
                           return (
                             <div className="rounded-md border bg-muted/30 px-2.5 py-2">
                               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
                                 <RedditIcon className="h-3.5 w-3.5" />
-                                <span className="text-foreground/80 font-medium">Reddit Settings</span>
+                                <span className="text-foreground/80 font-medium">
+                                  Reddit Settings
+                                </span>
                               </div>
                               <div className="flex flex-wrap items-center gap-1.5">
                                 <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] bg-background/60 backdrop-blur-sm shadow-sm">
@@ -726,7 +792,8 @@ export default function AgentsPage() {
                                   <Clock className="h-3 w-3" /> {timeRange}
                                 </span>
                                 <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] bg-background/60 backdrop-blur-sm shadow-sm">
-                                  <TrendingUp className="h-3 w-3" /> ≥{minUpvotes}
+                                  <TrendingUp className="h-3 w-3" /> ≥
+                                  {minUpvotes}
                                 </span>
                                 <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] bg-background/60 backdrop-blur-sm shadow-sm">
                                   {comments === "Monitors comments" ? (
@@ -737,7 +804,8 @@ export default function AgentsPage() {
                                   {comments}
                                 </span>
                                 <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] bg-background/60 backdrop-blur-sm shadow-sm">
-                                  <span className="h-2 w-2 rounded-full bg-cyan-500" /> Relevance {relevance}
+                                  <span className="h-2 w-2 rounded-full bg-cyan-500" />{" "}
+                                  Relevance {relevance}
                                 </span>
                               </div>
                             </div>
@@ -745,14 +813,16 @@ export default function AgentsPage() {
                         }
                         return null;
                       })()}
-                      {agent.review_minutes ? (
+                      {/* {agent.review_minutes ? (
                         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                           <Clock className="h-3.5 w-3.5 text-foreground/70" />
-                          <span className="text-foreground/80 font-medium">Review</span>
+                          <span className="text-foreground/80 font-medium">
+                            Review
+                          </span>
                           <span className="text-foreground/40">—</span>
                           <span>every {agent.review_minutes} min</span>
                         </div>
-                      ) : null}
+                      ) : null} */}
                     </div>
                   </CardContent>
 

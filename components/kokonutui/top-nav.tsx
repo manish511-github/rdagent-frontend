@@ -1,59 +1,69 @@
-"use client"
+"use client";
 
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import Image from "next/image"
-import { ChevronRight } from "lucide-react"
-import Profile01 from "./profile-01"
-import Link from "next/link"
-import ThemeToggle from "../theme-toggle"
-import { usePathname, useSearchParams } from "next/navigation"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import Image from "next/image";
+import { ChevronRight } from "lucide-react";
+import Profile01 from "./profile-01";
+import Link from "next/link";
+import ThemeToggle from "../theme-toggle";
+import { usePathname, useSearchParams } from "next/navigation";
 
 interface Project {
-  uuid: string
-  name: string
+  uuid: string;
+  name: string;
 }
 
 interface TopNavProps {
-  currentProject: Project | null
+  currentProject: Project | null;
 }
 
 interface BreadcrumbItem {
-  label: string
-  href?: string
+  label: string;
+  href?: string;
 }
 
 export default function TopNav({ currentProject }: TopNavProps) {
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const isProjectsPage = pathname === "/projects"
-  const isSettingsPage = pathname.startsWith("/settings")
-  const isCompanyAnalysisPage = pathname.includes("/company-analysis")
-  const isCompetitorsPage = pathname.includes("/competitors")
-  const companySlug = searchParams.get("company") || ""
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isProjectsPage = pathname === "/projects";
+  const isSettingsPage = pathname.startsWith("/settings");
+  const isCompanyAnalysisPage = pathname.includes("/company-analysis");
+  const isCompetitorsPage = pathname.includes("/competitors");
+  const companySlug = searchParams.get("company") || "";
   const companyDisplay = companySlug
     ? decodeURIComponent(companySlug)
         .replace(/-/g, " ")
         .replace(/\b\w/g, (c) => c.toUpperCase())
-    : "Selected Company"
+    : "Selected Company";
 
   // Define breadcrumbs based on current page
-  let breadcrumbs: BreadcrumbItem[] = []
+  let breadcrumbs: BreadcrumbItem[] = [];
 
   if (isSettingsPage) {
-    breadcrumbs = [{ label: "Settings" }]
+    breadcrumbs = [{ label: "Settings" }];
   } else {
     // Always start with Projects
-    breadcrumbs.push({ label: "Projects", href: "/projects" })
+    breadcrumbs.push({ label: "Projects", href: "/projects" });
 
     if (currentProject) {
       // Project name
-      breadcrumbs.push({ label: currentProject.name, href: `/projects/${currentProject.uuid}` })
+      breadcrumbs.push({
+        label: currentProject.name,
+        href: `/projects/${currentProject.uuid}`,
+      });
 
       // Competitors and Company chain
       if (isCompetitorsPage || isCompanyAnalysisPage) {
-        breadcrumbs.push({ label: "Competitors", href: `/projects/${currentProject.uuid}/competitors` })
+        breadcrumbs.push({
+          label: "Competitors",
+          href: `/projects/${currentProject.uuid}/competitors`,
+        });
         if (isCompanyAnalysisPage) {
-          breadcrumbs.push({ label: companyDisplay })
+          breadcrumbs.push({ label: companyDisplay });
         }
       }
     }
@@ -64,7 +74,9 @@ export default function TopNav({ currentProject }: TopNavProps) {
       <div className="font-medium text-xs flex items-center space-x-1 flex-1 min-w-0 overflow-x-auto whitespace-nowrap pr-2">
         {breadcrumbs.map((item, index) => (
           <div key={item.label} className="flex items-center">
-            {index > 0 && <ChevronRight className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 mx-1" />}
+            {index > 0 && (
+              <ChevronRight className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 mx-1" />
+            )}
             {item.href ? (
               <Link
                 href={item.href}
@@ -73,7 +85,9 @@ export default function TopNav({ currentProject }: TopNavProps) {
                 {item.label}
               </Link>
             ) : (
-              <span className="text-gray-900 dark:text-gray-100">{item.label}</span>
+              <span className="text-gray-900 dark:text-gray-100">
+                {item.label}
+              </span>
             )}
           </div>
         ))}
@@ -97,10 +111,10 @@ export default function TopNav({ currentProject }: TopNavProps) {
             sideOffset={8}
             className="w-[280px] sm:w-80 bg-background border-border rounded-lg shadow-lg"
           >
-            <Profile01 avatar="https://ferf1mheo22r9ira.public.blob.vercel-storage.com/avatar-01-n0x8HFv8EUetf9z6ht0wScJKoTHqf8.png" />
+            <Profile01 />
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
     </nav>
-  )
+  );
 }
