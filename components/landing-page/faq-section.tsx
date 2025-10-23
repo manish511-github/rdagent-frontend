@@ -26,17 +26,12 @@ const faqs = [
   {
     question: "Which platforms does Market-Agent work with?",
     answer:
-      "Market-Agent currently supports Reddit, Twitter, and Hacker News, with plans to expand to additional platforms. Each platform is optimized for its unique features and audience.",
+      "Market-Agent currently supports Reddit, and Hacker News, with plans to expand to additional platforms. Each platform is optimized for its unique features and audience.",
   },
   {
     question: "How accurate is the sentiment analysis?",
     answer:
       "Our AI uses advanced natural language processing to accurately assess the tone and sentiment of conversations about your brand. The system continuously learns and improves to provide more precise insights over time.",
-  },
-  {
-    question: "Can I schedule posts in advance?",
-    answer:
-      "Yes! Market-Agent includes smart post scheduling features that let you plan and schedule content across multiple platforms, ensuring your posts reach your audience at the optimal time.",
   },
   {
     question: "How do I get started with Market-Agent?",

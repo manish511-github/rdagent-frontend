@@ -19,10 +19,10 @@ const montserrat = Montserrat({
 }) // Define Montserrat as a CSS variable
 
 export const metadata: Metadata = {
-  title: "Relative - Modern Next.js Template",
+  title: "Zooptics",
   description:
-    "A modern, fully featured Next.js template built with Shadcn/UI, TailwindCSS and TypeScript, perfect for your next web application.",
-    generator: 'v0.dev'
+    "An AI marketing automation application that helps businesses optimize their marketing strategies and drive growth.",
+    generator: 'zooptics.com'
 }
 
 export default function RootLayout({

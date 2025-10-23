@@ -421,7 +421,16 @@ export default function TermsOfServicePage() {
                 through any such websites or services.
               </p>
             </section>
+            <section>
+              <h2 className="text-xl font-semibold text-foreground">
+                22. Third Party Data Responsibility and Compliance
+              </h2>
+              <p className="mt-2">
+              {COMPANY_CONFIG.name} takes full responsibility for all data collected, processed, or displayed through the Service. The Service only accesses publicly available data and does not retrieve or display content that is behind login walls or restricted access areas.
+              {COMPANY_CONFIG.name} will respond promptly to any data subject requests, including requests for access, correction, or deletion of personal data, in accordance with applicable data protection and privacy laws.
 
+              </p>
+            </section>
             <Separator />
 
             <section>
