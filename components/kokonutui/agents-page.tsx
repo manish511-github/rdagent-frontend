@@ -19,6 +19,8 @@ import {
   LoaderCircle,
   Grid3X3,
   List,
+  FileText,
+  Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
