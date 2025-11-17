@@ -7,7 +7,7 @@ import { getApiUrl } from "../../lib/config";
 import { ApiAgent, HackerNewsPostType } from "@/types/agentDataTypes";
 
 // Types
-export type AgentType = "twitter" | "reddit" | "hackernews" | "mixed";
+export type AgentType = "twitter" | "reddit" | "hackernews" | "youtube" | "mixed";
 
 export type PostStatus =
   | "pending"
@@ -113,6 +113,7 @@ export interface AgentState {
       redditPosts: RedditPost[];
       twitterPosts: TwitterPost[];
       hackernewsPosts: HackerNewsPostType[];
+      youtubePosts: any[];
       agentStatus: "active" | "paused" | "completed" | "error";
       lastUpdated: string | null;
       agentData: AgentData | null;
@@ -490,12 +491,15 @@ export const fetchAgentData = createAsyncThunk(
         agentType = "reddit";
       } else if (agentData.results?.agent_platform === "hackernews") {
         agentType = "hackernews";
+      } else if (agentData.results?.agent_platform === "youtube") {
+        agentType = "youtube";
       }
 
       // Transform posts based on agent type
       let transformedRedditPosts: RedditPost[] = [];
       let transformedTwitterPosts: TwitterPost[] = [];
       let transformedHackerNewsPosts: HackerNewsPostType[] = [];
+      let transformedYoutubePosts: any[] = [];
       if (agentType === "twitter") {
         // For Twitter agents, transform posts into TwitterPost format
         transformedTwitterPosts =
@@ -520,6 +524,9 @@ export const fetchAgentData = createAsyncThunk(
       } else if (agentType === "hackernews") {
         // For Hacker News agents, use posts directly from API response
         transformedHackerNewsPosts = agentData.results?.posts || [];
+      } else if (agentType === "youtube") {
+        // For YouTube agents, use posts directly from API response
+        transformedYoutubePosts = agentData.results?.posts || [];
       }
 
       console.log("Determined Agent Type:", agentType); // Debug log
@@ -540,6 +547,7 @@ export const fetchAgentData = createAsyncThunk(
           posts: transformedRedditPosts,
           twitter_posts: transformedTwitterPosts,
           hackernews_posts: transformedHackerNewsPosts,
+          youtube_posts: transformedYoutubePosts,
         },
       };
     } catch (error) {
@@ -827,6 +835,7 @@ const agentSlice = createSlice({
           redditPosts: [],
           twitterPosts: [],
           hackernewsPosts: [],
+          youtubePosts: [],
           agentStatus: "active",
           lastUpdated: null,
           agentData: null,
@@ -863,6 +872,7 @@ const agentSlice = createSlice({
             redditPosts: [],
             twitterPosts: [],
             hackernewsPosts: [],
+            youtubePosts: [],
             agentStatus: "active",
             lastUpdated: null,
             agentData: null,
@@ -918,6 +928,7 @@ const agentSlice = createSlice({
             redditPosts: [],
             twitterPosts: [],
             hackernewsPosts: [],
+            youtubePosts: [],
             agentStatus: "active",
             lastUpdated: null,
             agentData: null,
@@ -982,6 +993,7 @@ const agentSlice = createSlice({
             redditPosts: [],
             twitterPosts: [],
             hackernewsPosts: [],
+            youtubePosts: [],
             agentStatus: "active",
             lastUpdated: null,
             agentData: null,
@@ -1011,6 +1023,7 @@ const agentSlice = createSlice({
         agent.redditPosts = action.payload.agentData.posts;
         agent.twitterPosts = action.payload.agentData.twitter_posts;
         agent.hackernewsPosts = action.payload.agentData.hackernews_posts;
+      agent.youtubePosts = action.payload.agentData.youtube_posts || [];
         agent.agentStatus = action.payload.agentData.status;
         agent.lastUpdated = new Date().toISOString();
         agent.agentData = {
@@ -1063,6 +1076,7 @@ const agentSlice = createSlice({
             redditPosts: [],
             twitterPosts: [],
             hackernewsPosts: [],
+            youtubePosts: [],
             agentStatus: "active",
             lastUpdated: null,
             agentData: null,
@@ -1108,6 +1122,7 @@ const agentSlice = createSlice({
             redditPosts: [],
             twitterPosts: [],
             hackernewsPosts: [],
+            youtubePosts: [],
             agentStatus: "active",
             lastUpdated: null,
             agentData: null,
@@ -1161,6 +1176,7 @@ const agentSlice = createSlice({
             redditPosts: [],
             twitterPosts: [],
             hackernewsPosts: [],
+            youtubePosts: [],
             agentStatus: "active",
             lastUpdated: null,
             agentData: null,
@@ -1262,6 +1278,11 @@ export const selectTwitterPosts = createSelector(
 export const selectHackerNewsPosts = createSelector(
   [getCurrentAgentData],
   (agentData) => agentData?.hackernewsPosts || []
+);
+
+export const selectYoutubePosts = createSelector(
+  [getCurrentAgentData],
+  (agentData) => agentData?.youtubePosts || []
 );
 
 export const selectAgentState = createSelector(

@@ -93,6 +93,7 @@ import {
 } from "recharts";
 import HackerNewsView from "../agent/hackernews/hackernews-view";
 import RedditResultView from "@/components/agent/reddit/reddit-result-view";
+import YoutubeView from "../agent/youtube/youtube-view";
 
 //
 
@@ -1839,6 +1840,17 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
       <Layout>
         <div className="h-full">
           <RedditResultView agentId={agentId} />
+        </div>
+      </Layout>
+    );
+  }
+
+  // If this is a YouTube agent, render the YouTube view
+  if (platformType === "youtube") {
+    return (
+      <Layout>
+        <div className="h-full">
+          <YoutubeView agentId={agentId} />
         </div>
       </Layout>
     );
