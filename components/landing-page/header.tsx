@@ -1,85 +1,89 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { motion, AnimatePresence, easeOut } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { ChevronRight, Sun, Moon, Menu, X } from "lucide-react"
-import { useTheme } from "next-themes"
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { motion, AnimatePresence, easeOut } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { ChevronRight, Sun, Moon, Menu, X } from "lucide-react";
+import { useTheme } from "next-themes";
 
 export function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [mounted, setMounted] = useState(false)
-  const { theme, setTheme } = useTheme()
-  const headerRef = useRef<HTMLElement>(null)
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const headerRef = useRef<HTMLElement>(null);
 
   // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50)
-    }
+      setIsScrolled(window.scrollY > 50);
+    };
 
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Ensure component is mounted to prevent hydration mismatch
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
   // Effect to manage body overflow when mobile menu is open
   useEffect(() => {
     if (isMenuOpen) {
-      document.body.style.overflow = "hidden"
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = ""
+      document.body.style.overflow = "";
     }
     return () => {
-      document.body.style.overflow = ""
-    }
-  }, [isMenuOpen])
+      document.body.style.overflow = "";
+    };
+  }, [isMenuOpen]);
 
   const navItems = [
     { name: "Features", id: "smart-productivity" },
     { name: "About us", href: "/about" },
     { name: "Pricing", href: "/pricing" },
     { name: "Contact", href: "/contact" },
-  ]
+  ];
 
   const featureSections = [
     { name: "Unleash Marketing Velocity", id: "smart-productivity" },
     { name: "Adaptive Workflows", id: "adaptive-workflows" },
     { name: "Optimized Scheduling", id: "optimized-scheduling" },
     { name: "Accelerate Planning", id: "accelerate-planning" },
-  ]
+  ];
 
   const mobileMenuVariants = {
     hidden: { opacity: 0, y: -50, transition: { duration: 0.3 } },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: easeOut } },
     exit: { opacity: 0, y: -50, transition: { duration: 0.3 } },
-  }
+  };
 
   const mobileMenuItemVariants = {
     hidden: { opacity: 0, x: -20 },
     visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: easeOut } },
-  }
+  };
 
   // Function to handle smooth scrolling with offset
   const scrollToSection = (id: string) => {
-    const targetElement = document.getElementById(id)
+    const targetElement = document.getElementById(id);
     if (targetElement && headerRef.current) {
-      const headerHeight = headerRef.current.offsetHeight
-      const targetPosition = targetElement.getBoundingClientRect().top + window.scrollY - headerHeight - 20
+      const headerHeight = headerRef.current.offsetHeight;
+      const targetPosition =
+        targetElement.getBoundingClientRect().top +
+        window.scrollY -
+        headerHeight -
+        20;
       window.scrollTo({
         top: targetPosition,
         behavior: "smooth",
-      })
-      window.history.pushState(null, "", `#${id}`)
+      });
+      window.history.pushState(null, "", `#${id}`);
     }
-  }
+  };
 
   return (
     <>
@@ -96,7 +100,9 @@ export function Header() {
         <div className="container px-0">
           <motion.div
             className={`relative backdrop-blur-xl bg-background/80 border border-border/50 rounded-2xl shadow-lg transition-all duration-500 ${
-              isScrolled ? "shadow-xl bg-background/90 border-border/80" : "shadow-md"
+              isScrolled
+                ? "shadow-xl bg-background/90 border-border/80"
+                : "shadow-md"
             }`}
             animate={{
               scale: isScrolled ? 0.98 : 1,
@@ -115,12 +121,18 @@ export function Header() {
                   className="flex-shrink-0"
                 >
                   <Link href="/" className="flex items-center gap-2">
-                    <Image
-                      src={theme === "dark" ? "/logo-light.svg" : "/logo-dark.svg"}
-                      alt="logo"
-                      width={32}
-                      height={32}
-                    />
+                    {mounted && (
+                      <Image
+                        src={
+                          theme === "dark"
+                            ? "/logo-light.svg"
+                            : "/logo-dark.svg"
+                        }
+                        alt="logo"
+                        width={32}
+                        height={32}
+                      />
+                    )}
                     <span className="text-xl font-medium font-montserrat bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
                       zooptics
                     </span>
@@ -140,8 +152,8 @@ export function Header() {
                         {item.id ? (
                           <motion.button
                             onClick={(e) => {
-                              e.preventDefault()
-                              scrollToSection(item.id)
+                              e.preventDefault();
+                              scrollToSection(item.id);
                             }}
                             className="relative px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-full group whitespace-nowrap"
                             whileHover={{ scale: 1.05 }}
@@ -180,12 +192,18 @@ export function Header() {
                     <motion.div
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 17,
+                      }}
                     >
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                        onClick={() =>
+                          setTheme(theme === "dark" ? "light" : "dark")
+                        }
                         className="relative h-9 w-9 rounded-full bg-muted/50 hover:bg-muted border-0"
                       >
                         <AnimatePresence mode="wait" initial={false}>
@@ -229,7 +247,11 @@ export function Header() {
                         <motion.div
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 17,
+                          }}
                         >
                           <Button
                             variant="ghost"
@@ -239,7 +261,10 @@ export function Header() {
                             Login
                             <motion.div
                               animate={{ x: [0, 2, 0] }}
-                              transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
+                              transition={{
+                                duration: 1.5,
+                                repeat: Number.POSITIVE_INFINITY,
+                              }}
                             >
                               <ChevronRight className="size-3" />
                             </motion.div>
@@ -257,7 +282,11 @@ export function Header() {
                         <motion.div
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 17,
+                          }}
                         >
                           <Button
                             size="sm"
@@ -266,7 +295,11 @@ export function Header() {
                             <span className="relative z-10">Sign up</span>
                             <motion.div
                               animate={{ x: [0, 2, 0] }}
-                              transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY, delay: 0.5 }}
+                              transition={{
+                                duration: 1.5,
+                                repeat: Number.POSITIVE_INFINITY,
+                                delay: 0.5,
+                              }}
                               className="relative z-10"
                             >
                               <ChevronRight className="size-3" />
@@ -336,7 +369,9 @@ export function Header() {
             <motion.div
               className="container py-6 space-y-6 flex-1 overflow-y-auto"
               variants={{
-                visible: { transition: { staggerChildren: 0.07, delayChildren: 0.2 } },
+                visible: {
+                  transition: { staggerChildren: 0.07, delayChildren: 0.2 },
+                },
               }}
             >
               {navItems.map((item, index) => (
@@ -351,14 +386,18 @@ export function Header() {
                           <motion.button
                             key={feature.id}
                             onClick={(e) => {
-                              e.preventDefault()
-                              document.body.style.overflow = ""
-                              scrollToSection(feature.id)
-                              setIsMenuOpen(false)
+                              e.preventDefault();
+                              document.body.style.overflow = "";
+                              scrollToSection(feature.id);
+                              setIsMenuOpen(false);
                             }}
                             className="block w-full text-left py-2 text-lg text-muted-foreground hover:text-foreground transition-colors"
                             whileHover={{ x: 10 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 400,
+                              damping: 17,
+                            }}
                           >
                             {feature.name}
                           </motion.button>
@@ -370,11 +409,18 @@ export function Header() {
                       href={item.href}
                       className="block py-3 text-2xl font-semibold text-foreground hover:text-primary transition-colors border-b border-border/50"
                       onClick={() => {
-                        document.body.style.overflow = ""
-                        setIsMenuOpen(false)
+                        document.body.style.overflow = "";
+                        setIsMenuOpen(false);
                       }}
                     >
-                      <motion.div whileHover={{ x: 10 }} transition={{ type: "spring", stiffness: 400, damping: 17 }}>
+                      <motion.div
+                        whileHover={{ x: 10 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 17,
+                        }}
+                      >
                         {item.name}
                       </motion.div>
                     </Link>
@@ -387,11 +433,14 @@ export function Header() {
                   <Link
                     href="/login"
                     onClick={() => {
-                      document.body.style.overflow = ""
-                      setIsMenuOpen(false)
+                      document.body.style.overflow = "";
+                      setIsMenuOpen(false);
                     }}
                   >
-                    <Button variant="outline" className="w-full h-12 text-lg rounded-full bg-transparent">
+                    <Button
+                      variant="outline"
+                      className="w-full h-12 text-lg rounded-full bg-transparent"
+                    >
                       Login
                     </Button>
                   </Link>
@@ -400,8 +449,8 @@ export function Header() {
                   <Link
                     href="/signup"
                     onClick={() => {
-                      document.body.style.overflow = ""
-                      setIsMenuOpen(false)
+                      document.body.style.overflow = "";
+                      setIsMenuOpen(false);
                     }}
                   >
                     <Button
@@ -418,5 +467,5 @@ export function Header() {
         )}
       </AnimatePresence>
     </>
-  )
+  );
 }
