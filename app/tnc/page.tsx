@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { TncHeader } from "@/components/tnc/tnc-header";
+import COMPANY_DATA from "@/lib/conpany-config";
 
 // Company configuration - easily changeable
 const COMPANY_CONFIG = {
-  name: "Zooptics",
-  displayName: "zooptics.com",
-  supportEmail: "support@zooptics.com",
-  description: "an AI marketing automation application",
+  name: COMPANY_DATA.name,
+  displayName: COMPANY_DATA.displayName,
+  supportEmail: COMPANY_DATA.supportEmail,
+  description: COMPANY_DATA.description,
   serviceDescription:
     "an AI-powered growth hacking tool designed to help businesses optimize their marketing strategies",
   jurisdiction: "the jurisdiction in which Zooptics operates",
@@ -426,9 +427,15 @@ export default function TermsOfServicePage() {
                 22. Third Party Data Responsibility and Compliance
               </h2>
               <p className="mt-2">
-              {COMPANY_CONFIG.name} takes full responsibility for all data collected, processed, or displayed through the Service. The Service only accesses publicly available data and does not retrieve or display content that is behind login walls or restricted access areas.
-              {COMPANY_CONFIG.name} will respond promptly to any data subject requests, including requests for access, correction, or deletion of personal data, in accordance with applicable data protection and privacy laws.
-
+                {COMPANY_CONFIG.name} takes full responsibility for all data
+                collected, processed, or displayed through the Service. The
+                Service only accesses publicly available data and does not
+                retrieve or display content that is behind login walls or
+                restricted access areas.
+                {COMPANY_CONFIG.name} will respond promptly to any data subject
+                requests, including requests for access, correction, or deletion
+                of personal data, in accordance with applicable data protection
+                and privacy laws.
               </p>
             </section>
             <Separator />

@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { TncHeader } from "@/components/tnc/tnc-header";
+import COMPANY_DATA from "@/lib/conpany-config";
 
 // Company configuration - easily changeable
 const COMPANY_CONFIG = {
-  name: "Zooptics",
-  displayName: "zooptics.com",
-  supportEmail: "support@zooptics.com",
-  appName: "Zooptics",
-  description: "an AI marketing automation application",
+  name: COMPANY_DATA.name,
+  displayName: COMPANY_DATA.displayName,
+  supportEmail: COMPANY_DATA.supportEmail,
+  appName: COMPANY_DATA.name,
+  description: COMPANY_DATA.description,
   jurisdiction: "New Delhi, India",
   arbitrationBody: "New Delhi, India",
   lastUpdated: "August, 2025",
