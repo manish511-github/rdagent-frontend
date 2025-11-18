@@ -1,76 +1,93 @@
-import type React from "react"
-import { LogOut, MoveUpRight, Settings, CreditCard, HelpCircle } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
-import Cookies from "js-cookie"
-import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast"
-import { useSelector } from "react-redux"
-import type { RootState } from "@/store/store"
+import type React from "react";
+import {
+  LogOut,
+  MoveUpRight,
+  Settings,
+  HelpCircle,
+  CreditCard,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import Cookies from "js-cookie";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store/store";
+import {
+  selectCreditsLimitUsed,
+  selectCreditsLimitTotal,
+} from "@/store/slices/userSlice";
 import { getApiUrl } from "../../lib/config";
 
 interface MenuItem {
-  label: string
-  value?: string
-  href: string
-  icon?: React.ReactNode
-  external?: boolean
+  label: string;
+  value?: string;
+  href: string;
+  icon?: React.ReactNode;
+  external?: boolean;
 }
 
 const defaultProfile = {
   name: "Alex Morgan",
-  avatar: "https://ferf1mheo22r9ira.public.blob.vercel-storage.com/avatar-02-albo9B0tWOSLXCVZh9rX9KFxXIVWMr.png",
+  avatar:
+    "https://ferf1mheo22r9ira.public.blob.vercel-storage.com/avatar-02-albo9B0tWOSLXCVZh9rX9KFxXIVWMr.png",
   subscription: "Pro Plan",
-}
+};
 
 export default function Profile01() {
   // Get user info from Redux
-  const userInfo = useSelector((state: RootState) => state.user.info)
-  const name = userInfo?.username || defaultProfile.name
+  const userInfo = useSelector((state: RootState) => state.user.info);
+  const name = userInfo?.username || defaultProfile.name;
   // UserInfo does not have an avatar field, so always use default avatar
-  const avatar = defaultProfile.avatar
-  // Map tier to display label
-  let subscriptionLabel = ""
-  switch (userInfo?.subscription?.tier) {
-    case "trial":
-      subscriptionLabel = "Trial"
-      break
-    case "basic":
-      subscriptionLabel = "Basic"
-      break
-    case "pro":
-      subscriptionLabel = "Pro"
-      break
-    case "enterprise":
-      subscriptionLabel = "Enterprise"
-      break
-    default:
-      subscriptionLabel = ""
-  }
+  const avatar = defaultProfile.avatar;
+
+  // Get credits information
+  const creditsUsed = useSelector(selectCreditsLimitUsed);
+  const creditsTotal = useSelector(selectCreditsLimitTotal);
+  const creditsLeft = creditsTotal - creditsUsed;
 
   const menuItems: MenuItem[] = [
     {
       label: "Subscription",
-      value: subscriptionLabel,
-      href: "#",
+      value: userInfo?.plan?.name || "No plans",
+      href: "/settings?section=billing",
       icon: <CreditCard className="w-4 h-4" />,
       external: false,
     },
     {
       label: "Settings",
-      href: "#",
+      href: "/settings",
       icon: <Settings className="w-4 h-4" />,
     },
     {
       label: "Help & Support",
-      href: "#",
+      href: "/contact",
       icon: <HelpCircle className="w-4 h-4" />,
       external: true,
     },
-  ]
+  ];
 
-  const router = useRouter()
-  const { toast } = useToast()
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await fetch(getApiUrl("auth/logout"), {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (e) {
+      // Ignore errors, just clear tokens
+    }
+    Cookies.remove("access_token");
+    Cookies.remove("refresh_token");
+    toast({
+      title: "Logged out",
+      description: "You have been logged out successfully.",
+      variant: "default",
+    });
+    router.push("/login");
+  };
 
   return (
     <div className="w-full max-w-xs mx-auto">
@@ -90,7 +107,19 @@ export default function Profile01() {
 
             {/* Profile Info */}
             <div className="flex-1">
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{name}</h2>
+              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                {name}
+              </h2>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                {userInfo?.email}
+              </p>
+              {(userInfo?.plan?.name || creditsTotal > 0) && (
+                <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-2">
+                  {userInfo?.plan?.name}
+                  {userInfo?.plan?.name && creditsTotal >= 0 && " • "}
+                  {creditsTotal >= 0 && `${creditsLeft} credits left`}
+                </p>
+              )}
             </div>
           </div>
           <div className="h-px bg-zinc-200 dark:bg-zinc-800 my-5" />
@@ -105,10 +134,16 @@ export default function Profile01() {
               >
                 <div className="flex items-center gap-2">
                   {item.icon}
-                  <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100">{item.label}</span>
+                  <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
+                    {item.label}
+                  </span>
                 </div>
                 <div className="flex items-center">
-                  {item.value && <span className="text-xs text-zinc-500 dark:text-zinc-400 mr-2">{item.value}</span>}
+                  {item.value && (
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 mr-2">
+                      {item.value}
+                    </span>
+                  )}
                   {item.external && <MoveUpRight className="w-4 h-4" />}
                 </div>
               </Link>
@@ -119,33 +154,18 @@ export default function Profile01() {
               className="w-full flex items-center justify-between p-1.5 
                                 hover:bg-zinc-50 dark:hover:bg-zinc-800/70 
                                 rounded-lg transition-colors duration-200"
-              onClick={async () => {
-                try {
-                  await fetch(getApiUrl("auth/logout"), {
-                    method: "POST",
-                    credentials: "include",
-                  });
-                } catch (e) {
-                  // Ignore errors, just clear tokens
-                }
-                Cookies.remove("access_token");
-                Cookies.remove("refresh_token");
-                toast({
-                  title: "Logged out",
-                  description: "You have been logged out successfully.",
-                  variant: "default",
-                });
-                router.push("/login");
-              }}
+              onClick={handleLogout}
             >
               <div className="flex items-center gap-2">
                 <LogOut className="w-4 h-4" />
-                <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Logout</span>
+                <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
+                  Logout
+                </span>
               </div>
             </button>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
