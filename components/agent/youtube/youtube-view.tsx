@@ -425,7 +425,7 @@ const YoutubeContentView = ({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 -mt-1 -mr-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="h-6 w-6 -mt-1 -mr-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0"
                           onClick={(e) => {
                             e.stopPropagation();
                             window.open(video.video_url, "_blank", "noopener,noreferrer");
@@ -436,25 +436,23 @@ const YoutubeContentView = ({
                         </Button>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <span className="truncate max-w-[140px]">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                      <span className="truncate max-w-[160px] font-medium text-gray-900 dark:text-gray-100">
                         {video.channel_name}
                       </span>
                       {video.view_count != null && (
-                        <>
-                          <span>•</span>
-                          <span>
-                            {video.view_count.toLocaleString()} views
-                          </span>
-                        </>
+                        <span className="inline-flex items-center gap-1">
+                          <Eye className="h-3 w-3" />
+                          <span>{video.view_count.toLocaleString()} views</span>
+                        </span>
                       )}
                       {video.engagement_rate != null && (
-                        <>
-                          <span>•</span>
+                        <span className="inline-flex items-center gap-1">
+                          <Activity className="h-3 w-3" />
                           <span>
                             {(video.engagement_rate * 100).toFixed(1)}% ER
                           </span>
-                        </>
+                        </span>
                       )}
                     </div>
                     {video.description && (
@@ -462,24 +460,37 @@ const YoutubeContentView = ({
                         {video.description}
                       </p>
                     )}
-                    <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[11px]">
                       {video.like_count != null && (
-                        <span className="inline-flex items-center gap-1">
+                        <Badge
+                          variant="outline"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-normal border-gray-300 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/60"
+                        >
                           <ThumbsUp className="h-3 w-3" />
-                          {video.like_count.toLocaleString()} likes
-                        </span>
+                          <span>{video.like_count.toLocaleString()} likes</span>
+                        </Badge>
                       )}
                       {video.comment_count != null && (
-                        <span className="inline-flex items-center gap-1">
+                        <Badge
+                          variant="outline"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-normal border-gray-300 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/60"
+                        >
                           <MessageCircle className="h-3 w-3" />
-                          {video.comment_count.toLocaleString()} comments
-                        </span>
+                          <span>
+                            {video.comment_count.toLocaleString()} comments
+                          </span>
+                        </Badge>
                       )}
                       {video.brand_mentions && video.brand_mentions.length > 0 && (
-                        <span className="inline-flex items-center gap-1">
+                        <Badge
+                          variant="outline"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-normal border-cyan-400/70 text-cyan-700 dark:text-cyan-300 bg-cyan-50/70 dark:bg-cyan-900/20"
+                        >
                           <span className="inline-block h-2 w-2 rounded-full bg-cyan-500" />
-                          {video.brand_mentions.length} brand mentions
-                        </span>
+                          <span>
+                            {video.brand_mentions.length} brand mentions
+                          </span>
+                        </Badge>
                       )}
                     </div>
                     {video.matched_query && (

@@ -45,6 +45,7 @@ import {
   Users,
   LoaderCircle,
   Smile,
+  Eye,
 } from "lucide-react";
 import { PlatformIcon } from "@/components/kokonutui/platform-icons";
 import { toast } from "@/components/ui/use-toast";
@@ -56,6 +57,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 const platforms = [
   { value: "reddit", label: "Reddit", icon: "reddit" },
   { value: "hackernews", label: "HackerNews", icon: "hackernews" },
+  { value: "youtube", label: "YouTube", icon: "youtube" },
   // { value: "linkedin", label: "LinkedIn", icon: "linkedin" },
   { value: "twitter", label: "Twitter", icon: "twitter", comingSoon: true },
   {
@@ -109,6 +111,8 @@ const getPlatformGradient = (platform: string) => {
       return "from-purple-500 to-pink-600";
     case "hackernews":
       return "from-orange-500 to-red-600";
+    case "youtube":
+      return "from-red-500 to-red-600";
     case "email":
       return "from-emerald-500 to-teal-600";
     default:
@@ -182,6 +186,10 @@ type PlatformSettings = {
     reviewPeriod: string;
     action: string;
     targetAudience?: string;
+  };
+  youtube?: {
+    minViews: number;
+    maxAgeDays: number;
   };
 };
 
@@ -475,6 +483,16 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
           keywords: redditSettings.keywords,
         },
       };
+    } else if (formData.platform === "youtube") {
+      const youtubeSettings: Partial<PlatformSettings["youtube"]> =
+        platform_settings.youtube || {};
+      platform_settings = {
+        ...platform_settings,
+        youtube: {
+          minViews: youtubeSettings.minViews ?? 100,
+          maxAgeDays: youtubeSettings.maxAgeDays ?? 365,
+        },
+      };
     }
     const newAgent = {
       agent_name: formData.name,
@@ -599,6 +617,57 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                 <Label htmlFor="monitorComments">
                   Also check keywords in comments
                 </Label>
+              </div>
+            </div>
+          </div>
+        );
+      case "youtube":
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="minViews">Minimum Views</Label>
+                </div>
+                <Input
+                  id="minViews"
+                  type="number"
+                  min="0"
+                  placeholder="e.g., 100"
+                  value={formData.platformSettings.youtube?.minViews || ""}
+                  onChange={(e) =>
+                    handlePlatformSettingChange(
+                      "minViews",
+                      e.target.value ? parseInt(e.target.value) : 0
+                    )
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Minimum number of views required for a video to be considered
+                </p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="maxAgeDays">Maximum Age (Days)</Label>
+                </div>
+                <Input
+                  id="maxAgeDays"
+                  type="number"
+                  min="0"
+                  placeholder="e.g., 365"
+                  value={formData.platformSettings.youtube?.maxAgeDays || ""}
+                  onChange={(e) =>
+                    handlePlatformSettingChange(
+                      "maxAgeDays",
+                      e.target.value ? parseInt(e.target.value) : 0
+                    )
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Maximum age of videos in days to be considered
+                </p>
               </div>
             </div>
           </div>
@@ -1081,7 +1150,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
               </div>
 
               {/* Account Connection Section */}
-              {formData.platform && formData.platform !== "hackernews" && (
+              {formData.platform && formData.platform !== "hackernews" && formData.platform !== "youtube" && (
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">
                     Account Connection
@@ -1641,6 +1710,50 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                               {formData.platformSettings.twitter?.sentiment ||
                                 "Not set"}
                             </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {formData.platform === "youtube" && (
+                      <>
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Eye className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                              Minimum Views
+                            </span>
+                          </div>
+                          <div className="text-xs">
+                            {formData.platformSettings.youtube?.minViews ? (
+                              <span className="text-slate-600 dark:text-slate-400">
+                                {formData.platformSettings.youtube.minViews.toLocaleString()}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
+                                Not set
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Clock className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                              Maximum Age (Days)
+                            </span>
+                          </div>
+                          <div className="text-xs">
+                            {formData.platformSettings.youtube?.maxAgeDays ? (
+                              <span className="text-slate-600 dark:text-slate-400">
+                                {formData.platformSettings.youtube.maxAgeDays} days
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-medium border border-slate-200/50 dark:border-slate-700/50">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"></span>
+                                Not set
+                              </span>
+                            )}
                           </div>
                         </div>
                       </>
