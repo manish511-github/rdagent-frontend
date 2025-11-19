@@ -5,6 +5,7 @@ import {
   Instagram,
   Mail,
   MessageSquare,
+  Youtube,
 } from "lucide-react";
 
 export function RedditIcon(props: SVGProps<SVGSVGElement>) {
@@ -176,6 +177,8 @@ export function PlatformIcon({
       return <TiktokIcon className={className} />;
     case "hackernews":
       return <HackerNewsIcon className={className} />;
+    case "youtube":
+      return <Youtube className={className} />;
     default:
       return <MessageSquare className={className} />;
   }
