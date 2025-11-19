@@ -32,6 +32,11 @@ import {
   Clock,
   ThumbsUp,
   MessageCircle,
+  Eye,
+  Activity,
+  Sparkles,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 
 type YoutubeVideo = {
@@ -57,6 +62,7 @@ type YoutubeVideo = {
   search_method?: string | null;
   brand_mentions?: string[];
   sentiment?: string | null;
+  relevance_summary?: string | null;
 };
 
 interface YoutubeViewProps {
@@ -364,25 +370,32 @@ const YoutubeContentView = ({
   videos,
   selectedVideoId,
   onSelectVideo,
+  showDetails,
 }: {
   videos: YoutubeVideo[];
   selectedVideoId: string | null;
   onSelectVideo: (id: string) => void;
+  showDetails: boolean;
 }) => {
   return (
     <div className="flex flex-1 min-h-0 mx-3 overflow-hidden gap-2">
-      <div className="flex flex-col min-h-0 min-w-0 overflow-hidden border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/60 flex-[2]">
+      {/* List pane */}
+      <div
+        className={cn(
+          "flex flex-col min-h-0 min-w-0 overflow-hidden border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/60 transition-all duration-300 ease-in-out",
+          showDetails ? "flex-[3]" : "flex-1"
+        )}
+      >
         <ScrollArea className="h-full">
           <div className="divide-y divide-gray-200 dark:divide-gray-800">
             {videos.map((video) => {
               const isSelected = video.video_id === selectedVideoId;
               return (
-                <button
+                <div
                   key={video.video_id}
-                  type="button"
                   onClick={() => onSelectVideo(video.video_id)}
                   className={cn(
-                    "w-full text-left p-3 flex gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors",
+                    "w-full text-left p-3 flex gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors cursor-pointer group",
                     isSelected &&
                       "bg-blue-50/60 dark:bg-blue-900/20 border-l-4 border-l-blue-500 dark:border-l-blue-400"
                   )}
@@ -404,10 +417,24 @@ const YoutubeContentView = ({
                     )}
                   </div>
                   <div className="min-w-0 flex-1 flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold line-clamp-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-sm font-semibold line-clamp-2 leading-tight">
                         {video.title}
                       </h3>
+                      {video.video_url && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 -mt-1 -mr-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(video.video_url, "_blank", "noopener,noreferrer");
+                          }}
+                          title="Open in YouTube"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                       <span className="truncate max-w-[140px]">
@@ -430,34 +457,89 @@ const YoutubeContentView = ({
                         </>
                       )}
                     </div>
+                    {video.description && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
+                        {video.description}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-muted-foreground">
+                      {video.like_count != null && (
+                        <span className="inline-flex items-center gap-1">
+                          <ThumbsUp className="h-3 w-3" />
+                          {video.like_count.toLocaleString()} likes
+                        </span>
+                      )}
+                      {video.comment_count != null && (
+                        <span className="inline-flex items-center gap-1">
+                          <MessageCircle className="h-3 w-3" />
+                          {video.comment_count.toLocaleString()} comments
+                        </span>
+                      )}
+                      {video.brand_mentions && video.brand_mentions.length > 0 && (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="inline-block h-2 w-2 rounded-full bg-cyan-500" />
+                          {video.brand_mentions.length} brand mentions
+                        </span>
+                      )}
+                    </div>
                     {video.matched_query && (
                       <div className="text-[11px] text-blue-600 dark:text-blue-400 truncate">
                         Matched: {video.matched_query}
                       </div>
                     )}
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
         </ScrollArea>
       </div>
 
-      <div className="flex flex-col min-w-0 min-h-0 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/60 overflow-hidden flex-[3]">
-        {!selectedVideoId ? (
-          <div className="flex flex-1 items-center justify-center p-6 text-sm text-muted-foreground">
-            Select a video to view details
-          </div>
-        ) : null}
-        {selectedVideoId && (
-          <YoutubeVideoDetails
-            video={videos.find((v) => v.video_id === selectedVideoId) || null}
-          />
-        )}
-      </div>
+      {/* Detail pane */}
+      {showDetails && (
+        <div className="flex flex-col min-w-0 min-h-0 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/60 overflow-hidden flex-[2] animate-in fade-in slide-in-from-right-5 duration-300">
+          {!selectedVideoId ? (
+            <div className="flex flex-1 items-center justify-center p-6 text-sm text-muted-foreground">
+              Select a video to view details
+            </div>
+          ) : null}
+          {selectedVideoId && (
+            <YoutubeVideoDetails
+              video={videos.find((v) => v.video_id === selectedVideoId) || null}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 };
+
+const StatsCard = ({
+  icon: Icon,
+  label,
+  value,
+  subValue,
+}: {
+  icon: any;
+  label: string;
+  value: string | number;
+  subValue?: string;
+}) => (
+  <div className="flex flex-col p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+    <div className="flex items-center gap-2 text-muted-foreground mb-1">
+      <Icon className="h-3.5 w-3.5" />
+      <span className="text-[10px] font-medium uppercase tracking-wider">
+        {label}
+      </span>
+    </div>
+    <div className="font-semibold text-sm truncate" title={value.toString()}>
+      {typeof value === "number" ? value.toLocaleString() : value}
+    </div>
+    {subValue && (
+      <div className="text-[10px] text-muted-foreground mt-0.5">{subValue}</div>
+    )}
+  </div>
+);
 
 const YoutubeVideoDetails = ({ video }: { video: YoutubeVideo | null }) => {
   if (!video) {
@@ -469,163 +551,181 @@ const YoutubeVideoDetails = ({ video }: { video: YoutubeVideo | null }) => {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-3 border-b border-gray-200 dark:border-gray-800">
-        <div className="flex items-start gap-3">
-          <div className="relative w-44 h-24 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+    <div className="flex flex-col h-full bg-gray-50/50 dark:bg-gray-900/30">
+      <div className="p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 space-y-4">
+        {/* Header Section */}
+        <div className="flex gap-4">
+          <div className="relative w-40 h-24 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 border border-gray-200 dark:border-gray-700">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={video.thumbnail_url}
               alt={video.title}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <PlayCircle className="h-9 w-9 text-white drop-shadow-lg" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+              <PlayCircle className="h-8 w-8 text-white drop-shadow-lg opacity-90" />
             </div>
             {video.duration && (
-              <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[11px] px-1.5 py-0.5 rounded">
+              <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1.5 py-0.5 rounded font-mono">
                 {video.duration}
               </span>
             )}
           </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold leading-snug line-clamp-2 mb-1">
-              {video.title}
-            </h2>
-            <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-2">
-              <span className="font-medium">{video.channel_name}</span>
-              {video.view_count != null && (
-                <>
-                  <span>•</span>
-                  <span>{video.view_count.toLocaleString()} views</span>
-                </>
-              )}
+          <div className="flex-1 min-w-0 py-0.5">
+            <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 font-medium mb-1.5">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded-full">
+                <YoutubeIcon className="h-3 w-3" />
+                <span className="truncate max-w-[200px]">
+                  {video.channel_name}
+                </span>
+              </div>
               {video.published_at && (
-                <>
-                  <span>•</span>
-                  <span>
-                    {new Date(video.published_at).toLocaleDateString()}
-                  </span>
-                </>
-              )}
-              {video.engagement_rate != null && (
-                <>
-                  <span>•</span>
-                  <span>
-                    Engagement{" "}
-                    {(video.engagement_rate * 100).toFixed(1).toString()}%
-                  </span>
-                </>
+                <span className="text-muted-foreground">
+                  • {new Date(video.published_at).toLocaleDateString()}
+                </span>
               )}
             </div>
-            {video.video_url && (
+            <h2 className="text-base font-bold leading-snug line-clamp-2 mb-2 text-foreground">
+              {video.title}
+            </h2>
+            <div className="flex items-center gap-3 text-xs">
               <Button
                 asChild
                 variant="outline"
                 size="sm"
-                className="mt-2 h-8 text-xs"
+                className="h-7 text-xs gap-1.5"
               >
                 <a
                   href={video.video_url}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                  <ExternalLink className="h-3 w-3" />
                   Open on YouTube
                 </a>
               </Button>
-            )}
+            </div>
           </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-4 gap-2">
+          <StatsCard
+            icon={Eye}
+            label="Views"
+            value={video.view_count || 0}
+          />
+          <StatsCard
+            icon={ThumbsUp}
+            label="Likes"
+            value={video.like_count || 0}
+          />
+          <StatsCard
+            icon={MessageCircle}
+            label="Comments"
+            value={video.comment_count || 0}
+          />
+          <StatsCard
+            icon={Activity}
+            label="Engagement"
+            value={
+              video.engagement_rate
+                ? `${(video.engagement_rate * 100).toFixed(1)}%`
+                : "—"
+            }
+          />
         </div>
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-3">
-          <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
-            <CardContent className="p-3">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                <div className="flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                  <div>
-                    <div className="text-muted-foreground">Duration</div>
-                    <div className="font-medium">
-                      {video.duration || "Unknown"}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <ThumbsUp className="h-3.5 w-3.5 text-muted-foreground" />
-                  <div>
-                    <div className="text-muted-foreground">Likes</div>
-                    <div className="font-medium">
-                      {video.like_count != null
-                        ? video.like_count.toLocaleString()
-                        : "—"}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                  <div>
-                    <div className="text-muted-foreground">Comments</div>
-                    <div className="font-medium">
-                      {video.comment_count != null
-                        ? video.comment_count.toLocaleString()
-                        : "—"}
-                    </div>
-                  </div>
-                </div>
-                {video.matched_query && (
-                  <div>
-                    <div className="text-muted-foreground">Matched Query</div>
-                    <div className="font-medium truncate">
-                      {video.matched_query}
-                    </div>
-                  </div>
-                )}
+        <div className="p-4 space-y-4">
+          {/* AI Analysis Section */}
+          {(video.relevance_summary ||
+            video.sentiment ||
+            video.relevance_score ||
+            video.matched_query) && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 px-1">
+                <Sparkles className="h-4 w-4 text-purple-500" />
+                <h3 className="text-sm font-semibold">AI Analysis</h3>
               </div>
-            </CardContent>
-          </Card>
+              <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+                <CardContent className="p-4 space-y-4">
+                  {video.relevance_summary && (
+                    <div className="text-sm text-muted-foreground leading-relaxed">
+                      {video.relevance_summary}
+                    </div>
+                  )}
 
-          {video.description && (
-            <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
-              <CardContent className="p-3">
-                <h3 className="text-xs font-semibold mb-2">Description</h3>
-                <p className="text-xs text-muted-foreground whitespace-pre-line">
-                  {video.description}
+                  <div className="flex flex-wrap gap-3 pt-2 border-t border-dashed border-gray-200 dark:border-gray-800">
+                    {video.matched_query && (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          Matched Query
+                        </span>
+                        <span className="text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
+                          {video.matched_query}
+                        </span>
+                      </div>
+                    )}
+                    {video.sentiment && (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          Sentiment
+                        </span>
+                        <span className="text-xs font-medium capitalize px-2 py-1 rounded bg-gray-100 dark:bg-gray-800">
+                          {video.sentiment}
+                        </span>
+                      </div>
+                    )}
+                    {video.relevance_score != null && (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          Relevance
+                        </span>
+                        <span className="text-xs font-medium px-2 py-1 rounded bg-gray-100 dark:bg-gray-800">
+                          {(video.relevance_score * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Description */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <h3 className="text-sm font-semibold">Description</h3>
+            </div>
+            <Card className="bg-white dark:bg-gray-900/60 border-gray-200 dark:border-gray-800">
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed line-clamp-[10]">
+                  {video.description || "No description available."}
                 </p>
               </CardContent>
             </Card>
-          )}
+          </div>
 
-          {video.caption_text && (
-            <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
-              <CardContent className="p-3">
-                <h3 className="text-xs font-semibold mb-2">Transcript Snippet</h3>
-                <p className="text-xs text-muted-foreground line-clamp-6">
-                  {video.caption_text}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
+          {/* Brand Mentions */}
           {video.brand_mentions && video.brand_mentions.length > 0 && (
-            <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
-              <CardContent className="p-3">
-                <h3 className="text-xs font-semibold mb-2">Brand Mentions</h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {video.brand_mentions.map((b) => (
-                    <Badge
-                      key={b}
-                      variant="outline"
-                      className="text-[11px] px-2 py-0.5"
-                    >
-                      {b}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 px-1">
+                <h3 className="text-sm font-semibold">Brand Mentions</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {video.brand_mentions.map((b) => (
+                  <Badge
+                    key={b}
+                    variant="secondary"
+                    className="px-2.5 py-1 text-xs bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm"
+                  >
+                    {b}
+                  </Badge>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </ScrollArea>
@@ -645,6 +745,7 @@ const YoutubeView: React.FC<YoutubeViewProps> = ({ agentId }) => {
     "content" | "performance" | "config"
   >("content");
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(true);
 
   const currentAgentIdRef = React.useRef<string | null>(null);
 
@@ -709,7 +810,7 @@ const YoutubeView: React.FC<YoutubeViewProps> = ({ agentId }) => {
               </div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-semibold">
-                  {agentDetails?.agent_name || agentData?.agent_name || "Agent"}
+                  {agentDetails?.agent_name || "Agent"}
                 </h1>
                 <Badge
                   variant="outline"
@@ -742,6 +843,22 @@ const YoutubeView: React.FC<YoutubeViewProps> = ({ agentId }) => {
 
           <div className="flex items-center gap-3 flex-shrink-0">
             <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+              {activeView === "content" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                  onClick={() => setShowDetails(!showDetails)}
+                  title={showDetails ? "Hide Details" : "Show Details"}
+                >
+                  {showDetails ? (
+                    <PanelRightClose className="h-4 w-4" />
+                  ) : (
+                    <PanelRightOpen className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+              <div className="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-1" />
               <Button
                 variant={activeView === "content" ? "default" : "ghost"}
                 size="sm"
@@ -795,6 +912,7 @@ const YoutubeView: React.FC<YoutubeViewProps> = ({ agentId }) => {
             videos={videos}
             selectedVideoId={selectedVideoId}
             onSelectVideo={setSelectedVideoId}
+            showDetails={showDetails}
           />
         )}
 
@@ -828,5 +946,3 @@ const YoutubeView: React.FC<YoutubeViewProps> = ({ agentId }) => {
 };
 
 export default YoutubeView;
-
-
