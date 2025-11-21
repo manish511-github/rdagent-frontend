@@ -92,7 +92,29 @@ export function LoginForm() {
         }),
       });
 
-      if (!response.ok) throw new Error("Invalid credentials");
+      if (!response.ok) {
+        // Check response status to determine error type
+        if (response.status === 401 || response.status === 403) {
+          // Invalid credentials
+          setErrors({ password: "Invalid email or password. Please try again." });
+          toast.error("Login Failed", {
+            description: "Invalid email or password. Please try again.",
+          });
+        } else if (response.status >= 500) {
+          // Server error
+          setErrors({ password: "Server error. Please try again later." });
+          toast.error("Server Error", {
+            description: "Something went wrong on our end. Please try again in a moment.",
+          });
+        } else {
+          // Other client errors (400, 404, etc.)
+          setErrors({ password: "An error occurred. Please try again." });
+          toast.error("Login Failed", {
+            description: "An unexpected error occurred. Please try again.",
+          });
+        }
+        return;
+      }
 
       const data = await response.json();
 
@@ -114,10 +136,20 @@ export function LoginForm() {
         window.location.href = "/projects";
       }, 1500);
     } catch (err) {
-      setErrors({ password: "Invalid email or password. Please try again." });
-      toast.error("Login Failed", {
-        description: "Invalid email or password. Please try again.",
-      });
+      // Network errors or other exceptions
+      const errorMessage = err instanceof Error ? err.message : "Network error";
+      
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
+        setErrors({ password: "Network error. Please check your connection." });
+        toast.error("Connection Error", {
+          description: "Unable to connect to the server. Please check your internet connection.",
+        });
+      } else {
+        setErrors({ password: "An unexpected error occurred. Please try again." });
+        toast.error("Login Failed", {
+          description: "An unexpected error occurred. Please try again.",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }

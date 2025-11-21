@@ -291,7 +291,7 @@ export default function UpgradePlan({
                           onClick={() => {
                             if (plan.name === "Trial") {
                               if (!isAuthenticated) router.push("/signup");
-                              else router.push("/dashboard");
+                              else router.push("/projects");
                               return;
                             }
                             if (!isAuthenticated) {

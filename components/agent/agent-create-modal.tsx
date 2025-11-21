@@ -1722,7 +1722,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                             <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
                               Minimum Views
                             </span>
-                          </div>
+                  </div>
                           <div className="text-xs">
                             {formData.platformSettings.youtube?.minViews ? (
                               <span className="text-slate-600 dark:text-slate-400">
@@ -1734,7 +1734,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                                 Not set
                               </span>
                             )}
-                          </div>
+                </div>
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5 mb-1">
