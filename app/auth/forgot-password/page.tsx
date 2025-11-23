@@ -61,16 +61,46 @@ export default function ForgotPasswordPage() {
       })
 
       if (!response.ok) {
-        const data = await response.json()
-
-        throw new Error(data.detail || 'Failed to send reset email')
+        let errorMessage = "Failed to send reset email";
+        
+        try {
+          const data = await response.json();
+          errorMessage = data.detail || errorMessage;
+        } catch {
+          // Handle non-JSON responses
+        }
+        
+        // Handle specific status codes
+        if (response.status === 401) {
+          toast.error("Email Not Found", {
+            description: errorMessage,
+          });
+        } else if (response.status === 403) {
+          toast.error("Account Issue", {
+            description: errorMessage,
+          });
+        } else if (response.status >= 500) {
+          toast.error("Server Error", {
+            description: "Something went wrong on our end. Please try again in a moment.",
+          });
+        } else {
+          toast.error("Request Failed", {
+            description: errorMessage,
+          });
+        }
+        return;
       }
 
       setIsSubmitted(true)
       toast.success('Password reset email sent. Please check your inbox.')
     } catch (error) {
+      // Network errors or other exceptions
+      if (error instanceof Error && !error.message.includes("Failed to send reset email")) {
       console.error('Error sending password reset email', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to send reset email')
+        toast.error("Connection Error", {
+          description: "Unable to connect to the server. Please check your internet connection.",
+        });
+      }
     } finally {
       setIsSubmitting(false)
     }

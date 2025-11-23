@@ -16,6 +16,7 @@ import { useSelector } from "react-redux"
 import type { RootState } from "@/store/store"
 import { getApiUrl } from "../../../lib/config";
 import { useTheme } from "next-themes"
+import Cookies from "js-cookie"
 
 interface TransactionDetails {
   transaction_id: string
@@ -59,6 +60,10 @@ function PaymentSuccessContent() {
             method: "POST", // Assuming you need to POST the transaction ID
             headers: {
               "Content-Type": "application/json",
+              // Backend derives user from access token; include it here
+              ...(Cookies.get("access_token")
+                ? { Authorization: `Bearer ${Cookies.get("access_token")}` }
+                : {}),
             },
             body: JSON.stringify({ transaction_id: txnId }),
           })
@@ -163,7 +168,7 @@ function PaymentSuccessContent() {
               >
                 Back to pricing
               </Button>
-            </div>
+        </div>
           </CardContent>
         </Card>
       </div>
@@ -195,7 +200,7 @@ function PaymentSuccessContent() {
             zooptics
           </span>
         </Link>
-      </div>
+          </div>
 
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 pb-6">
@@ -203,21 +208,21 @@ function PaymentSuccessContent() {
             <div className="flex items-center gap-2">
               <div className="inline-flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full">
                 <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
+                  </div>
+                    <div>
                 <CardTitle className="text-lg">Payment successful</CardTitle>
                 <CardDescription className="text-sm">
                   Your subscription is now active.
                 </CardDescription>
-              </div>
-            </div>
-            <Badge
-              variant="default"
+                    </div>
+                  </div>
+                      <Badge
+                        variant="default"
               className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs px-2 py-0.5"
-            >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
-          </div>
+                      >
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </Badge>
+                    </div>
         </CardHeader>
         <CardContent className="space-y-6 pt-4 pb-6">
           <div className="flex items-baseline justify-between">
@@ -227,7 +232,7 @@ function PaymentSuccessContent() {
                 ${amountPaid}{" "}
                 <span className="text-sm text-muted-foreground">{currency}</span>
               </p>
-            </div>
+                  </div>
             <div className="text-right">
               <p className="text-sm text-muted-foreground mb-0.5">Plan</p>
               <p className="text-base font-medium truncate max-w-[140px]">
@@ -236,10 +241,10 @@ function PaymentSuccessContent() {
               <p className="text-xs text-muted-foreground">
                 Billed {billingInterval}
               </p>
-            </div>
-          </div>
+                </div>
+              </div>
 
-          <Separator />
+              <Separator />
 
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="space-y-1">
@@ -247,17 +252,17 @@ function PaymentSuccessContent() {
               <p className="font-mono text-xs break-all">
                 {transactionId}
               </p>
-            </div>
+                  </div>
             <div className="space-y-1 text-right">
               <p className="text-xs text-muted-foreground">Billed on</p>
               <p className="text-sm">{billedAt}</p>
-            </div>
-          </div>
+                </div>
+              </div>
 
           <div className="space-y-1 text-xs text-muted-foreground">
             <p>{customerName}</p>
             <p>{customerEmail}</p>
-          </div>
+              </div>
 
           <div className="flex flex-col sm:flex-row gap-2 pt-8">
             <Button
@@ -306,3 +311,4 @@ export default function PaymentSuccessPage() {
     </Suspense>
   )
 }
+

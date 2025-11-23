@@ -1,19 +1,15 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { AuthLoading } from "@/components/auth/auth-loading";
-import { AuthRedirect } from "@/components/auth/auth-redirect";
-import Layout from "@/components/kokonutui/layout";
-import AccountSettings from "@/components/settings-components/account-settings";
-import BillingSettings from "@/components/settings-components/billing-settings";
+import { Suspense } from "react"
+import { useAuthGuard } from "@/hooks/useAuthGuard"
+import { AuthLoading } from "@/components/auth/auth-loading"
+import { AuthRedirect } from "@/components/auth/auth-redirect"
+import Layout from "@/components/kokonutui/layout"
+import PersonalSettings from "@/app/settings/components/personal-settings"
+import BillingSettings from "@/app/settings/components/billing-settings"
 
 function SettingsContent() {
-  const searchParams = useSearchParams();
-  const section = searchParams?.get("section") || "account";
-
   const { isAuthenticated, isLoading, showRedirectMessage } = useAuthGuard({
     redirectTo: "/login",
     toastTitle: "Authentication Required",
@@ -42,18 +38,12 @@ function SettingsContent() {
     return null;
   }
 
-  const renderContent = () => {
-    switch (section) {
-      case "billing":
-        return <BillingSettings />;
-      default:
-        return <AccountSettings />;
-    }
-  };
-
   return (
     <Layout>
-      <div className="p-6">{renderContent()}</div>
+      <div className="p-6 space-y-8">
+        <PersonalSettings />
+        <BillingSettings />
+      </div>
     </Layout>
   );
 }

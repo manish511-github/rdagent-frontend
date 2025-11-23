@@ -148,9 +148,9 @@ export default function Sidebar({ currentProject }: SidebarProps) {
               <NavItem href="/settings" icon={Settings} isCollapsed={isCollapsed} isMounted={isMounted}>
                 Settings
               </NavItem>
-              <NavItem href="#" icon={HelpCircle} isCollapsed={isCollapsed} isMounted={isMounted}>
+              {/* <NavItem href="#" icon={HelpCircle} isCollapsed={isCollapsed} isMounted={isMounted}>
                 Help
-              </NavItem>
+              </NavItem> */}
             </div>
           </div>
         </div>

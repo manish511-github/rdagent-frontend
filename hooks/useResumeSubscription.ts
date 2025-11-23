@@ -1,13 +1,12 @@
 import { useState } from "react";
 import Cookies from "js-cookie";
-import { useToast } from "@/components/ui/use-toast";
 import { useDispatch } from "react-redux";
 import { fetchUser } from "@/store/slices/userSlice";
 import { getApiUrl } from "../lib/config";
+import { toast } from "sonner";
 
 export function useResumeSubscription() {
   const [isResuming, setIsResuming] = useState(false);
-  const { toast } = useToast();
   const dispatch = useDispatch();
 
   const resumeSubscription = async (userId: number) => {
@@ -20,17 +19,16 @@ export function useResumeSubscription() {
           "Authorization": `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ user_id: userId }),
+        // Backend derives user from access token; no need to send user_id
+        body: JSON.stringify({}),
       });
       if (!response.ok) {
         throw new Error("Failed to resume subscription");
       }
       const data = await response.json();
       if (data.success) {
-        toast({
-          title: "Subscription Resumed",
+        toast.success("Subscription resumed", {
           description: data.message || "Your subscription cancellation has been removed.",
-          variant: "default",
         });
       setTimeout(() => {
         (dispatch as any)(fetchUser());
@@ -40,10 +38,8 @@ export function useResumeSubscription() {
       }
     } catch (error) {
       console.error("Resume subscription error:", error);
-      toast({
-        title: "Resume Error",
+      toast.error("Resume error", {
         description: "Failed to resume subscription. Please try again.",
-        variant: "destructive",
       });
     } finally {
       setIsResuming(false);

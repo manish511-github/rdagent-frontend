@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { usePayment } from "@/hooks/usePayment";
 import { useSelector } from "react-redux";
@@ -164,7 +164,6 @@ export default function UpgradePlan({
   currentBillingType
 }: UpgradePlanProps) {
   const router = useRouter();
-  const { toast } = useToast();
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { handlePayment, isLoading } = usePayment();
@@ -289,6 +288,12 @@ export default function UpgradePlan({
                           variant={plan.popular ? "default" : "outline"}
                           className="gap-4 w-full"
                           onClick={() => {
+                            // If this is the current plan, do not initiate a new checkout
+                            if (currentPlanId === plan.id) {
+                              toast("You’re already subscribed to this plan.");
+                              return;
+                            }
+
                             if (plan.name === "Trial") {
                               if (!isAuthenticated) router.push("/signup");
                               else router.push("/projects");
@@ -300,7 +305,7 @@ export default function UpgradePlan({
                               handlePlanSelect(plan.id, userEmail);
                             }
                           }}
-                          disabled={isLoading}
+                          disabled={isLoading || currentPlanId === plan.id}
                         >
                           {isLoading && selectedPlan === plan.id ? (
                             "Processing..."
