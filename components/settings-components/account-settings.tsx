@@ -2,19 +2,15 @@
 
 import { useState } from "react";
 import { useSelector } from "react-redux";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, Key, Settings, User, Mail } from "lucide-react";
+import { User, Mail } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { selectPlanName, selectUserInfo } from "@/store/slices/userSlice";
+import { selectUserInfo } from "@/store/slices/userSlice";
 
 export default function AccountSettings() {
   const [saveLoading, setSaveLoading] = useState(false);
-  const planName = useSelector(selectPlanName);
   const userInfo = useSelector(selectUserInfo);
 
   // Handler for saving personal information
@@ -36,7 +32,7 @@ export default function AccountSettings() {
           <div>
             <h1 className="text-2xl font-semibold">Account Settings</h1>
             <p className="text-muted-foreground text-sm">
-              Manage your account information and security settings
+              Manage your account information
             </p>
           </div>
         </div>
@@ -45,60 +41,8 @@ export default function AccountSettings() {
           onSave={handleSavePersonalInfo}
           userInfo={userInfo}
         />
-        <AccountStatusSection planName={planName} />
-        <SecuritySection />
       </div>
     </div>
-  );
-}
-
-// Account Status Section Component
-function AccountStatusSection({ planName }: { planName: string }) {
-  return (
-    <Card className="mb-8 p-0">
-      <CardContent className="p-6">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <CheckCircle className="h-5 w-5" />
-            Account Status
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Your current account information
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label className="text-sm font-medium">Account Status</Label>
-              <p className="text-sm text-muted-foreground">
-                Your account is currently active
-              </p>
-            </div>
-            <Badge
-              variant="outline"
-              className="border-green-200 bg-green-50 text-green-700"
-            >
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Active
-            </Badge>
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label className="text-sm font-medium">Account Type</Label>
-              <p className="text-sm text-muted-foreground">
-                Professional Account
-              </p>
-            </div>
-            <Badge variant="secondary">
-              <Settings className="h-3 w-3 mr-1" />
-              {planName}
-            </Badge>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -113,8 +57,7 @@ function PersonalInformationSection({
   userInfo: any;
 }) {
   // Extract user data from store
-  const firstName = userInfo?.username?.split(" ")[0] || "";
-  const lastName = userInfo?.username?.split(" ").slice(1).join(" ") || "";
+  const username = userInfo?.username || "";
   const email = userInfo?.email || "";
 
   return (
@@ -122,37 +65,25 @@ function PersonalInformationSection({
       <CardContent className="p-6">
         <div className="mb-6">
           <h2 className="text-lg font-semibold">Personal Information</h2>
-          <p className="text-muted-foreground text-sm">
-            Update your personal details
-          </p>
         </div>
 
         <div className="space-y-6">
-          {/* Name Fields */}
+          {/* Username and Email Fields */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="firstName" className="flex items-center gap-2">
+              <Label htmlFor="username" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
-                First Name
+                Username
               </Label>
-              <Input id="firstName" defaultValue={firstName} disabled />
+              <Input id="username" defaultValue={username} disabled />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Last Name
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email Address
               </Label>
-              <Input id="lastName" defaultValue={lastName} disabled />
+              <Input id="email" type="email" defaultValue={email} disabled />
             </div>
-          </div>
-
-          {/* Email */}
-          <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              Email Address
-            </Label>
-            <Input id="email" type="email" defaultValue={email} disabled />
           </div>
 
           {/* Save Button */}
@@ -171,33 +102,3 @@ function PersonalInformationSection({
   );
 }
 
-// Security Section Component
-function SecuritySection() {
-  return (
-    <Card className="p-0">
-      <CardContent className="p-6">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold">Security</h2>
-          <p className="text-muted-foreground text-sm">
-            Manage your account security settings
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label className="text-sm font-medium">Password</Label>
-              <p className="text-sm text-muted-foreground">
-                Last changed 3 months ago
-              </p>
-            </div>
-            <Button variant="outline">
-              <Key className="mr-2 h-4 w-4" />
-              Change Password
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}

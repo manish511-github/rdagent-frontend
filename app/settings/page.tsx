@@ -6,8 +6,8 @@ import { useAuthGuard } from "@/hooks/useAuthGuard"
 import { AuthLoading } from "@/components/auth/auth-loading"
 import { AuthRedirect } from "@/components/auth/auth-redirect"
 import Layout from "@/components/kokonutui/layout"
-import PersonalSettings from "@/app/settings/components/personal-settings"
-import BillingSettings from "@/app/settings/components/billing-settings"
+import AccountSettings from "@/components/settings-components/account-settings"
+import BillingSettings from "@/components/settings-components/billing-settings"
 
 function SettingsContent() {
   const { isAuthenticated, isLoading, showRedirectMessage } = useAuthGuard({
@@ -41,7 +41,7 @@ function SettingsContent() {
   return (
     <Layout>
       <div className="p-6 space-y-8">
-        <PersonalSettings />
+        <AccountSettings />
         <BillingSettings />
       </div>
     </Layout>
