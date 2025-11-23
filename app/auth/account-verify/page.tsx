@@ -36,14 +36,37 @@ function AccountVerifyInner() {
           }),
         });
         if (!response.ok) {
-          const errorBody = await response.json().catch(() => ({}));
-          throw new Error(errorBody.detail || "Verification failed.");
+          let errorMessage = "Verification failed.";
+          
+          try {
+            const errorBody = await response.json();
+            errorMessage = errorBody.detail || errorMessage;
+          } catch {
+            // Handle non-JSON responses
+          }
+          
+          // Handle specific status codes
+          if (response.status === 401) {
+            setMessage("This verification link has expired or is invalid. Please request a new verification email.");
+          } else if (response.status === 404) {
+            setMessage("Invalid verification link. Please check your email for the correct link.");
+          } else if (response.status >= 500) {
+            setMessage("Server error. Please try again later.");
+          } else {
+            setMessage(errorMessage);
+          }
+          
+          setStatus("error");
+          return;
         }
         setStatus("success");
         setMessage("Your account has been verified! You can now sign in.");
       } catch (err: any) {
+        // Network errors or other exceptions
+        if (err.message && !err.message.includes("Verification failed")) {
         setStatus("error");
-        setMessage(err.message || "Verification failed.");
+          setMessage("Network error. Please check your connection and try again.");
+        }
       }
     };
     verifyAccount();

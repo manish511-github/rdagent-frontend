@@ -1,13 +1,12 @@
 import { useState } from "react";
 import Cookies from "js-cookie";
-import { useToast } from "@/components/ui/use-toast";
 import { useDispatch } from "react-redux";
 import { fetchUser } from "@/store/slices/userSlice";
 import { getApiUrl } from "../lib/config";
+import { toast } from "sonner";
 
 export function useCancelSubscription() {
   const [isCancelling, setIsCancelling] = useState(false);
-  const { toast } = useToast();
   const dispatch = useDispatch();
 
   const cancelSubscription = async (userId: number) => {
@@ -20,15 +19,14 @@ export function useCancelSubscription() {
           "Authorization": `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ user_id: userId }),
+        // Backend derives user from access token; no need to send user_id
+        body: JSON.stringify({}),
       });
       if (!response.ok) {
         throw new Error("Failed to cancel subscription");
       }
-      toast({
-        title: "Subscription Cancelled",
+      toast.success("Subscription cancelled", {
         description: "Your subscription has been cancelled successfully.",
-        variant: "default",
       });
       setTimeout(() => {
         (dispatch as any)(fetchUser());
@@ -36,10 +34,8 @@ export function useCancelSubscription() {
       return true;
     } catch (error) {
       console.error("Cancel subscription error:", error);
-      toast({
-        title: "Cancel Error",
+      toast.error("Cancel error", {
         description: "Failed to cancel subscription. Please try again.",
-        variant: "destructive",
       });
       return false;
     } finally {

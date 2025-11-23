@@ -2,16 +2,15 @@ import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "@/store/store";
 import { fetchUser } from "@/store/slices/userSlice";
 import Cookies from "js-cookie";
-import { useToast } from "@/components/ui/use-toast";
-import { getApiUrl } from '../lib/config';
+import { getApiUrl } from "../lib/config";
 import { useState } from "react";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { toast } from "sonner";
 
 
 export function usePayment() {
   const user = useSelector((state: RootState) => state.user.info);
   const dispatch = useDispatch();
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const { openCheckout } = usePaddleCheckout();
 
@@ -21,13 +20,11 @@ export function usePayment() {
     try {
       const accessToken = Cookies.get("access_token");
       const email = emailOverride || user?.email || "user@example.com";
-      const userId = user?.id;
       const status = user?.subscription?.status;
       const tier = user?.subscription?.tier;
       const body = JSON.stringify({
         plan_id: planId,
         email,
-        user_id: userId || ""
       });
 
       // Routing logic
@@ -48,10 +45,8 @@ export function usePayment() {
 
         const data = await response.json();
         if (data.success) {
-          toast({
-            title: "Subscription Updated",
+          toast.success("Subscription updated", {
             description: data.message || "Your subscription has been updated.",
-            variant: "default",
           });
           setTimeout(() => {
             (dispatch as any)(fetchUser());
@@ -82,11 +77,9 @@ export function usePayment() {
         }
       }
     } catch (error) {
-      console.error('Payment error:', error);
-      toast({
-        title: "Payment Error",
+      console.error("Payment error:", error);
+      toast.error("Payment error", {
         description: "Failed to process payment. Please try again.",
-        variant: "destructive",
       });
     } finally {
       setIsLoading(false);

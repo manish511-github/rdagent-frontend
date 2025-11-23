@@ -145,19 +145,42 @@ function ResetPasswordContent() {
           data.message ||
           data.error ||
           "Failed to reset password";
+        
+        // Handle specific status codes
+        if (response.status === 401) {
+          toast.error("Invalid Token", {
+            description: errorMessage,
+          });
+        } else if (response.status === 403) {
+          toast.error("Account Issue", {
+            description: errorMessage,
+          });
+        } else if (response.status === 404) {
+          toast.error("Invalid Request", {
+            description: errorMessage,
+          });
+        } else if (response.status >= 500) {
+          toast.error("Server Error", {
+            description: "Something went wrong on our end. Please try again in a moment.",
+          });
+        } else {
+          toast.error("Reset Failed", {
+            description: errorMessage,
+          });
+        }
         throw new Error(errorMessage);
       }
 
       setIsSubmitted(true);
       toast.success("Password reset successfully!");
     } catch (error) {
+      // Network errors or other exceptions (toast already shown for HTTP errors)
+      if (error instanceof Error && !error.message.includes("Failed to reset password") && !error.message.includes("Invalid") && !error.message.includes("Account")) {
       console.error("Error resetting password", error);
-      // Show the actual error message in the toast
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to reset password. Please try again.";
-      toast.error(errorMessage);
+        toast.error("Connection Error", {
+          description: "Unable to connect to the server. Please check your internet connection.",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }

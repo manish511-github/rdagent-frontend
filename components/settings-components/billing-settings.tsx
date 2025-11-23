@@ -277,17 +277,18 @@ export default function UserBilling() {
           </CardContent>
         </Card>
 
-        {/* Payment Method */}
+        {/* Payment Method - Only show if subscription is active */}
+        {planInfo.status !== "inactive" && (
         <Card className="mb-8 p-0">
           <CardContent className="p-6">
             <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
               <div className="space-y-1">
                 <h2 className="text-lg font-semibold">Payment Method</h2>
                 <div className="flex items-center gap-2">
-                  <CreditCard className="text-muted-foreground size-4" />
+                  {/* <CreditCard className="text-muted-foreground size-4" />
                   <span className="text-muted-foreground text-sm">
                     Visa ending in 4242
-                  </span>
+                  </span> */}
                 </div>
               </div>
               <Button 
@@ -303,6 +304,7 @@ export default function UserBilling() {
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* Payment History */}
         <Card className="p-0">

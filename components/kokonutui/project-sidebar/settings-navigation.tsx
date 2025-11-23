@@ -1,9 +1,8 @@
-"use client";
+ "use client"
 
-import { User, Settings, CreditCard } from "lucide-react";
-import { NavItem } from "./nav-item";
-import type { FC } from "react";
-import { useSearchParams } from "next/navigation"; // Import useSearchParams
+import { Settings } from "lucide-react"
+import { NavItem } from "./nav-item"
+import type { FC } from "react"
 
 interface SettingsNavigationProps {
   isCollapsed: boolean;
@@ -16,8 +15,7 @@ export const SettingsNavigation: FC<SettingsNavigationProps> = ({
   isMounted,
   pathname,
 }) => {
-  const searchParams = useSearchParams(); // Use the hook
-  const currentSection = searchParams?.get("section") || "personal";
+  const isActive = pathname.startsWith("/settings")
 
   return (
     <>
@@ -29,22 +27,13 @@ export const SettingsNavigation: FC<SettingsNavigationProps> = ({
         )}
         <div className="space-y-2">
           <NavItem
-            href="/settings?section=account"
+            href="/settings"
             icon={Settings}
-            isActive={currentSection === "account"}
+            isActive={isActive}
             isCollapsed={isCollapsed}
             isMounted={isMounted}
           >
-            Account
-          </NavItem>
-          <NavItem
-            href="/settings?section=billing"
-            icon={CreditCard}
-            isActive={currentSection === "billing"}
-            isCollapsed={isCollapsed}
-            isMounted={isMounted}
-          >
-            Billing
+            Settings
           </NavItem>
         </div>
       </div>

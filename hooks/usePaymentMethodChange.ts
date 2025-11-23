@@ -14,9 +14,8 @@ export function usePaymentMethodChange() {
           "Authorization": `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          user_id: userId,
-        }),
+        // Backend derives user from access token; no need to send user_id
+        body: JSON.stringify({}),
       });
 
       if (!response.ok) {

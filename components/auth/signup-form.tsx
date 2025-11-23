@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Mail, User, Lock, AlertCircle, CheckCircle } from "lucide-react"
+import { toast } from "sonner"
 
 interface FormData {
   fullName: string
@@ -120,11 +121,56 @@ export default function SignupForm() {
       })
 
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({ detail: `HTTP error! status: ${response.status}` }))
-        throw new Error(errorBody.detail || `HTTP error! status: ${response.status}`)
+        let errorMessage = "Failed to create account. Please try again.";
+        
+        try {
+          const errorBody = await response.json();
+          errorMessage = errorBody.detail || errorMessage;
+          
+          // Handle specific status codes
+          if (response.status === 409) {
+            // Email already exists
+            setErrors({ email: errorMessage });
+            toast.error("Signup Failed", {
+              description: errorMessage,
+            });
+          } else if (response.status === 400) {
+            // Validation error (weak password)
+            setErrors({ password: errorMessage });
+            toast.error("Signup Failed", {
+              description: errorMessage,
+            });
+          } else if (response.status >= 500) {
+            // Server error
+            setApiError("Server error. Please try again later.");
+            toast.error("Server Error", {
+              description: "Something went wrong on our end. Please try again in a moment.",
+            });
+          } else {
+            setApiError(errorMessage);
+            toast.error("Signup Failed", {
+              description: errorMessage,
+            });
+          }
+        } catch {
+          setApiError(errorMessage);
+          if (response.status >= 500) {
+            toast.error("Server Error", {
+              description: "Something went wrong on our end. Please try again in a moment.",
+            });
+          } else {
+            toast.error("Signup Failed", {
+              description: errorMessage,
+            });
+          }
+        }
+        return;
       }
 
       setIsSubmitted(true)
+      toast.success("Account Created", {
+        description: "Please check your email to verify your account.",
+      });
       setTimeout(() => {
         setFormData({
           fullName: "",
@@ -135,7 +181,13 @@ export default function SignupForm() {
         setIsSubmitted(false)
       }, 3000)
     } catch (err: any) {
-      setApiError(err.message || "Failed to create account. Please try again.")
+      // Network errors or other exceptions
+      if (err.message && !err.message.includes("HTTP error")) {
+        setApiError(err.message || "Failed to create account. Please try again.");
+        toast.error("Signup Failed", {
+          description: err.message || "Failed to create account. Please try again.",
+        });
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -163,7 +215,7 @@ export default function SignupForm() {
         className="flex flex-col items-center justify-center py-8 text-center space-y-4"
       >
         <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 0.6 }}>
-          <CheckCircle className="size-16 text-green-500" />
+          <CheckCircle className="size-12 text-green-500" />
         </motion.div>
         <h3 className="text-xl font-semibold">Account Created Successfully!</h3>
         <p className="text-muted-foreground">Welcome to Zooptics! Please check your email to verify your account.</p>

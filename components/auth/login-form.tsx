@@ -92,7 +92,41 @@ export function LoginForm() {
         }),
       });
 
-      if (!response.ok) throw new Error("Invalid credentials");
+      if (!response.ok) {
+        // Try to parse error response to get specific error message
+        let errorMessage = "An error occurred. Please try again.";
+        let errorDetail = "";
+        
+        try {
+          const errorData = await response.json();
+          errorDetail = errorData.detail || errorData.message || errorMessage;
+          errorMessage = errorDetail;
+        } catch {
+          // If response is not JSON, use status-based messages
+          if (response.status === 401 || response.status === 403) {
+            errorMessage = "Invalid email or password. Please try again.";
+            errorDetail = errorMessage;
+          } else if (response.status >= 500) {
+            errorMessage = "Server error. Please try again later.";
+            errorDetail = "Something went wrong on our end. Please try again in a moment.";
+          }
+        }
+
+        // Set error message based on backend response
+        setErrors({ password: errorMessage });
+        
+        // Show appropriate toast based on error type
+        if (response.status >= 500) {
+          toast.error("Server Error", {
+            description: errorDetail || "Something went wrong on our end. Please try again in a moment.",
+          });
+        } else {
+          toast.error("Login Failed", {
+            description: errorDetail || errorMessage,
+          });
+        }
+        return;
+      }
 
       const data = await response.json();
 
@@ -114,10 +148,20 @@ export function LoginForm() {
         window.location.href = "/projects";
       }, 1500);
     } catch (err) {
-      setErrors({ password: "Invalid email or password. Please try again." });
-      toast.error("Login Failed", {
-        description: "Invalid email or password. Please try again.",
-      });
+      // Network errors or other exceptions
+      const errorMessage = err instanceof Error ? err.message : "Network error";
+      
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
+        setErrors({ password: "Network error. Please check your connection." });
+        toast.error("Connection Error", {
+          description: "Unable to connect to the server. Please check your internet connection.",
+        });
+      } else {
+        setErrors({ password: "An unexpected error occurred. Please try again." });
+        toast.error("Login Failed", {
+          description: "An unexpected error occurred. Please try again.",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
