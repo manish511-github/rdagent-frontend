@@ -332,9 +332,9 @@ export function SocialMediaDashboard({ youtubeData, twitterData, facebookData }:
   const [activeTab, setActiveTab] = useState("youtube")
 
   // Use provided data or fall back to sample data
-  const youtube = youtubeData || SAMPLE_YOUTUBE_DATA
-  const twitter = twitterData || SAMPLE_TWITTER_DATA
-  const facebook = facebookData || SAMPLE_FACEBOOK_DATA
+  const youtube = youtubeData  
+  const twitter = twitterData
+  const facebook = facebookData
 
   return (
     <div className="space-y-6">

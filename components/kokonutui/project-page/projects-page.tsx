@@ -91,8 +91,12 @@ export default function ProjectsPage() {
   const projectLimitTotal = useSelector((state: RootState) =>
     selectProjectLimitTotal(state)
   );
+  const isSubscriptionInactive = useSelector((state: RootState) =>
+    state.user.info?.subscription?.status === 'inactive'
+  );
+
   const isProjectLimitReached =
-    projectLimitUsed >= projectLimitTotal && projectLimitTotal > 0;
+    (projectLimitUsed >= projectLimitTotal && projectLimitTotal > 0) || isSubscriptionInactive;
 
   // All state declarations
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -472,19 +476,19 @@ export default function ProjectsPage() {
                 <PopoverContent className="w-80 p-4" side="bottom" align="end">
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm">
-                      Project Limit Reached
+                      {isSubscriptionInactive ? "Subscription Inactive" : "Project Limit Reached"}
                     </h4>
                     <p className="text-sm text-muted-foreground">
-                      You've reached your project limit ({projectLimitUsed}/
-                      {projectLimitTotal}). Upgrade your plan to create more
-                      projects.
+                      {isSubscriptionInactive
+                        ? "Your subscription is inactive. Please activate your plan to create new projects."
+                        : `You've reached your project limit (${projectLimitUsed}/${projectLimitTotal}). Upgrade your plan to create more projects.`}
                     </p>
                     <Button
                       size="sm"
                       className="w-full mt-2"
-                      onClick={() => router.push("/upgrade")}
+                      onClick={() => router.push(isSubscriptionInactive ? "/pricing" : "/upgrade")}
                     >
-                      Upgrade Plan
+                      {isSubscriptionInactive ? "Activate Subscription" : "Upgrade Plan"}
                     </Button>
                   </div>
                 </PopoverContent>

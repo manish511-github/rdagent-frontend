@@ -226,10 +226,12 @@ export default function CompanyAnalysisPage() {
         <div className="mb-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Hexnode</h1>
+              <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                {overviewFromStore?.company_name || "Unknown Company"}
+              </h1>
               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Company Analysis Dashboard</p>
             </div>
-            <TooltipProvider>
+            {/* <TooltipProvider>
               <div className="flex flex-wrap items-center gap-2">
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -259,7 +261,7 @@ export default function CompanyAnalysisPage() {
                   <TooltipContent>Founded</TooltipContent>
                 </Tooltip>
               </div>
-            </TooltipProvider>
+            </TooltipProvider> */}
           </div>
         </div>
 

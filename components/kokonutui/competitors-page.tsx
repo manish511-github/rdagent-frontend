@@ -41,6 +41,11 @@ import {
   ChevronDown,
   SearchIcon,
 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
@@ -215,11 +220,29 @@ async function postCompetitor(body: {
   facebook: boolean;
   news: boolean;
 }) {
-  const res = await fetch(getApiUrl(`/company/competitor`), {
+  let token = Cookies.get("access_token");
+  let res = await fetch(getApiUrl(`/company/competitor`), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(body),
   });
+
+  if (res.status === 401) {
+    token = await refreshAccessToken();
+    if (token) {
+      res = await fetch(getApiUrl(`/company/competitor`), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+    }
+  }
 
   // Handle insufficient credits (402 Payment Required)
   if (res.status === 402) {
@@ -247,6 +270,8 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
   );
   const competitorCost = useSelector(selectCompetitorAnalysisCost);
   const remainingCredits = useSelector(selectRemainingCredits);
+  const isSubscriptionInactive = user?.subscription?.status === 'inactive';
+  const hasInsufficientCredits = !hasEnoughCredits;
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [websiteUrl, setWebsiteUrl] = useState("");
@@ -519,12 +544,32 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
   // Delete competitor mutation
   const deleteMutation = useMutation({
     mutationFn: async (competitorId: number) => {
-      const res = await fetch(
+      let token = Cookies.get("access_token");
+      let res = await fetch(
         getApiUrl(`/company/competitor/${competitorId}`),
         {
           method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
+
+      if (res.status === 401) {
+        token = await refreshAccessToken();
+        if (token) {
+          res = await fetch(
+            getApiUrl(`/company/competitor/${competitorId}`),
+            {
+              method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+        }
+      }
+
       if (!res.ok) throw new Error("Failed to delete competitor");
       return res.json();
     },
@@ -826,15 +871,46 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
                 explore our tailored suggestions to stay ahead in the game.
               </p>
               <div className="flex gap-2 pt-1">
-                <Button
-                  className="gap-1.5 h-7 text-xs bg-white text-slate-900 hover:bg-white/90"
-                  onClick={() => {
-                    setActiveTab("url");
-                    setShowAddDialog(true);
-                  }}
-                >
-                  <Plus className="h-3 w-3" /> Add competitor
-                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div>
+                      <Button
+                        className="gap-1.5 h-7 text-xs bg-white text-slate-900 hover:bg-white/90"
+                        onClick={() => {
+                          if (!isSubscriptionInactive && !hasInsufficientCredits) {
+                            setActiveTab("url");
+                            setShowAddDialog(true);
+                          }
+                        }}
+                        disabled={isSubscriptionInactive || hasInsufficientCredits}
+                      >
+                        <Plus className="h-3 w-3" /> Add competitor
+                      </Button>
+                    </div>
+                  </PopoverTrigger>
+                  {(isSubscriptionInactive || hasInsufficientCredits) && (
+                    <PopoverContent className="w-80 p-4" side="bottom" align="start">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm text-black">
+                          {isSubscriptionInactive ? "Subscription Inactive" : "Insufficient Credits"}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          {isSubscriptionInactive
+                            ? "Your subscription is inactive. Please activate your plan to analyze competitors."
+                            : `You need ${competitorCost} credits for competitor analysis, but you only have ${remainingCredits} credits remaining.`
+                          }
+                        </p>
+                        <Button
+                          size="sm"
+                          className="w-full mt-2"
+                          onClick={() => router.push("/pricing")}
+                        >
+                          {isSubscriptionInactive ? "Activate Subscription" : "Purchase Credits"}
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  )}
+                </Popover>
               </div>
             </div>
             <div className="w-full md:w-auto flex-shrink-0">
@@ -976,16 +1052,47 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
                   className="w-[200px] h-7 text-xs pl-7 pr-2"
                 />
               </div>
-              <Button
-                className="h-7 text-xs gap-1 px-2.5"
-                onClick={() => {
-                  setActiveTab("url");
-                  setShowAddDialog(true);
-                }}
-              >
-                <Plus className="h-3 w-3" />
-                <span>Add competitor</span>
-              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <div>
+                    <Button
+                      className="h-7 text-xs gap-1 px-2.5"
+                      onClick={() => {
+                        if (!isSubscriptionInactive && !hasInsufficientCredits) {
+                          setActiveTab("url");
+                          setShowAddDialog(true);
+                        }
+                      }}
+                      disabled={isSubscriptionInactive || hasInsufficientCredits}
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>Add competitor</span>
+                    </Button>
+                  </div>
+                </PopoverTrigger>
+                {(isSubscriptionInactive || hasInsufficientCredits) && (
+                  <PopoverContent className="w-80 p-4" side="bottom" align="end">
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm text-black">
+                        {isSubscriptionInactive ? "Subscription Inactive" : "Insufficient Credits"}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {isSubscriptionInactive
+                          ? "Your subscription is inactive. Please activate your plan to analyze competitors."
+                          : `You need ${competitorCost} credits for competitor analysis, but you only have ${remainingCredits} credits remaining.`
+                        }
+                      </p>
+                      <Button
+                        size="sm"
+                        className="w-full mt-2"
+                        onClick={() => router.push("/pricing")}
+                      >
+                        {isSubscriptionInactive ? "Activate Subscription" : "Purchase Credits"}
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                )}
+              </Popover>
             </div>
           </div>
 
@@ -1235,24 +1342,52 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
                           </div>
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="h-8 px-3 whitespace-nowrap"
-                        onClick={() => handleQuickAddSuggestion(s)}
-                        disabled={
-                          fetchDetailsMutation.isPending || !hasEnoughCredits
-                        }
-                      >
-                        {fetchDetailsMutation.isPending ? (
-                          <>
-                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                            Analyzing
-                          </>
-                        ) : (
-                          <>Analyse</>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <div>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="h-8 px-3 whitespace-nowrap"
+                              onClick={() => handleQuickAddSuggestion(s)}
+                              disabled={
+                                fetchDetailsMutation.isPending || !hasEnoughCredits || isSubscriptionInactive
+                              }
+                            >
+                              {fetchDetailsMutation.isPending ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                  Analyzing
+                                </>
+                              ) : (
+                                <>Analyse</>
+                              )}
+                            </Button>
+                          </div>
+                        </PopoverTrigger>
+                        {(!hasEnoughCredits || isSubscriptionInactive) && (
+                          <PopoverContent className="w-80 p-4" side="bottom" align="end">
+                            <div className="space-y-2">
+                              <h4 className="font-medium text-sm text-black">
+                                {isSubscriptionInactive ? "Subscription Inactive" : "Insufficient Credits"}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {isSubscriptionInactive
+                                  ? "Your subscription is inactive. Please activate your plan to analyze competitors."
+                                  : `You need ${competitorCost} credits for competitor analysis, but you only have ${remainingCredits} credits remaining.`
+                                }
+                              </p>
+                              <Button
+                                size="sm"
+                                className="w-full mt-2"
+                                onClick={() => router.push("/pricing")}
+                              >
+                                {isSubscriptionInactive ? "Activate Subscription" : "Purchase Credits"}
+                              </Button>
+                            </div>
+                          </PopoverContent>
                         )}
-                      </Button>
+                      </Popover>
                     </div>
                   ))
                 )}
@@ -1271,7 +1406,8 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
                 !!urlError ||
                 !websiteUrl.trim() ||
                 createMutation.isPending ||
-                !hasEnoughCredits
+                !hasEnoughCredits ||
+                isSubscriptionInactive
               }
               className="gap-2"
             >

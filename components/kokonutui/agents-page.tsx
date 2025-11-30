@@ -76,6 +76,10 @@ const getPlatformGradient = (platform: string) => {
   switch (platform) {
     case "reddit":
       return "from-orange-500 to-red-600";
+    case "hackernews":
+      return "from-orange-600 to-amber-600";
+    case "youtube":
+      return "from-red-500 to-red-700";
     case "linkedin":
       return "from-blue-600 to-blue-800";
     case "twitter":
@@ -86,6 +90,33 @@ const getPlatformGradient = (platform: string) => {
       return "from-emerald-500 to-teal-600";
     default:
       return "from-gray-500 to-gray-700";
+  }
+};
+
+const getPlatformIconColor = (platform: string) => {
+  switch (platform) {
+    case "reddit":
+      return "text-orange-500";
+    case "hackernews":
+      return "text-orange-600";
+    case "youtube":
+      return "text-white";
+    case "linkedin":
+      return "text-blue-600";
+    case "twitter":
+      return "text-sky-500";
+    case "instagram":
+      return "text-purple-500";
+    case "email":
+      return "text-emerald-500";
+    case "discord":
+      return "text-indigo-500";
+    case "slack":
+      return "text-purple-600";
+    case "tiktok":
+      return "text-pink-500";
+    default:
+      return "text-gray-600";
   }
 };
 
@@ -152,8 +183,12 @@ export default function AgentsPage() {
   const agentLimitTotal = useSelector((state: RootState) =>
     selectAgentLimitTotal(state)
   );
+  const isSubscriptionInactive = useSelector((state: RootState) =>
+    state.user.info?.subscription?.status === 'inactive'
+  );
+
   const isAgentLimitReached =
-    agentLimitUsed >= agentLimitTotal && agentLimitTotal > 0;
+    (agentLimitUsed >= agentLimitTotal && agentLimitTotal > 0) || isSubscriptionInactive;
 
   // Get current project from currentProject slice (has full project data including keywords)
   const currentProject = useSelector((state: RootState) =>
@@ -583,18 +618,20 @@ export default function AgentsPage() {
               {isAgentLimitReached && (
                 <PopoverContent className="w-80 p-4" side="bottom" align="end">
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm">Agent Limit Reached</h4>
+                    <h4 className="font-medium text-sm">
+                      {isSubscriptionInactive ? "Subscription Inactive" : "Agent Limit Reached"}
+                    </h4>
                     <p className="text-sm text-muted-foreground">
-                      You've reached your agent limit ({agentLimitUsed}/
-                      {agentLimitTotal}). Upgrade your plan to create more
-                      agents.
+                      {isSubscriptionInactive
+                        ? "Your subscription is inactive. Please activate your plan to create new agents."
+                        : `You've reached your agent limit (${agentLimitUsed}/${agentLimitTotal}). Upgrade your plan to create more agents.`}
                     </p>
                     <Button
                       size="sm"
                       className="w-full mt-2"
-                      onClick={() => router.push("/upgrade")}
+                      onClick={() => router.push(isSubscriptionInactive ? "/pricing" : "/upgrade")}
                     >
-                      Upgrade Plan
+                      {isSubscriptionInactive ? "Activate Subscription" : "Upgrade Plan"}
                     </Button>
                   </div>
                 </PopoverContent>
@@ -687,13 +724,13 @@ export default function AgentsPage() {
                       <div className="flex items-center gap-3">
                         <div
                           className={cn(
-                            "p-2 rounded-lg bg-gradient-to-br text-white shadow-lg",
+                            "p-2 rounded-lg bg-gradient-to-br shadow-lg",
                             getPlatformGradient(agent.agent_platform)
                           )}
                         >
                           <PlatformIcon
                             platform={agent.agent_platform}
-                            className="h-6 w-6 text-white"
+                            className={cn("h-6 w-6", getPlatformIconColor(agent.agent_platform))}
                           />
                         </div>
                         <div>
@@ -779,7 +816,7 @@ export default function AgentsPage() {
                           return (
                             <div className="rounded-md border bg-muted/30 px-2.5 py-2">
                               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-                                <RedditIcon className="h-3.5 w-3.5" />
+                                <RedditIcon className={cn("h-3.5 w-3.5", getPlatformIconColor("reddit"))} />
                                 <span className="text-foreground/80 font-medium">
                                   Reddit Settings
                                 </span>
@@ -826,28 +863,6 @@ export default function AgentsPage() {
                     </div>
                   </CardContent>
 
-                  <CardFooter className="relative pt-2 pb-3 px-4 border-t">
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        <span>
-                          {agent.advanced_settings?.lastActive || "Never"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={agent.agent_status === "active"}
-                          onCheckedChange={() =>
-                            toggleAgentStatus(agent.id, {
-                              stopPropagation: () => {},
-                            } as any)
-                          }
-                          onClick={(e) => e.stopPropagation()}
-                          className="scale-90 data-[state=checked]:bg-emerald-500"
-                        />
-                      </div>
-                    </div>
-                  </CardFooter>
                 </Card>
               );
             })

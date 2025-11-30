@@ -18,6 +18,7 @@ import {
 import { PlatformIcon } from "@/components/kokonutui/platform-icons";
 import { selectCurrentProject } from "@/store/slices/currentProjectSlice";
 import {
+  selectUserInfo,
   selectHasEnoughCreditsForRedditPostGeneration,
   selectRedditPostGenerationCost,
   selectRemainingCredits,
@@ -27,6 +28,11 @@ import Cookies from "js-cookie";
 import { refreshAccessToken } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface DraftItem {
   subreddit: string;
@@ -45,6 +51,8 @@ export default function RedditPostGeneratorPage({
   const { toast } = useToast();
   const currentProject = useSelector(selectCurrentProject);
   const resolvedProjectUuid = currentProject?.uuid ?? projectId;
+  const user = useSelector(selectUserInfo);
+  const isSubscriptionInactive = user?.subscription?.status === 'inactive';
 
   // Credit-related selectors
   const hasEnoughCredits = useSelector(
@@ -293,18 +301,45 @@ export default function RedditPostGeneratorPage({
 
                 {/* Actions */}
                 <div className="flex gap-2">
-                  <Button
-                    className="h-9"
-                    onClick={handleGenerate}
-                    disabled={!userQuery || isGenerating || !hasEnoughCredits}
-                  >
-                    {isGenerating ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 mr-2" />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <div>
+                        <Button
+                          className="h-9"
+                          onClick={() => {
+                            if (!isSubscriptionInactive) {
+                              handleGenerate();
+                            }
+                          }}
+                          disabled={!userQuery || isGenerating || !hasEnoughCredits || isSubscriptionInactive}
+                        >
+                          {isGenerating ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-4 w-4 mr-2" />
+                          )}
+                          Generate Drafts
+                        </Button>
+                      </div>
+                    </PopoverTrigger>
+                    {isSubscriptionInactive && (
+                      <PopoverContent className="w-80 p-4" side="bottom" align="start">
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm">Subscription Inactive</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Your subscription is inactive. Please activate your plan to generate Reddit posts.
+                          </p>
+                          <Button
+                            size="sm"
+                            className="w-full mt-2"
+                            onClick={() => window.location.href = "/pricing"}
+                          >
+                            Activate Subscription
+                          </Button>
+                        </div>
+                      </PopoverContent>
                     )}
-                    Generate Drafts
-                  </Button>
+                  </Popover>
                   <Button
                     variant="secondary"
                     className="h-9"
