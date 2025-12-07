@@ -5,12 +5,14 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 import Profile01 from "./profile-01";
 import Link from "next/link";
 import ThemeToggle from "../theme-toggle";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store/store";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface Project {
   uuid: string;
@@ -29,6 +31,7 @@ interface BreadcrumbItem {
 export default function TopNav({ currentProject }: TopNavProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const userInfo = useSelector((state: RootState) => state.user.info);
   const isProjectsPage = pathname === "/projects";
   const isSettingsPage = pathname.startsWith("/settings");
   const isCompanyAnalysisPage = pathname.includes("/company-analysis");
@@ -98,13 +101,12 @@ export default function TopNav({ currentProject }: TopNavProps) {
 
         <DropdownMenu>
           <DropdownMenuTrigger className="focus:outline-none">
-            <Image
-              src="https://ferf1mheo22r9ira.public.blob.vercel-storage.com/avatar-01-n0x8HFv8EUetf9z6ht0wScJKoTHqf8.png"
-              alt="User avatar"
-              width={20}
-              height={20}
-              className="rounded-full ring-1 ring-gray-200 dark:ring-[#2B2B30] sm:w-6 sm:h-6 cursor-pointer"
-            />
+            <Avatar className="w-5 h-5 sm:w-6 sm:h-6 ring-1 ring-gray-200 dark:ring-[#2B2B30] cursor-pointer">
+              <AvatarImage src="https://ferf1mheo22r9ira.public.blob.vercel-storage.com/avatar-01-n0x8HFv8EUetf9z6ht0wScJKoTHqf8.png" alt="User avatar" />
+              <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
+                {userInfo?.username?.charAt(0).toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"

@@ -6,7 +6,6 @@ import {
   HelpCircle,
   CreditCard,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
@@ -18,6 +17,7 @@ import {
   selectCreditsLimitTotal,
 } from "@/store/slices/userSlice";
 import { getApiUrl } from "../../lib/config";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface MenuItem {
   label: string;
@@ -95,13 +95,12 @@ export default function Profile01() {
         <div className="relative px-3 pt-3 pb-2">
           <div className="flex items-center gap-4 mb-6">
             <div className="relative shrink-0">
-              <Image
-                src={avatar || "/placeholder.svg"}
-                alt={name}
-                width={60}
-                height={60}
-                className="rounded-full ring-3 ring-white dark:ring-zinc-900 object-cover"
-              />
+              <Avatar className="w-15 h-15 ring-3 ring-white dark:ring-zinc-900">
+                <AvatarImage src={avatar} alt={name} />
+                <AvatarFallback className="text-lg font-semibold bg-primary text-primary-foreground">
+                  {name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
               <div className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-zinc-900" />
             </div>
 
