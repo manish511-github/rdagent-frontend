@@ -6,9 +6,7 @@ export function usePaddleCheckout() {
 
   useEffect(() => {
     initializePaddle({
-      environment: "sandbox", // or "production"
       token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN!,
-      // No eventCallback needed for redirect
     }).then((paddle) => {
       paddleRef.current = paddle ?? null;
     });
@@ -26,7 +24,7 @@ export function usePaddleCheckout() {
         allowLogout: false,
         theme: "light",
         variant: "one-page",
-        successUrl: `http://localhost:3000/payment/success?txn_id=${data.txn_id}`,
+        successUrl: `https://zooptics.com/payment/success?txn_id=${data.txn_id}`,
       },
     };
 

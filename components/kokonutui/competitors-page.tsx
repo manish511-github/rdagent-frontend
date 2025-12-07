@@ -145,12 +145,8 @@ async function fetchCompetitorSuggestions(
   projectUuid: string,
   signal?: AbortSignal
 ) {
-  console.log(
-    "fetchCompetitorSuggestions called with projectUuid:",
-    projectUuid
-  );
+
   let token = Cookies.get("access_token");
-  console.log("Access token exists:", !!token);
 
   let response = await fetch(
     getApiUrl(`/company/competitor/suggest?project_uuid=${projectUuid}&k=5`),
@@ -163,14 +159,11 @@ async function fetchCompetitorSuggestions(
     }
   );
 
-  console.log("Initial API response status:", response.status);
 
   // If unauthorized, try to refresh the token and retry once
   if (response.status === 401) {
-    console.log("Token expired, refreshing...");
     token = await refreshAccessToken();
     if (token) {
-      console.log("Token refreshed, retrying...");
       response = await fetch(
         getApiUrl(
           `/company/competitor/suggest?project_uuid=${projectUuid}&k=5`
@@ -183,7 +176,6 @@ async function fetchCompetitorSuggestions(
           },
         }
       );
-      console.log("Retry response status:", response.status);
     } else {
       console.log("Failed to refresh token");
     }
@@ -196,9 +188,7 @@ async function fetchCompetitorSuggestions(
   }
 
   const json = await response.json();
-  console.log("API response data:", json);
   const suggestions = json?.data?.suggestions ?? [];
-  console.log("Extracted suggestions:", suggestions);
   return suggestions;
 }
 
@@ -320,22 +310,12 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
   const resolvedProjectId = currentProject?.uuid ?? projectId;
 
   // Fetch suggestions from API
-  console.log("CompetitorsPage - resolvedProjectId:", resolvedProjectId);
-  console.log("CompetitorsPage - userId:", userId);
 
   const suggestionsQuery = useQuery({
     queryKey: ["competitor-suggestions", resolvedProjectId],
     enabled: !!resolvedProjectId,
     queryFn: ({ signal }) =>
       fetchCompetitorSuggestions(resolvedProjectId as string, signal),
-  });
-
-  // Log query states for debugging
-  console.log("suggestionsQuery state:", {
-    isLoading: suggestionsQuery.isLoading,
-    isError: suggestionsQuery.isError,
-    error: suggestionsQuery.error,
-    data: suggestionsQuery.data,
   });
 
   const queryKey = ["competitors", userId, resolvedProjectId];
@@ -373,10 +353,6 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
   const visibleSuggested = (suggested as any[]).filter(
     (s: any) => !existingDomains.has(normalizeDomain(s.website || ""))
   );
-
-  console.log("suggested array:", suggested);
-  console.log("existingDomains:", existingDomains);
-  console.log("visibleSuggested array:", visibleSuggested);
 
   const filteredAndSorted = useMemo(() => {
     // Don't compute if data is still loading

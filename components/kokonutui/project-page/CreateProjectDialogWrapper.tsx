@@ -254,7 +254,7 @@ export const CreateProjectDialogWrapper: React.FC<
         excluded_keywords: newProject.excludedKeywords || null,
       };
 
-      console.log("Creating new project:", projectData);
+
       let token = Cookies.get("access_token");
 
       let response = await fetch(getApiUrl("projects"), {
@@ -299,7 +299,6 @@ export const CreateProjectDialogWrapper: React.FC<
       }
 
       const createdProject = await response.json();
-      console.log("Project created successfully:", createdProject);
 
       toast.success(`Project "${createdProject.title}" created successfully.`);
 

@@ -107,10 +107,6 @@ export default function UpgradePage() {
   // Show upgrade page only if authenticated
   return (
     <div className="min-h-screen bg-background">
-      <div>
-        <p>Current Plan ID: {currentPlanId ?? 'Unknown'}</p>
-        <p>Current Billing Type: {currentBillingType}</p>
-      </div>
       <UpgradePlan 
         currentPlanId={currentPlanId ?? undefined}
         currentBillingType={currentBillingType}

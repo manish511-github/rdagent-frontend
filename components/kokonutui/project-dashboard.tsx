@@ -370,36 +370,7 @@ export default function ProjectDashboard({ projectId }: { projectId: string }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 self-end sm:self-auto">
-                <Link href={`/projects/${projectId}/agents`} passHref>
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    <BrainCircuit size={16} />
-                    Agents
-                  </Button>
-                </Link>
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <Share2 size={16} />
-                  Share
-                </Button>
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <Settings size={16} />
-                  Settings
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="px-2">
-                      <MoreHorizontal size={16} />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>Export Project</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive">
-                      Delete Project
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+
             </div>
 
             {/* Project details card */}
