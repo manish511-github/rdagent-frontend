@@ -31,7 +31,6 @@ export interface UserInfo {
     [key: string]: any; // Allow additional plan properties
   };
   limits?: {
-    project?: { used: number; limit: number };
     agent?: { used: number; limit: number };
     credits?: { used: number; limit: number };
     [key: string]: { used: number; limit: number } | undefined; // Allow additional limit types
@@ -71,8 +70,6 @@ export const selectSubscriptionStartsAt = (state: RootState) =>
 
 // New selectors for limits and features
 export const selectUserLimits = (state: RootState) => state.user.info?.limits;
-export const selectProjectLimit = (state: RootState) =>
-  state.user.info?.limits?.project;
 export const selectAgentLimit = (state: RootState) =>
   state.user.info?.limits?.agent;
 export const selectCreditsLimit = (state: RootState) =>
@@ -117,10 +114,6 @@ export const getPlanFlag = (state: RootState, flagKey: string): any => {
 };
 
 // Convenience selectors using the utility functions
-export const selectProjectLimitUsed = (state: RootState): number =>
-  getLimitValue(state, "project")?.used ?? 0;
-export const selectProjectLimitTotal = (state: RootState): number =>
-  getLimitValue(state, "project")?.limit ?? 0;
 export const selectAgentLimitUsed = (state: RootState): number =>
   getLimitValue(state, "agent")?.used ?? 0;
 export const selectAgentLimitTotal = (state: RootState): number =>

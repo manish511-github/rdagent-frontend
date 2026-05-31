@@ -6,66 +6,20 @@ import TopNav from "./top-nav";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
-import type { RootState, AppDispatch } from "@/store/store";
-import {
-  fetchCurrentProject,
-  clearCurrentProject,
-  selectCurrentProject,
-  selectCurrentProjectLoading,
-} from "@/store/slices/currentProjectSlice";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-interface Project {
-  uuid: string;
-  name: string;
-}
-
 export default function Layout({ children }: LayoutProps) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const dispatch = useDispatch<AppDispatch>();
   const pathname = usePathname();
 
-  // Get current project data from Redux store
-  const currentProjectData = useSelector((state: RootState) =>
-    selectCurrentProject(state)
-  );
-  const loading = useSelector((state: RootState) =>
-    selectCurrentProjectLoading(state)
-  );
-
-  // Extract project ID from path if we're on a project page
-  const projectIdMatch = pathname.match(/\/projects\/([^/]+)/);
-  const currentProjectId = projectIdMatch ? projectIdMatch[1] : null;
-
-  // Create a simplified project object for backward compatibility with components
-  const currentProject: Project | null = currentProjectData
-    ? {
-        uuid: currentProjectData.uuid,
-        name: currentProjectData.title,
-      }
-    : null;
-
-  // Fetch project data when projectId changes
-  useEffect(() => {
-    if (!currentProjectId) {
-      dispatch(clearCurrentProject());
-      return;
-    }
-
-    // Only fetch if we don't have the project data or if it's a different project
-    if (!currentProjectData || currentProjectData.uuid !== currentProjectId) {
-      dispatch(fetchCurrentProject(currentProjectId));
-    }
-  }, [currentProjectId, dispatch, currentProjectData]);
-
   // Check if we're on an individual agent page which needs fixed height
+  // New pattern: /agents/[agentId] (length 3, e.g. ["", "agents", "some-uuid"])
   const isAgentPage =
-    pathname.includes("/agents/") && pathname.split("/").length > 4;
+    pathname.startsWith("/agents/") && pathname.split("/").length >= 3;
   // Company analysis page should behave like fixed-height app view
   const isCompanyAnalysisPage = pathname.includes("/company-analysis");
 
@@ -79,10 +33,10 @@ export default function Layout({ children }: LayoutProps) {
         mounted && resolvedTheme === "dark" ? "dark" : ""
       }`}
     >
-      <Sidebar currentProject={currentProject} />
+      <Sidebar />
       <div className="flex flex-1 flex-col" id="agent-detail-page-container">
         <header className="h-10 border-b border-gray-200 dark:border-[#1F1F23]">
-          <TopNav currentProject={currentProject} />
+          <TopNav />
         </header>
         <main
           className={`flex-1 ${

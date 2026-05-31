@@ -32,15 +32,14 @@ const initialState: CompetitorAnalysisState = {
 // Thunk to load competitor analysis from API
 export const loadCompetitorAnalysis = createAsyncThunk<
   CompetitorAnalysisApi,
-  { projectId: string; ourUrl?: string; competitorUrl?: string; userId?: number }
+  { ourUrl?: string; competitorUrl?: string; userId?: number }
 >(
   "competitorAnalysis/load",
-  async ({ projectId, ourUrl, competitorUrl, userId }, { signal }) => {
+  async ({ ourUrl, competitorUrl, userId }, { signal }) => {
     const res = await fetch(getApiUrl(`/company/competitor/analysis`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        project_id: projectId,
         our_url: ourUrl,
         competitor_url: competitorUrl,
         user_id: userId,

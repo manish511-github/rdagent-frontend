@@ -7,23 +7,12 @@ import type { RootState, AppDispatch } from "@/store/store"
 import { fetchUser } from "@/store/slices/userSlice"
 import { Logo } from "./logo"
 import { MobileToggle } from "./mobile-toggle"
-import { CurrentProject } from "./current-project"
 import { ProjectsNavigation } from "./projects-navigation"
-import { ProjectNavigation } from "./project-navigation"
 import { SettingsNavigation } from "./settings-navigation"
 import { NavItem } from "./nav-item"
 import { UpgradeBox } from "./upgrade-box"
 
-interface Project {
-  uuid: string
-  name: string
-}
-
-interface SidebarProps {
-  currentProject: Project | null
-}
-
-export default function Sidebar({ currentProject }: SidebarProps) {
+export default function Sidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
@@ -33,9 +22,7 @@ export default function Sidebar({ currentProject }: SidebarProps) {
   // Get user data from Redux
   const { info: userInfo, status: userStatus } = useSelector((state: RootState) => state.user)
 
-  // Determine if we're on different page types
-  const isProjectsPage = pathname === "/projects"
-  const isSpecificProject = pathname.startsWith("/projects/") && pathname !== "/projects"
+  // Determine if we're on settings page
   const isSettingsPage = pathname.startsWith("/settings")
 
   // Check if user should see upgrade box
@@ -118,19 +105,9 @@ export default function Sidebar({ currentProject }: SidebarProps) {
 
           <div className="flex-1 overflow-y-auto py-3 px-3">
             <div className="space-y-6">
-              {/* Current Project Section - only show on project pages */}
-              {!isSettingsPage && <CurrentProject currentProject={currentProject} isCollapsed={isCollapsed} />}
-
               {/* Navigation Sections */}
               {isSettingsPage ? (
                 <SettingsNavigation isCollapsed={isCollapsed} isMounted={isMounted} pathname={pathname} />
-              ) : isSpecificProject ? (
-                <ProjectNavigation
-                  currentProject={currentProject}
-                  isCollapsed={isCollapsed}
-                  isMounted={isMounted}
-                  pathname={pathname}
-                />
               ) : (
                 <ProjectsNavigation isCollapsed={isCollapsed} isMounted={isMounted} pathname={pathname} />
               )}
@@ -148,9 +125,6 @@ export default function Sidebar({ currentProject }: SidebarProps) {
               <NavItem href="/settings" icon={Settings} isCollapsed={isCollapsed} isMounted={isMounted}>
                 Settings
               </NavItem>
-              {/* <NavItem href="#" icon={HelpCircle} isCollapsed={isCollapsed} isMounted={isMounted}>
-                Help
-              </NavItem> */}
             </div>
           </div>
         </div>

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Sparkles, PenSquare, Plus, Loader2 } from "lucide-react"
 import { PlatformIcon } from "@/components/kokonutui/platform-icons"
 
-export default function PostGeneratorPage({ projectId }: { projectId: string }) {
+export default function PostGeneratorPage({ projectId }: { projectId?: string }) {
   const [topic, setTopic] = useState("")
   const [tone, setTone] = useState("Professional")
   const [isGenerating, setIsGenerating] = useState(false)
@@ -65,7 +65,7 @@ export default function PostGeneratorPage({ projectId }: { projectId: string }) 
         <div className="mt-8">
           <h3 className="text-sm font-medium mb-3">Choose a generator</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Link href={`/projects/${projectId}/post-generator/reddit`} className="group">
+            <Link href="/post-generator/reddit" className="group">
               <Card className="p-4 h-full transition-all hover:shadow-md bg-white/70 dark:bg-gray-900/50 supports-[backdrop-filter]:bg-white/40 dark:supports-[backdrop-filter]:bg-gray-900/30 border">
                 <div className="flex items-center gap-3">
                   <div className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-orange-50 dark:bg-orange-950/30 ring-1 ring-orange-200/60 dark:ring-orange-900/50">

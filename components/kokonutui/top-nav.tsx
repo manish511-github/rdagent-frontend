@@ -12,30 +12,24 @@ import ThemeToggle from "../theme-toggle";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-
-interface Project {
-  uuid: string;
-  name: string;
-}
-
-interface TopNavProps {
-  currentProject: Project | null;
-}
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface BreadcrumbItem {
   label: string;
   href?: string;
 }
 
-export default function TopNav({ currentProject }: TopNavProps) {
+export default function TopNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const userInfo = useSelector((state: RootState) => state.user.info);
-  const isProjectsPage = pathname === "/projects";
+  
   const isSettingsPage = pathname.startsWith("/settings");
   const isCompanyAnalysisPage = pathname.includes("/company-analysis");
   const isCompetitorsPage = pathname.includes("/competitors");
+  const isAgentsPage = pathname.startsWith("/agents");
+  const isPostGeneratorPage = pathname.startsWith("/post-generator");
+
   const companySlug = searchParams.get("company") || "";
   const companyDisplay = companySlug
     ? decodeURIComponent(companySlug)
@@ -48,28 +42,24 @@ export default function TopNav({ currentProject }: TopNavProps) {
 
   if (isSettingsPage) {
     breadcrumbs = [{ label: "Settings" }];
-  } else {
-    // Always start with Projects
-    breadcrumbs.push({ label: "Projects", href: "/projects" });
-
-    if (currentProject) {
-      // Project name
-      breadcrumbs.push({
-        label: currentProject.name,
-        href: `/projects/${currentProject.uuid}`,
-      });
-
-      // Competitors and Company chain
-      if (isCompetitorsPage || isCompanyAnalysisPage) {
-        breadcrumbs.push({
-          label: "Competitors",
-          href: `/projects/${currentProject.uuid}/competitors`,
-        });
-        if (isCompanyAnalysisPage) {
-          breadcrumbs.push({ label: companyDisplay });
-        }
-      }
+  } else if (isAgentsPage) {
+    breadcrumbs.push({ label: "Agents", href: "/agents" });
+    const segments = pathname.split("/");
+    if (segments.length > 2) {
+      breadcrumbs.push({ label: "Agent Detail" });
     }
+  } else if (isCompetitorsPage || isCompanyAnalysisPage) {
+    breadcrumbs.push({ label: "Competitors", href: "/competitors" });
+    if (isCompanyAnalysisPage) {
+      breadcrumbs.push({ label: companyDisplay });
+    }
+  } else if (isPostGeneratorPage) {
+    breadcrumbs.push({ label: "Post Generator", href: "/post-generator" });
+    if (pathname.includes("/reddit")) {
+      breadcrumbs.push({ label: "Reddit" });
+    }
+  } else {
+    breadcrumbs.push({ label: "Dashboard" });
   }
 
   return (

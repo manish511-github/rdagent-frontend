@@ -94,7 +94,7 @@ type SocialLinks = {
 type AddSocialLinksDialogProps = {
     open: boolean
     onOpenChange: (open: boolean) => void
-    projectId: string
+    projectId?: string
     userId: number
     companyUrl: string
     existingLinks?: SocialLinks

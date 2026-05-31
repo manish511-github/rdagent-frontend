@@ -19,7 +19,7 @@ import UpgradePlan from "@/components/upgrade_plan/upgrade_plan"
 
 export default function HomePage() {
   const { isAuthenticated, isLoading } = useAuthGuard({
-    redirectTo: "/projects",
+    redirectTo: "/agents",
     requireAuth: false, // Redirect if authenticated
     toastTitle: "Welcome Back!",
     toastDescription: "Redirecting to your dashboard...",

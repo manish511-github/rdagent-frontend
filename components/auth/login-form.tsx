@@ -145,7 +145,7 @@ export function LoginForm() {
       // setIsSubmitted(true);
 
       setTimeout(() => {
-        window.location.href = "/projects";
+        window.location.href = "/agents";
       }, 1500);
     } catch (err) {
       // Network errors or other exceptions

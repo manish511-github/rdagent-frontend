@@ -196,8 +196,6 @@ type PlatformSettings = {
 export type AgentCreateModalProps = {
   isCreateModalOpen: boolean;
   setIsCreateModalOpen: (isOpen: boolean) => void;
-  projectId: string | null;
-  project: any;
   handleCreateAgent: (agentData: any) => void;
   createStatus: string;
 };
@@ -205,7 +203,6 @@ export type AgentCreateModalProps = {
 async function generateAgentProfile(input: {
   agent_name: string;
   goals: string[];
-  project_id: string;
   existing_context?: string;
 }) {
   const response = await fetch(
@@ -229,7 +226,6 @@ async function generateAgentProfile(input: {
 async function generateExpectedOutcomes(input: {
   agent_name: string;
   goals: string[];
-  project_id: string;
   instructions: string;
 }) {
   const response = await fetch(getApiUrl("agents/generate-expected-outcomes"), {
@@ -250,8 +246,6 @@ async function generateExpectedOutcomes(input: {
 export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
   isCreateModalOpen,
   setIsCreateModalOpen,
-  projectId,
-  project,
   handleCreateAgent,
   createStatus,
 }) => {
@@ -347,14 +341,11 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
       setCurrentStep(1);
       setAgentKeywords([]);
       setNewKeyword("");
-    } else if (project && Array.isArray(project.keywords)) {
-      setAgentKeywords(project.keywords);
-      setNewKeyword("");
     } else {
       setAgentKeywords([]);
       setNewKeyword("");
     }
-  }, [isCreateModalOpen, project]);
+  }, [isCreateModalOpen]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({
@@ -444,13 +435,6 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
   };
 
   const createAgentHandler = () => {
-    if (!projectId) {
-      toast.error("Error", {
-        description: "Project ID is required",
-      });
-      return;
-    }
-
     // Validate that at least one keyword is added
     if (!agentKeywords || agentKeywords.length === 0) {
       // Navigate back to Step 2 where keywords are managed
@@ -492,7 +476,6 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
       goals: formData.goal,
       instructions: formData.instructions,
       expectations: formData.expectations,
-      project_id: projectId,
       mode: null,
       review_period: formData.reviewPeriod,
       review_minutes: formData.reviewMinutes,
@@ -809,17 +792,9 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                     size="sm"
                     className="h-7 w-7 text-muted-foreground hover:text-foreground"
                     onClick={() => {
-                      if (!projectId) {
-                        toast.error("Error", {
-                          description: "Project ID is required",
-                        });
-                        return;
-                      }
-
                       generateProfileMutation.mutate({
                         agent_name: formData.name,
                         goals: [formData.goal],
-                        project_id: projectId as string,
                         existing_context: formData.instructions,
                       });
                     }}
@@ -852,13 +827,6 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                     size="sm"
                     className="h-7 w-7 text-muted-foreground hover:text-foreground"
                     onClick={() => {
-                      if (!projectId) {
-                        toast.error("Error", {
-                          description: "Project ID is required",
-                        });
-                        return;
-                      }
-
                       if (
                         !formData.name ||
                         !formData.goal ||
@@ -874,7 +842,6 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
                       generateOutcomesMutation.mutate({
                         agent_name: formData.name,
                         goals: [formData.goal],
-                        project_id: projectId as string,
                         instructions: formData.instructions,
                       });
                     }}

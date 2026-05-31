@@ -1,4 +1,4 @@
-import { Home, Clock, Star, Target, PenTool, Briefcase, FileText, ImageIcon, Bookmark } from "lucide-react";
+import { Brain, Users, PenTool, BarChart3 } from "lucide-react";
 import { NavItem } from "./nav-item";
 import type { FC } from "react";
 
@@ -8,60 +8,57 @@ interface ProjectsNavigationProps {
   pathname: string;
 }
 
-export const ProjectsNavigation: FC<ProjectsNavigationProps> = ({ isCollapsed, isMounted, pathname }) => (
-  <>
-    <div className="stagger-1">
-      {!isCollapsed && (
-        <div className="px-2 mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 animate-fade-in">
-          Projects
-        </div>
-      )}
-      <div className="space-y-2">
-        <NavItem href="/projects" icon={Home} isActive={pathname === "/projects"} isCollapsed={isCollapsed} isMounted={isMounted}>
-          All Projects
-        </NavItem>
-      </div>
-    </div>
+export const ProjectsNavigation: FC<ProjectsNavigationProps> = ({ isCollapsed, isMounted, pathname }) => {
+  const isPostGenActive = pathname.startsWith("/post-generator");
+  const isAgentsActive = pathname.startsWith("/agents");
 
-    {/* <div className="stagger-2">
-      {!isCollapsed && (
-        <div className="px-2 mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 animate-fade-in">
-          Categories
+  return (
+    <>
+      <div className="stagger-1">
+        {!isCollapsed && (
+          <div className="px-2 mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 animate-fade-in">
+            Navigation
+          </div>
+        )}
+        <div className="space-y-2">
+          <NavItem
+            href="/agents"
+            icon={Brain}
+            isActive={isAgentsActive}
+            isCollapsed={isCollapsed}
+            isMounted={isMounted}
+          >
+            Agents
+          </NavItem>
+          <NavItem
+            href="/competitors"
+            icon={Users}
+            isActive={pathname === "/competitors"}
+            isCollapsed={isCollapsed}
+            isMounted={isMounted}
+          >
+            Competitors
+          </NavItem>
+          <NavItem
+            href="/post-generator"
+            icon={PenTool}
+            isActive={isPostGenActive}
+            isCollapsed={isCollapsed}
+            isMounted={isMounted}
+          >
+            Post Generator
+          </NavItem>
+          <NavItem
+            href="/company-analysis"
+            icon={BarChart3}
+            isActive={pathname === "/company-analysis"}
+            isCollapsed={isCollapsed}
+            isMounted={isMounted}
+          >
+            Company Analysis
+          </NavItem>
         </div>
-      )}
-      <div className="space-y-1">
-        <NavItem href="/projects?category=marketing" icon={Target} isCollapsed={isCollapsed} isMounted={isMounted}>
-          Marketing
-        </NavItem>
-        <NavItem href="/projects?category=design" icon={PenTool} isCollapsed={isCollapsed} isMounted={isMounted}>
-          Design
-        </NavItem>
-        <NavItem href="/projects?category=development" icon={Briefcase} isCollapsed={isCollapsed} isMounted={isMounted}>
-          Development
-        </NavItem>
-        <NavItem href="/projects?category=content" icon={FileText} isCollapsed={isCollapsed} isMounted={isMounted}>
-          Content
-        </NavItem>
       </div>
-    </div> */}
-
-    {/* <div className="stagger-3">
-      {!isCollapsed && (
-        <div className="px-2 mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 animate-fade-in">
-          Tools
-        </div>
-      )}
-      <div className="space-y-1">
-        <NavItem href="/projects/templates" icon={FileText} isCollapsed={isCollapsed} isMounted={isMounted}>
-          Templates
-        </NavItem>
-        <NavItem href="/projects/assets" icon={ImageIcon} isCollapsed={isCollapsed} isMounted={isMounted}>
-          Asset Library
-        </NavItem>
-        <NavItem href="/projects/tags" icon={Bookmark} isCollapsed={isCollapsed} isMounted={isMounted}>
-          Tags & Labels
-        </NavItem>
-      </div>
-    </div> */}
-  </>
-); 
+    </>
+  );
+};

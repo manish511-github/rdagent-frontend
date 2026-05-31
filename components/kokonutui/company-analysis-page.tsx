@@ -4,18 +4,40 @@ import type React from "react"
 
 import { useEffect, useRef, useState } from "react"
 import { useSelector, useDispatch } from "react-redux"
-import { useSearchParams } from "next/navigation"
-import { selectOverview, selectNews, selectYouTube, selectTwitter, selectFacebook, updateSocialMediaFromResponse } from "@/store/slices/competitorAnalysisSlice"
+import { useSearchParams, useRouter } from "next/navigation"
+import {
+  selectOverview,
+  selectNews,
+  selectYouTube,
+  selectTwitter,
+  selectFacebook,
+  updateSocialMediaFromResponse,
+  loadCompetitorAnalysis,
+  setAnalysisFromApi,
+} from "@/store/slices/competitorAnalysisSlice"
 import type { AppDispatch } from "@/store/store"
-import { selectUserInfo } from "@/store/slices/userSlice"
-import { selectCurrentProject } from "@/store/slices/currentProjectSlice"
+import {
+  selectUserInfo,
+  selectHasEnoughCreditsForCompetitorAnalysis,
+  selectCompetitorAnalysisCost,
+  selectRemainingCredits,
+} from "@/store/slices/userSlice"
+import { fetchAgents, selectAgents, selectAgentsStatus } from "@/store/slices/agentsSlice"
 import { Tabs } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { cn } from "@/lib/utils"
+import { cn, refreshAccessToken } from "@/lib/utils"
 import { SocialMediaDashboard } from "@/components/social-media/social-media-dashboard"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useToast } from "@/components/ui/use-toast"
+import { getApiUrl } from "@/lib/config"
+import Cookies from "js-cookie"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Building2,
   Globe,
@@ -37,6 +59,10 @@ import {
   Lightbulb,
   CalendarClock,
   DollarSign,
+  ArrowRight,
+  Loader2,
+  Plus,
+  SearchIcon,
 } from "lucide-react"
 
 type FeatureItem = {
@@ -148,13 +174,22 @@ type NewsAnalysis = {
 
 
 type CompanyAnalysisPageProps = {
-  projectId: string
+  projectId?: string
   companySlug?: string
   features?: FeatureItem[]
   plans?: PlanItem[]
   overview?: CompanyOverviewData
   youtubeAnalysis?: YouTubeAnalysis
   newsAnalysis?: NewsAnalysis
+}
+
+const SAMPLE_NEWS: NewsAnalysis = {
+  summary: "No news analysis available.",
+  themes: [],
+  sentiment: { overall: "Neutral", by_theme: [] },
+  risks: [],
+  opportunities: [],
+  notable_entities: [],
 }
 
 export default function CompanyAnalysisPage({
@@ -170,6 +205,18 @@ export default function CompanyAnalysisPage({
   const competitorUrl = searchParams.get("competitor_url") || ""
   const dispatch = useDispatch<AppDispatch>()
 
+  const agents = useSelector(selectAgents)
+  const agentsStatus = useSelector(selectAgentsStatus)
+
+  useEffect(() => {
+    if (agentsStatus === "idle") {
+      dispatch(fetchAgents() as any)
+    }
+  }, [agentsStatus, dispatch])
+
+  const selectedAgent = agents[0]
+  const resolvedProjectId = selectedAgent?.id?.toString() || projectId || ""
+
   // Redux selectors
   const overviewFromStore = useSelector(selectOverview) as any
   const newsFromStore = useSelector(selectNews) as any
@@ -177,12 +224,269 @@ export default function CompanyAnalysisPage({
   const twitterFromStore = useSelector(selectTwitter) as any
   const facebookFromStore = useSelector(selectFacebook) as any
   const user = useSelector(selectUserInfo) as any
-  const currentProject = useSelector(selectCurrentProject) as any
 
   const [activeTab, setActiveTab] = useState<string>("overview")
   const [activeSection, setActiveSection] = useState<string | null>(null)
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
   const scrollAreaRef = useRef<HTMLDivElement | null>(null)
+
+  const [newCompetitorUrl, setNewCompetitorUrl] = useState("")
+  const [urlError, setUrlError] = useState("")
+  const [searchFilter, setSearchFilter] = useState("")
+  const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false)
+
+  const queryClient = useQueryClient()
+  const router = useRouter()
+  const { toast } = useToast()
+
+  const hasEnoughCredits = useSelector(selectHasEnoughCreditsForCompetitorAnalysis)
+  const competitorCost = useSelector(selectCompetitorAnalysisCost)
+  const remainingCredits = useSelector(selectRemainingCredits)
+  const isSubscriptionInactive = user?.subscription?.status === 'inactive'
+
+  // Helper domain normalization & validation
+  const validateUrl = (input: string): boolean => {
+    if (!input.trim()) return false
+    try {
+      new URL(input)
+      return true
+    } catch {
+      try {
+        new URL(`https://${input}`)
+        return true
+      } catch {
+        return false
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (!newCompetitorUrl) {
+      setUrlError("")
+      return
+    }
+    setUrlError(
+      validateUrl(newCompetitorUrl) ? "" : "Enter a valid URL or domain (example.com)"
+    )
+  }, [newCompetitorUrl])
+
+  // Fetch competitors for selection
+  const queryKey = ["competitors", user?.id, resolvedProjectId]
+  const competitorsQuery = useQuery({
+    queryKey,
+    enabled: !!user?.id && !!resolvedProjectId,
+    queryFn: async ({ signal }) => {
+      const res = await fetch(
+        getApiUrl(`/company/competitor?user_id=${user?.id}&project_id=${resolvedProjectId}`),
+        { signal }
+      )
+      if (!res.ok) throw new Error("Failed to fetch competitors")
+      const json = await res.json()
+      return (json?.data ?? []) as Array<{
+        id: number
+        status: string
+        competitor_name: string
+        competitor_description: string
+        competitor_category: string
+        competitor_source_id?: string
+        our_source_id?: string
+      }>
+    },
+  })
+
+  const filteredCompetitors = (competitorsQuery.data ?? []).filter((comp) => {
+    if (!searchFilter.trim()) return true
+    const q = searchFilter.toLowerCase()
+    return (
+      (comp.competitor_name || "").toLowerCase().includes(q) ||
+      (comp.competitor_source_id || "").toLowerCase().includes(q)
+    )
+  })
+
+  // Load active competitor details if competitorUrl changes (e.g. page refresh)
+  useEffect(() => {
+    if (competitorUrl && user?.id && !overviewFromStore) {
+      setIsLoadingAnalysis(true)
+      dispatch(
+        loadCompetitorAnalysis({
+          ourUrl: selectedAgent?.website_url || "",
+          competitorUrl: competitorUrl,
+          userId: user?.id,
+        })
+      )
+        .unwrap()
+        .catch((err) => {
+          console.error("Failed to load analysis:", err)
+          toast({
+            title: "Failed to load analysis",
+            description: "An error occurred while fetching the analysis data.",
+            variant: "destructive",
+          })
+        })
+        .finally(() => {
+          setIsLoadingAnalysis(false)
+        })
+    }
+  }, [competitorUrl, user?.id, dispatch, selectedAgent?.website_url, overviewFromStore])
+
+  const createMutation = useMutation({
+    mutationFn: async (body: {
+      our_url: string
+      competitor_url: string
+      project_id: string
+      user_id: number
+      run_now: boolean
+      scrape: boolean
+      overview: boolean
+      features: boolean
+      pricing: boolean
+      compare_features: boolean
+      compare_pricing: boolean
+      social_media: boolean
+      youtube: boolean
+      twitter: boolean
+      facebook: boolean
+      news: boolean
+    }) => {
+      let token = Cookies.get("access_token")
+      let res = await fetch(getApiUrl(`/company/competitor`), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      })
+
+      if (res.status === 401) {
+        token = await refreshAccessToken()
+        if (token) {
+          res = await fetch(getApiUrl(`/company/competitor`), {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(body),
+          })
+        }
+      }
+
+      if (res.status === 402) {
+        const errorData = await res.json().catch(() => ({}))
+        const errorMessage = errorData?.detail || "Insufficient credits to create competitor."
+        throw new Error(errorMessage)
+      }
+
+      if (!res.ok) throw new Error("Failed to create competitor")
+      return res.json()
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey })
+      toast({
+        title: "Competitor added and analysis started",
+        description: `Analysis for ${variables.competitor_url} is now in progress.`,
+      })
+
+      const sourceId = variables.competitor_url
+        .replace(/^https?:\/\//, "")
+        .replace(/^www\./, "")
+        .replace(/\./g, "_")
+
+      const q = new URLSearchParams({
+        source_id: sourceId,
+        our_url: variables.our_url,
+        competitor_url: variables.competitor_url,
+      })
+      router.push(`/company-analysis?${q.toString()}`)
+      setNewCompetitorUrl("")
+    },
+    onError: (error: any) =>
+      toast({
+        title: "Analysis Failed",
+        description: error?.message || "An error occurred while starting the competitor analysis.",
+        variant: "destructive",
+      }),
+  })
+
+  const handleAnalyzeNewCompetitor = () => {
+    if (!user?.id || !resolvedProjectId || !newCompetitorUrl.trim()) return
+
+    if (!hasEnoughCredits) {
+      toast({
+        title: "Insufficient Credits",
+        description: `You need ${competitorCost} credits for competitor analysis, but you only have ${remainingCredits} credits remaining.`,
+        variant: "destructive",
+      })
+      return
+    }
+
+    createMutation.mutate({
+      our_url: selectedAgent?.website_url || "",
+      competitor_url: newCompetitorUrl.trim(),
+      project_id: resolvedProjectId,
+      user_id: user?.id,
+      run_now: true,
+      scrape: true,
+      overview: true,
+      features: true,
+      pricing: true,
+      compare_features: true,
+      compare_pricing: true,
+      social_media: true,
+      youtube: true,
+      twitter: true,
+      facebook: true,
+      news: true,
+    })
+  }
+
+  const handleSelectCompetitor = (row: any) => {
+    const ourUrl = selectedAgent?.website_url || ""
+    const competitorUrl = row.competitor_source_id
+      ? `https://${row.competitor_source_id.replace(/_/g, ".").replace(/\.com$/i, ".com")}/`
+      : `https://${row.competitor_name.toLowerCase().replace(/[^a-z0-9]+/g, "")}.com/`
+
+    const sourceIdParam =
+      row.competitor_source_id ||
+      new URL(competitorUrl).hostname.replace(/^www\./, "").replace(/\./g, "_")
+
+    setIsLoadingAnalysis(true)
+    fetch(getApiUrl(`/company/competitor/analysis`), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: user?.id,
+        project_id: resolvedProjectId,
+        our_url: ourUrl,
+        competitor_url: competitorUrl,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to request analysis")
+        return res.json()
+      })
+      .then((data) => {
+        dispatch(setAnalysisFromApi({ api: data }))
+        const q = new URLSearchParams({
+          source_id: sourceIdParam,
+          our_url: ourUrl,
+          competitor_url: competitorUrl,
+        })
+        router.push(`/company-analysis?${q.toString()}`)
+      })
+      .catch((err) => {
+        console.error(err)
+        toast({
+          title: "Failed to open analysis",
+          description: "An error occurred while loading this competitor's analysis.",
+          variant: "destructive",
+        })
+      })
+      .finally(() => {
+        setIsLoadingAnalysis(false)
+      })
+  }
 
   const addSectionRef = (id: string, ref: HTMLElement | null) => {
     if (ref) {
@@ -239,6 +543,214 @@ export default function CompanyAnalysisPage({
   }
 
   // NewsAnalysis type defined above with explicit fields
+  if (isLoadingAnalysis) {
+    return (
+      <div className="h-full bg-gray-50 dark:bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-slate-800 dark:text-slate-200" />
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+            Loading company analysis...
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!competitorUrl || !overviewFromStore) {
+    return (
+      <div className="h-full bg-gray-50 dark:bg-black overflow-y-auto">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="mb-10 text-center sm:text-left">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center justify-center sm:justify-start gap-3">
+              <Building2 className="h-8 w-8 text-primary" />
+              Company Analysis
+            </h1>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 max-w-2xl">
+              Get an instant strategic overview of any competitor. Monitor their pricing tiers, key features, website footprint, social media channels, and top news.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            {/* Column 1: Add/Analyze a New Competitor */}
+            <Card className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0A0A0A] shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-4">
+                <Plus className="h-5 w-5 text-primary" />
+                Analyze a New Competitor
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                Enter a competitor's website URL to fetch their organizational overview, social networks, and public news highlights.
+              </p>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="competitor-input-url" className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Website URL / Domain
+                  </Label>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="competitor-input-url"
+                      placeholder="e.g. competitorsite.com"
+                      value={newCompetitorUrl}
+                      onChange={(e) => {
+                        setNewCompetitorUrl(e.target.value)
+                      }}
+                      className="pl-9 h-10"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !urlError && newCompetitorUrl.trim()) {
+                          e.preventDefault()
+                          handleAnalyzeNewCompetitor()
+                        }
+                      }}
+                    />
+                  </div>
+                  {urlError && (
+                    <p className="text-xs text-red-500 mt-1">{urlError}</p>
+                  )}
+                </div>
+
+                {/* Credit Cost Indicator */}
+                <div className="rounded-lg bg-gray-50 dark:bg-[#0F0F0F] border border-gray-200 dark:border-gray-800 p-4 flex flex-col gap-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-500">Analysis Cost</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{competitorCost} credits</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-500">Your Remaining Credits</span>
+                    <span className={`font-semibold ${hasEnoughCredits ? 'text-green-600' : 'text-red-500'}`}>
+                      {remainingCredits} credits
+                    </span>
+                  </div>
+                </div>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="w-full">
+                      <Button
+                        className="w-full h-10 gap-2 font-medium"
+                        onClick={handleAnalyzeNewCompetitor}
+                        disabled={
+                          !!urlError ||
+                          !newCompetitorUrl.trim() ||
+                          createMutation.isPending ||
+                          isSubscriptionInactive ||
+                          !hasEnoughCredits
+                        }
+                      >
+                        {createMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Analyzing...
+                          </>
+                        ) : (
+                          <>
+                            <Building2 className="h-4 w-4" />
+                            Start Analysis
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </PopoverTrigger>
+                  {(isSubscriptionInactive || !hasEnoughCredits) && (
+                    <PopoverContent className="w-80 p-4" side="bottom" align="center">
+                      <div className="space-y-2">
+                        <h4 className="font-semibold text-sm text-black dark:text-white">
+                          {isSubscriptionInactive ? "Subscription Inactive" : "Insufficient Credits"}
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          {isSubscriptionInactive
+                            ? "Your subscription is inactive. Please activate your plan to analyze competitors."
+                            : `You need ${competitorCost} credits for competitor analysis, but you only have ${remainingCredits} credits remaining.`
+                          }
+                        </p>
+                        <Button
+                          size="sm"
+                          className="w-full mt-2 text-xs"
+                          onClick={() => router.push("/pricing")}
+                        >
+                          {isSubscriptionInactive ? "Activate Subscription" : "Purchase Credits"}
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  )}
+                </Popover>
+              </div>
+            </Card>
+
+            {/* Column 2: Select Existing Competitor */}
+            <Card className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0A0A0A] shadow-md p-6 h-[460px] flex flex-col">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-4">
+                <Building2 className="h-5 w-5 text-primary" />
+                Select Existing Competitor
+              </h2>
+
+              <div className="relative mb-4">
+                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search your competitors..."
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                  className="pl-9 h-9 text-xs"
+                />
+              </div>
+
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 space-y-2.5">
+                {competitorsQuery.isLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-16 rounded-lg border border-gray-200 dark:border-gray-800 animate-pulse bg-gray-50 dark:bg-[#0F0F0F]" />
+                    ))}
+                  </div>
+                ) : competitorsQuery.isError ? (
+                  <div className="text-center py-10 text-xs text-red-500">
+                    Failed to fetch existing competitors.
+                  </div>
+                ) : filteredCompetitors.length === 0 ? (
+                  <div className="text-center py-12 flex flex-col items-center justify-center">
+                    <Building2 className="h-8 w-8 text-gray-400 mb-2" />
+                    <p className="text-xs text-gray-500">No competitors found.</p>
+                  </div>
+                ) : (
+                  filteredCompetitors.map((comp) => {
+                    const domain = comp.competitor_source_id
+                      ? comp.competitor_source_id.replace(/_/g, ".")
+                      : `${comp.competitor_name.toLowerCase().replace(/[^a-z0-9]+/g, "")}.com`
+                    
+                    return (
+                      <div
+                        key={comp.id}
+                        onClick={() => handleSelectCompetitor(comp)}
+                        className="group flex items-center justify-between p-3.5 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-primary dark:hover:border-primary bg-gray-50/50 hover:bg-primary/[0.02] dark:bg-[#0A0A0A] dark:hover:bg-primary/[0.01] transition-all cursor-pointer"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-sm text-gray-800 dark:text-gray-200 group-hover:text-primary truncate">
+                              {comp.competitor_name || "—"}
+                            </span>
+                            <Badge
+                              variant={comp.status === "completed" ? "secondary" : "outline"}
+                              className="text-[9px] px-1.5 py-0"
+                            >
+                              {comp.status}
+                            </Badge>
+                          </div>
+                          <span className="text-xs text-gray-500 truncate block mt-0.5">
+                            {domain}
+                          </span>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="h-full bg-gray-50 dark:bg-black">
@@ -721,7 +1233,7 @@ export default function CompanyAnalysisPage({
                     youtubeData={youtubeFromStore}
                     twitterData={twitterFromStore}
                     facebookData={facebookFromStore}
-                    projectId={projectId}
+                    projectId={resolvedProjectId}
                     userId={user?.id}
                     companyUrl={competitorUrl}
                     onLinksUpdated={async (data) => {

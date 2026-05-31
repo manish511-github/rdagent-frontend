@@ -21,7 +21,6 @@ export interface AgentPostsParams {
 export interface AgentResult {
   id: number;
   agent_id: number;
-  project_id: number;
   status: string;
   results: {
     agent_platform: string;
