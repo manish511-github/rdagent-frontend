@@ -790,7 +790,6 @@ const ConfigurationSection = React.memo(function ConfigurationSection({
         goals: form.goals,
         instructions: form.instructions || "",
         expectations: form.expectations || "",
-        project_id: form.project_id,
         mode: form.mode,
         advanced_settings: form.advanced_settings || {},
         platform_settings: form.platform_settings || {},

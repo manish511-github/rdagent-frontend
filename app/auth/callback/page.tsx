@@ -36,7 +36,7 @@ function AuthCallbackInner() {
         description: "You have been signed in with Google.",
         variant: "default",
       });
-      router.push("/projects");
+      router.push("/agents");
     } else {
       toast({
         title: "Sign-in failed",

@@ -56,7 +56,7 @@ import {
   selectCompetitorAnalysisCost,
   selectRemainingCredits,
 } from "@/store/slices/userSlice";
-import { selectCurrentProject } from "@/store/slices/currentProjectSlice";
+import { fetchAgents, selectAgents, selectAgentsStatus } from "@/store/slices/agentsSlice";
 import DataTable from "@/components/kokonutui/competitors-table/data-table";
 import {
   columns as competitorColumns,
@@ -246,13 +246,23 @@ async function postCompetitor(body: {
   return res.json();
 }
 
-export default function CompetitorsPage({ projectId }: { projectId: string }) {
+export default function CompetitorsPage({ projectId }: { projectId?: string }) {
   const { toast } = useToast();
   const router = useRouter();
   const user = useSelector(selectUserInfo);
-  const currentProject = useSelector(selectCurrentProject);
+  const agents = useSelector(selectAgents);
+  const agentsStatus = useSelector(selectAgentsStatus);
   const queryClient = useQueryClient();
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (agentsStatus === "idle") {
+      dispatch(fetchAgents() as any);
+    }
+  }, [agentsStatus, dispatch]);
+
+  const selectedAgent = agents[0];
+  const resolvedProjectId = selectedAgent?.id?.toString() || projectId || "";
 
   // Credit-related selectors
   const hasEnoughCredits = useSelector(
@@ -307,7 +317,6 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
 
   // Server data via TanStack Query
   const userId = user?.id;
-  const resolvedProjectId = currentProject?.uuid ?? projectId;
 
   // Fetch suggestions from API
 
@@ -433,7 +442,7 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          our_url: currentProject?.website_url || "",
+          our_url: selectedAgent?.website_url || "",
           competitor_url: competitorUrl,
           project_id: resolvedProjectId,
           user_id: userId as number,
@@ -463,7 +472,7 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              our_url: currentProject?.website_url || "",
+              our_url: selectedAgent?.website_url || "",
               competitor_url: competitorUrl,
               project_id: resolvedProjectId,
               user_id: userId as number,
@@ -579,7 +588,7 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          our_url: currentProject?.website_url || "",
+          our_url: selectedAgent?.website_url || "",
           competitor_url: competitorUrl,
           project_id: resolvedProjectId,
           user_id: userId,
@@ -618,7 +627,7 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
   };
 
   const handleOpen = (row: { name: string; competitorSourceId?: string }) => {
-    const ourUrl = currentProject?.website_url || "";
+    const ourUrl = selectedAgent?.website_url || "";
     // Build competitor_url from source id: hexnode_com => https://hexnode.com/
     const competitorUrl = row.competitorSourceId
       ? `https://${row.competitorSourceId
@@ -645,7 +654,7 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
             competitor_url: competitorUrl,
           });
           router.push(
-            `/projects/${projectId}/company-analysis?${q.toString()}`
+            `/company-analysis?${q.toString()}`
           );
         },
       }
@@ -693,7 +702,7 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
     }
 
     createMutation.mutate({
-      our_url: currentProject?.website_url || "",
+      our_url: selectedAgent?.website_url || "",
       competitor_url: websiteUrl.trim(),
       project_id: resolvedProjectId,
       user_id: userId,
@@ -1156,15 +1165,15 @@ export default function CompetitorsPage({ projectId }: { projectId: string }) {
                       const q = new URLSearchParams({
                         company: c.slug,
                         ...(sourceId ? { source_id: sourceId } : {}),
-                        ...(currentProject?.website_url
-                          ? { our_url: currentProject.website_url }
+                        ...(selectedAgent?.website_url
+                          ? { our_url: selectedAgent.website_url }
                           : {}),
                         competitor_url: compUrl,
                       });
                       return (
                         <Link
                           key={`${c.slug}-${idx}`}
-                          href={`/projects/${projectId}/company-analysis?${q.toString()}`}
+                          href={`/company-analysis?${q.toString()}`}
                           className="block"
                         >
                           <Card className="hover:bg-accent/40 transition">

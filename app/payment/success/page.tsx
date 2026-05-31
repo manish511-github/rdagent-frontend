@@ -123,7 +123,7 @@ function PaymentSuccessContent() {
   }
 
   const handleViewDashboard = () => {
-    router.push("/projects")
+    router.push("/agents")
   }
 
   const handleReturnHome = () => {

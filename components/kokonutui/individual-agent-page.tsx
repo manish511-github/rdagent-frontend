@@ -776,7 +776,6 @@ const ConfigurationSection = React.memo(function ConfigurationSection({
         goals: form.goals,
         instructions: form.instructions || "",
         expectations: form.expectations || "",
-        project_id: form.project_id,
         mode: form.mode,
         review_minutes: form.review_minutes || 0,
         advanced_settings: form.advanced_settings || {},
@@ -1755,7 +1754,7 @@ export default function IndividualAgentPage({ agentId }: { agentId: string }) {
 
   const handleDeleteAgent = React.useCallback(() => {
     setIsDeleteDialogOpen(false);
-    router.push("/projects/1/agents");
+    router.push("/agents");
   }, [router]);
 
   const toggleDetailPane = React.useCallback(() => {

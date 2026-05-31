@@ -13,7 +13,6 @@ interface AgentsState {
   agents: Agent[];
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
-  lastFetchedProjectId: string | null; // Track which project's agents were last fetched
   createStatus: "idle" | "loading" | "succeeded" | "failed";
   updateStatus: "idle" | "loading" | "succeeded" | "failed";
 }
@@ -22,18 +21,17 @@ const initialState: AgentsState = {
   agents: [],
   status: "idle",
   error: null,
-  lastFetchedProjectId: null,
   createStatus: "idle",
   updateStatus: "idle",
 };
 
-// Async thunk to fetch agents for a project
+// Async thunk to fetch all agents for the current user
 export const fetchAgents = createAsyncThunk(
   "agents/fetchAgents",
-  async (projectId: string, { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
       let token = Cookies.get("access_token");
-      let response = await fetch(getApiUrl(`projects/${projectId}/agents`), {
+      let response = await fetch(getApiUrl(`agents`), {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -44,7 +42,7 @@ export const fetchAgents = createAsyncThunk(
       if (response.status === 401) {
         token = await refreshAccessToken();
         if (token) {
-          response = await fetch(getApiUrl(`projects/${projectId}/agents`), {
+          response = await fetch(getApiUrl(`agents`), {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
@@ -56,9 +54,6 @@ export const fetchAgents = createAsyncThunk(
       if (!response.ok) {
         if (response.status === 401) {
           return rejectWithValue("Authentication failed");
-        }
-        if (response.status === 404) {
-          return rejectWithValue("Project not found");
         }
         const error = await response.json().catch(() => ({}));
         return rejectWithValue(error.message || "Failed to fetch agents");
@@ -107,19 +102,14 @@ export const createAgent = createAsyncThunk(
         if (response.status === 401) {
           return rejectWithValue("Authentication failed");
         }
-        if (response.status === 404) {
-          return rejectWithValue(
-            "Project not found or you don't have access to it"
-          );
-        }
         const errorData = await response.json().catch(() => ({}));
         return rejectWithValue(errorData.detail || "Failed to create agent");
       }
 
       const newAgent = await response.json();
 
-      // Refresh the agents list for the project
-      dispatch(fetchAgents(agentData.project_id));
+      // Refresh the agents list
+      dispatch(fetchAgents());
 
       return newAgent;
     } catch (error) {
@@ -135,16 +125,15 @@ export const updateAgentStatus = createAsyncThunk(
   "agents/updateAgentStatus",
   async (
     {
-      projectId,
       agentId,
       status,
-    }: { projectId: string; agentId: string; status: string },
+    }: { agentId: string; status: string },
     { rejectWithValue }
   ) => {
     try {
       let token = Cookies.get("access_token");
       let response = await fetch(
-        getApiUrl(`agents/${projectId}/${agentId}/status`),
+        getApiUrl(`agents/${agentId}/status`),
         {
           method: "PATCH",
           headers: {
@@ -160,7 +149,7 @@ export const updateAgentStatus = createAsyncThunk(
         token = await refreshAccessToken();
         if (token) {
           response = await fetch(
-            getApiUrl(`agents/${projectId}/${agentId}/status`),
+            getApiUrl(`agents/${agentId}/status`),
             {
               method: "PATCH",
               headers: {
@@ -196,12 +185,11 @@ const agentsSlice = createSlice({
   name: "agents",
   initialState,
   reducers: {
-    // Clear agents data (useful when navigating away from project)
+    // Clear agents data
     clearAgents: (state) => {
       state.agents = [];
       state.status = "idle";
       state.error = null;
-      state.lastFetchedProjectId = null;
     },
     // Clear error state
     clearError: (state) => {
@@ -227,10 +215,9 @@ const agentsSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // Handle fetchAgents
-      .addCase(fetchAgents.pending, (state, action) => {
+      .addCase(fetchAgents.pending, (state) => {
         state.status = "loading";
         state.error = null;
-        state.lastFetchedProjectId = action.meta.arg;
       })
       .addCase(fetchAgents.fulfilled, (state, action) => {
         state.status = "succeeded";
@@ -299,8 +286,6 @@ export const selectCreateAgentStatus = (state: { agents: AgentsState }) =>
   state.agents.createStatus;
 export const selectUpdateAgentStatus = (state: { agents: AgentsState }) =>
   state.agents.updateStatus;
-export const selectLastFetchedProjectId = (state: { agents: AgentsState }) =>
-  state.agents.lastFetchedProjectId;
 
 // Selector to get a specific agent by ID
 export const selectAgentById =

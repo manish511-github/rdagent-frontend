@@ -4,8 +4,9 @@ import { useAuthGuard } from "@/hooks/useAuthGuard"
 import { AuthLoading } from "@/components/auth/auth-loading"
 import { AuthRedirect } from "@/components/auth/auth-redirect"
 import AgentsPage from "@/components/kokonutui/agents-page"
+import Layout from "@/components/kokonutui/layout"
 
-export default function ProjectAgentsPage() {
+export default function Agents() {
   const { isAuthenticated, isLoading, showRedirectMessage } = useAuthGuard({
     redirectTo: "/login",
     toastTitle: "Authentication Required",
@@ -13,20 +14,27 @@ export default function ProjectAgentsPage() {
     requireAuth: true
   })
 
-  // Show loading state while checking authentication
   if (isLoading) {
     return <AuthLoading message="Checking authentication..." />
   }
 
-  // Show redirect message if not authenticated
   if (showRedirectMessage) {
-    return <AuthRedirect />
+    return (
+      <AuthRedirect 
+        title="Authentication Required"
+        description="You need to be signed in to access your agents."
+        redirectMessage="Redirecting to sign-in..."
+      />
+    )
   }
 
-  // Only render the agents page if authenticated
   if (!isAuthenticated) {
     return null
   }
 
-  return <AgentsPage />
+  return (
+    <Layout>
+      <AgentsPage />
+    </Layout>
+  )
 }

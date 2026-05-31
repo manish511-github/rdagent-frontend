@@ -83,12 +83,18 @@ export interface Agent {
   instructions: string;
   expectations: string;
   agent_keywords: string[];
-  project_id: string;
   mode: string | null;
   review_minutes: number;
   oauth_account_id: number;
   advanced_settings: Record<string, any>;
   platform_settings: PlatformSettings;
+  // Business context fields (migrated from Project)
+  target_audience?: string | null;
+  website_url?: string | null;
+  keywords?: string[] | null;
+  excluded_keywords?: string[] | null;
+  category?: string | null;
+  competitors?: string[] | null;
   created_at: string;
   last_run: string | null;
   oauth_account: OAuthAccount;
@@ -104,12 +110,18 @@ export interface ApiAgent {
   instructions: string;
   expectations: string;
   agent_keywords?: string[];
-  project_id: string;
   mode?: string | null;
   review_minutes: number;
   oauth_account_id: number;
   advanced_settings?: Record<string, any>;
   platform_settings: PlatformSettings;
+  // Business context fields
+  target_audience?: string | null;
+  website_url?: string | null;
+  keywords?: string[] | null;
+  excluded_keywords?: string[] | null;
+  category?: string | null;
+  competitors?: string[] | null;
 }
 
 // Agent creation payload interface
@@ -122,12 +134,18 @@ export interface CreateAgentPayload {
   instructions: string;
   expectations: string;
   agent_keywords?: string[];
-  project_id: string;
   mode?: string | null;
   review_minutes: number;
   oauth_account_id: number;
   advanced_settings?: Record<string, any>;
   platform_settings: PlatformSettings;
+  // Business context fields
+  target_audience?: string | null;
+  website_url?: string | null;
+  keywords?: string[] | null;
+  excluded_keywords?: string[] | null;
+  category?: string | null;
+  competitors?: string[] | null;
 }
 
 // Legacy HackerNews types (keeping for backward compatibility)

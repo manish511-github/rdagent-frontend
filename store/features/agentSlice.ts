@@ -219,13 +219,19 @@ export interface AgentDetails {
   instructions: string | null;
   expectations: string | null;
   agent_keywords: string[];
-  project_id: string;
   mode: string; // copilot | assisted | autonomous
   review_minutes: number | null;
   oauth_account_id: string | number | null;
   oauth_account: OAuthAccount | null; // Added OAuth account details
   advanced_settings: Record<string, any>;
   platform_settings: Record<string, any>;
+  // Business context fields (migrated from Project)
+  target_audience?: string | null;
+  website_url?: string | null;
+  keywords?: string[] | null;
+  excluded_keywords?: string[] | null;
+  category?: string | null;
+  competitors?: string[] | null;
   created_at: string;
   last_run: string | null;
   schedule: AgentScheduleDetails | null;
@@ -544,7 +550,6 @@ export const fetchAgentData = createAsyncThunk(
         agentData: {
           id: agentData.id,
           agent_id: agentData.agent_id,
-          project_id: agentData.project_id,
           status: agentData.status,
           lastSuccessfulExecutionTime: lastSuccessfulExecutionTime,
           error: agentData.error,
@@ -657,7 +662,7 @@ export const updateAgentDetails = createAsyncThunk(
 export const connectToAgent = createAsyncThunk(
   "agent/connect",
   async (
-    { projectId, agentId }: { projectId: string; agentId: string },
+    { agentId }: { agentId: string },
     { rejectWithValue }
   ) => {
     const token = Cookies.get("access_token");

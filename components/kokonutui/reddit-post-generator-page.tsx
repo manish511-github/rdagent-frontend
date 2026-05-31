@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useSelector } from "react-redux";
+import { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import {
   Copy,
 } from "lucide-react";
 import { PlatformIcon } from "@/components/kokonutui/platform-icons";
-import { selectCurrentProject } from "@/store/slices/currentProjectSlice";
+import { fetchAgents, selectAgents, selectAgentsStatus } from "@/store/slices/agentsSlice";
 import {
   selectUserInfo,
   selectHasEnoughCreditsForRedditPostGeneration,
@@ -46,11 +46,21 @@ interface DraftItem {
 export default function RedditPostGeneratorPage({
   projectId,
 }: {
-  projectId: string;
+  projectId?: string;
 }) {
   const { toast } = useToast();
-  const currentProject = useSelector(selectCurrentProject);
-  const resolvedProjectUuid = currentProject?.uuid ?? projectId;
+  const dispatch = useDispatch();
+  const agents = useSelector(selectAgents);
+  const agentsStatus = useSelector(selectAgentsStatus);
+
+  useEffect(() => {
+    if (agentsStatus === "idle") {
+      dispatch(fetchAgents() as any);
+    }
+  }, [agentsStatus, dispatch]);
+
+  const selectedAgent = agents[0];
+  const resolvedProjectUuid = selectedAgent?.id?.toString() || projectId || "";
   const user = useSelector(selectUserInfo);
   const isSubscriptionInactive = user?.subscription?.status === 'inactive';
 
