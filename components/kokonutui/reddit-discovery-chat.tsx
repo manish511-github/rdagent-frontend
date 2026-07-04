@@ -138,6 +138,7 @@ export default function RedditDiscoveryChat() {
     "hackernews",
     "youtube",
     "github",
+    "linkedin",
   ]);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -485,6 +486,7 @@ export default function RedditDiscoveryChat() {
                         { id: "hackernews", label: "Hacker News" },
                         { id: "youtube", label: "YouTube" },
                         { id: "github", label: "GitHub" },
+                        { id: "linkedin", label: "LinkedIn" },
                       ].map((p) => (
                         <button
                           key={p.id}
@@ -1151,10 +1153,12 @@ function signalPlatform(signal: AgentSignal) {
   if (signal.platform === "hackernews") return "Hacker News";
   if (signal.platform === "youtube") return "YouTube";
   if (signal.platform === "github") return "GitHub";
+  if (signal.platform === "linkedin") return "LinkedIn";
   if (signal.subreddit || /reddit\.com/i.test(url)) return "Reddit";
   if (signal.subx || /\b(?:x|twitter)\.com\//i.test(url)) return "X/Twitter";
   if (/youtube\.com|youtu\.be/i.test(url)) return "YouTube";
   if (/github\.com/i.test(url)) return "GitHub";
+  if (/linkedin\.com/i.test(url)) return "LinkedIn";
   return "Hacker News";
 }
 
