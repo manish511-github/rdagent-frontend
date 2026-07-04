@@ -487,6 +487,7 @@ export default function RedditDiscoveryChat() {
                         { id: "youtube", label: "YouTube" },
                         { id: "github", label: "GitHub" },
                         { id: "linkedin", label: "LinkedIn" },
+                        { id: "devto", label: "Dev.to" },
                       ].map((p) => (
                         <button
                           key={p.id}
@@ -1154,11 +1155,13 @@ function signalPlatform(signal: AgentSignal) {
   if (signal.platform === "youtube") return "YouTube";
   if (signal.platform === "github") return "GitHub";
   if (signal.platform === "linkedin") return "LinkedIn";
+  if (signal.platform === "devto") return "Dev.to";
   if (signal.subreddit || /reddit\.com/i.test(url)) return "Reddit";
   if (signal.subx || /\b(?:x|twitter)\.com\//i.test(url)) return "X/Twitter";
   if (/youtube\.com|youtu\.be/i.test(url)) return "YouTube";
   if (/github\.com/i.test(url)) return "GitHub";
   if (/linkedin\.com/i.test(url)) return "LinkedIn";
+  if (/dev\.to/i.test(url)) return "Dev.to";
   return "Hacker News";
 }
 
