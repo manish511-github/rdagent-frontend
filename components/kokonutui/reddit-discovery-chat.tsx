@@ -145,7 +145,7 @@ export default function RedditDiscoveryChat() {
       id: "welcome",
       role: "assistant",
       content:
-        "Tell me what audience, pain, competitor, or market signal you want to find. I can search Reddit, X/Twitter, or Hacker News through the agent runtime.",
+        "Tell me what audience, pain, competitor, or market signal you want to find. I can search Reddit, X/Twitter, Hacker News, YouTube, GitHub, LinkedIn, and newsletters through the agent runtime.",
     },
   ]);
 
@@ -490,6 +490,7 @@ export default function RedditDiscoveryChat() {
                         { id: "devto", label: "Dev.to" },
                         { id: "producthunt", label: "Product Hunt" },
                         { id: "indiehackers", label: "Indie Hackers" },
+                        { id: "newsletter", label: "Newsletters" },
                       ].map((p) => (
                         <button
                           key={p.id}
@@ -1160,6 +1161,7 @@ function signalPlatform(signal: AgentSignal) {
   if (signal.platform === "devto") return "Dev.to";
   if (signal.platform === "producthunt") return "Product Hunt";
   if (signal.platform === "indiehackers") return "Indie Hackers";
+  if (signal.platform === "newsletter") return "Newsletter";
   if (signal.subreddit || /reddit\.com/i.test(url)) return "Reddit";
   if (signal.subx || /\b(?:x|twitter)\.com\//i.test(url)) return "X/Twitter";
   if (/youtube\.com|youtu\.be/i.test(url)) return "YouTube";
