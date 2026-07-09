@@ -29,6 +29,8 @@ export default function TopNav() {
   const isCompetitorsPage = pathname.includes("/competitors");
   const isAgentsPage = pathname.startsWith("/agents");
   const isPostGeneratorPage = pathname.startsWith("/post-generator");
+  const isAgentChatPage =
+    pathname.startsWith("/agent-chat");
 
   const companySlug = searchParams.get("company") || "";
   const companyDisplay = companySlug
@@ -58,6 +60,8 @@ export default function TopNav() {
     if (pathname.includes("/reddit")) {
       breadcrumbs.push({ label: "Reddit" });
     }
+  } else if (isAgentChatPage) {
+    breadcrumbs.push({ label: "Agent Chat" });
   } else {
     breadcrumbs.push({ label: "Dashboard" });
   }

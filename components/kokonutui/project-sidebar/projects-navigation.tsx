@@ -1,4 +1,4 @@
-import { Brain, Users, PenTool, BarChart3 } from "lucide-react";
+import { BarChart3, Brain, PenTool, Search, Users } from "lucide-react";
 import { NavItem } from "./nav-item";
 import type { FC } from "react";
 
@@ -11,6 +11,7 @@ interface ProjectsNavigationProps {
 export const ProjectsNavigation: FC<ProjectsNavigationProps> = ({ isCollapsed, isMounted, pathname }) => {
   const isPostGenActive = pathname.startsWith("/post-generator");
   const isAgentsActive = pathname.startsWith("/agents");
+  const isAgentChatActive = pathname.startsWith("/agent-chat");
 
   return (
     <>
@@ -39,6 +40,16 @@ export const ProjectsNavigation: FC<ProjectsNavigationProps> = ({ isCollapsed, i
           >
             Competitors
           </NavItem>
+          <NavItem
+            href="/agent-chat"
+            icon={Search}
+            isActive={isAgentChatActive}
+            isCollapsed={isCollapsed}
+            isMounted={isMounted}
+          >
+            Agent Chat
+          </NavItem>
+
           <NavItem
             href="/post-generator"
             icon={PenTool}
