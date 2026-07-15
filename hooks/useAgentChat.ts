@@ -11,6 +11,7 @@ import {
   parseSseChunk,
   readError,
 } from "@/lib/agent-chat/stream-utils";
+import { resultDisplayCount } from "@/lib/agent-chat/signal-utils";
 import {
   type AgentMode,
   type AgentRuntimeMode,
@@ -480,12 +481,13 @@ export function useAgentChat({
                 reasoning: data.reasoning || undefined,
               },
             ]);
+            const visibleResultCount = resultDisplayCount(data);
             pushWorkspaceEvent({
               type: "completed",
-              label: `Run completed with ${data.signals.length} result${
-                data.signals.length === 1 ? "" : "s"
+              label: `Run completed with ${visibleResultCount} result${
+                visibleResultCount === 1 ? "" : "s"
               }`,
-              count: data.signals.length,
+              count: visibleResultCount,
             });
             setStreamStatus(null);
             setRuntimeMode("chat");

@@ -18,6 +18,8 @@ export type AgentSignal = {
   subreddit?: string | null;
   subx?: string | null;
   post_id?: string | null;
+  tweet_id?: string | number | null;
+  status_id?: string | number | null;
   overall_score?: number;
   category?: string;
   reason?: string;
@@ -35,6 +37,11 @@ export type AgentSignal = {
   metadata?: Record<string, unknown>;
   score?: number;
   relevance?: number;
+  likes?: number | string | null;
+  retweets?: number | string | null;
+  replies?: number | string | null;
+  author_id?: string | number | null;
+  author_username?: string | null;
   time?: number;
   relevant_comment_ids?: number[];
 };

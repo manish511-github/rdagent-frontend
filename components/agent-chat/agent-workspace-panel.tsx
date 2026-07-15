@@ -53,9 +53,13 @@ export type AgentSignal = {
   description?: string;
   author?: string | null;
   author_name?: string | null;
+  author_username?: string | null;
+  author_id?: string | number | null;
   subreddit?: string | null;
   subx?: string | null;
   post_id?: string | null;
+  tweet_id?: string | number | null;
+  status_id?: string | number | null;
   overall_score?: number;
   category?: string;
   reason?: string;
@@ -73,6 +77,9 @@ export type AgentSignal = {
   metadata?: Record<string, unknown>;
   score?: number;
   relevance?: number;
+  likes?: number | string | null;
+  retweets?: number | string | null;
+  replies?: number | string | null;
   time?: number;
   relevant_comment_ids?: number[];
 };
@@ -109,6 +116,12 @@ type AgentWorkspaceData = {
 
 type StatusFilter = "all" | "actionable" | "comments" | "news" | "promo" | "low_relevance";
 type SortOrder = "relevance" | "newest" | "oldest";
+
+type AgentDisplayRecord = {
+  id: string;
+  signal: AgentSignal;
+  artifactRow?: AgentArtifactRow;
+};
 
 type AgentWorkspacePanelProps = {
   data?: AgentWorkspaceData;
@@ -148,57 +161,79 @@ export function AgentWorkspacePanel({
     return dedupeSignals(finalSignals.length ? finalSignals : liveSignals);
   }, [data?.signals, liveSignals]);
 
-  const artifactRowsById = useMemo(() => {
+  const displayRecords = useMemo<AgentDisplayRecord[]>(() => {
     const rows = data?.artifact_rows || [];
-    return new Map(rows.map((row) => [row.item_id, row]));
-  }, [data?.artifact_rows]);
+    if (!rows.length) {
+      return signals.map((signal, index) => ({
+        id: `${signalId(signal)}-${index}`,
+        signal,
+      }));
+    }
+
+    const signalsByIdentity = buildSignalIdentityMap(signals);
+    return rows.map((row, index) => {
+      const signal = signalForArtifactRow(row, signalsByIdentity) || signalFromArtifactRow(row);
+      return {
+        id: `${row.item_id || signalId(signal)}-${index}`,
+        signal,
+        artifactRow: row,
+      };
+    });
+  }, [data?.artifact_rows, signals]);
 
   const artifactColumns = useMemo(
     () => researchPlan?.output?.columns || [],
     [researchPlan?.output?.columns]
   );
 
-  const filteredSignals = useMemo(() => {
+  const filteredRecords = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    const filtered = signals.filter((signal) => {
+    const filtered = displayRecords.filter((record) => {
+      const { signal, artifactRow } = record;
       if (!matchesStatusFilter(signal, statusFilter)) return false;
       if (!query) return true;
       return [
         signal.title,
         signal.snippet,
         signal.text,
+        signal.content,
+        signal.body,
+        signal.description,
         signal.author,
         signal.author_name,
+        signal.author_username,
         signal.subreddit,
         signal.source,
         signalPlatform(signal),
+        ...Object.values(artifactRow?.fields || {}),
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
     });
 
     return [...filtered].sort((a, b) => {
-      if (sortOrder === "newest") return signalTime(b) - signalTime(a);
-      if (sortOrder === "oldest") return signalTime(a) - signalTime(b);
-      return signalScore(b) - signalScore(a);
+      if (sortOrder === "newest") return signalTime(b.signal) - signalTime(a.signal);
+      if (sortOrder === "oldest") return signalTime(a.signal) - signalTime(b.signal);
+      const aRelevance = artifactRelevanceScore(a.signal, a.artifactRow);
+      const bRelevance = artifactRelevanceScore(b.signal, b.artifactRow);
+      return (bRelevance ?? signalScore(b.signal)) - (aRelevance ?? signalScore(a.signal));
     });
-  }, [searchQuery, signals, sortOrder, statusFilter]);
+  }, [displayRecords, searchQuery, sortOrder, statusFilter]);
 
   useEffect(() => {
-    if (!filteredSignals.length) {
+    if (!filteredRecords.length) {
       setSelectedId(null);
       setIsDetailsOpen(false);
       return;
     }
-    if (!selectedId || !filteredSignals.some((signal) => signalId(signal) === selectedId)) {
-      setSelectedId(signalId(filteredSignals[0]));
+    if (!selectedId || !filteredRecords.some((record) => record.id === selectedId)) {
+      setSelectedId(filteredRecords[0].id);
     }
-  }, [filteredSignals, selectedId]);
+  }, [filteredRecords, selectedId]);
 
-  const selectedSignal = filteredSignals.find((signal) => signalId(signal) === selectedId) || null;
-  const selectedArtifactRow = selectedSignal
-    ? artifactRowForSignal(selectedSignal, artifactRowsById)
-    : undefined;
+  const selectedRecord = filteredRecords.find((record) => record.id === selectedId) || null;
+  const selectedSignal = selectedRecord?.signal || null;
+  const selectedArtifactRow = selectedRecord?.artifactRow;
   const latestSignalKeys = useMemo(() => {
     return new Set(
       workspaceEvents
@@ -208,17 +243,16 @@ export function AgentWorkspacePanel({
     );
   }, [workspaceEvents]);
   const platformSummaries = useMemo(
-    () => summarizePlatforms(signals, workspaceEvents, isSearching),
-    [isSearching, signals, workspaceEvents]
+    () => summarizePlatforms(displayRecords.map((record) => record.signal), workspaceEvents, isSearching),
+    [displayRecords, isSearching, workspaceEvents]
   );
   const trackerTerms = useMemo(() => {
     return Array.from(new Set(signals.flatMap(matchedTerms))).slice(0, 16);
   }, [signals]);
   const workspaceTitle =
-    researchPlan?.title ||
-    sessionTitle ||
-    trackerPrompt ||
-    "Research results";
+    viewMode === "plan"
+      ? researchPlan?.title || sessionTitle || trackerPrompt || "Research plan"
+      : sessionTitle || researchPlan?.title || trackerPrompt || "Research results";
   const shouldShowPlanReview =
     Boolean(researchPlan && onExecutePlan) &&
     viewMode === "plan" &&
@@ -310,7 +344,7 @@ export function AgentWorkspacePanel({
               <div className="min-w-0">
                 <h2 className="truncate text-base font-semibold">{workspaceTitle}</h2>
                 <p className="truncate text-xs text-muted-foreground">
-                  {signals.length} result{signals.length === 1 ? "" : "s"}
+                  {displayRecords.length} result{displayRecords.length === 1 ? "" : "s"}
                 </p>
               </div>
             </div>
@@ -386,17 +420,17 @@ export function AgentWorkspacePanel({
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {filteredSignals.length ? (
-              filteredSignals.map((signal, index) => (
+            {filteredRecords.length ? (
+              filteredRecords.map((record) => (
                 <MentionListItem
-                  key={`${signalId(signal)}-${index}`}
-                  signal={signal}
-                  artifactRow={artifactRowForSignal(signal, artifactRowsById)}
+                  key={record.id}
+                  signal={record.signal}
+                  artifactRow={record.artifactRow}
                   columns={artifactColumns}
-                  isNew={latestSignalKeys.has(signalId(signal))}
-                  isSelected={signalId(signal) === selectedId}
+                  isNew={latestSignalKeys.has(signalId(record.signal))}
+                  isSelected={record.id === selectedId}
                   onSelect={() => {
-                    setSelectedId(signalId(signal));
+                    setSelectedId(record.id);
                     setIsDetailsOpen(true);
                   }}
                 />
@@ -666,15 +700,17 @@ function MentionListItem({
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const body = signalBody(signal);
+  const body = signalBody(signal) || artifactBody(artifactRow);
   const platform = signalPlatform(signal);
   const createdAt = signal.created_at || signal.published_at || signal.time;
   const title = artifactFieldText(artifactRow, "title") || signal.title || "Untitled result";
-  const preview =
-    artifactFieldText(artifactRow, "match_reason") ||
-    artifactFieldText(artifactRow, "reason") ||
-    body;
-  const previewFields = artifactPreviewFields(artifactRow, columns);
+  const listFields = artifactListFields(signal, artifactRow, columns);
+  const narrativeFields = listFields.filter(artifactListFieldIsNarrative);
+  const compactFields = listFields.filter((field) => !artifactListFieldIsNarrative(field));
+  const preview = artifactRow
+    ? ""
+    : signal.match_reason || signal.reason || body;
+  const relevance = artifactRelevanceScore(signal, artifactRow);
 
   return (
     <button
@@ -690,9 +726,11 @@ function MentionListItem({
         <span className="truncate text-xs font-medium text-foreground">
           {platform}
         </span>
-        <Badge className={cn("ml-auto px-1.5 py-0 text-[10px]", scoreColor(signalScore(signal)))}>
-          {formatScore(signalScore(signal))}
-        </Badge>
+        {relevance !== undefined && (
+          <Badge className={cn("ml-auto px-1.5 py-0 text-[10px]", scoreColor(relevance))}>
+            {formatRelevance(relevance)} relevant
+          </Badge>
+        )}
         {isNew && (
           <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
             New
@@ -707,27 +745,31 @@ function MentionListItem({
           {preview}
         </p>
       )}
-      {previewFields.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {previewFields.map((field) => (
-            <Badge key={field.key} variant="outline" className="max-w-full truncate px-1.5 py-0 text-[10px]">
-              {field.label}: {formatCompactFieldValue(field.value)}
-            </Badge>
+      {narrativeFields.map((field) => (
+        <p
+          key={field.key}
+          className="mt-1 line-clamp-2 break-words text-xs leading-5 text-muted-foreground"
+        >
+          <span className="font-medium text-foreground/80">{field.label}:</span>{" "}
+          {formatCompactFieldValue(field.value, field.type)}
+        </p>
+      ))}
+      {compactFields.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] leading-4 text-muted-foreground">
+          {compactFields.map((field) => (
+            <span key={field.key} className="min-w-0 break-words">
+              <span className="font-medium text-foreground/80">{field.label}:</span>{" "}
+              {formatCompactFieldValue(field.value, field.type)}
+            </span>
           ))}
         </div>
       )}
-      <div className="mt-2 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-        {signal.subreddit && <span className="truncate">r/{signal.subreddit}</span>}
-        {(signal.author || signal.author_name || signal.subx) && (
-          <span className="truncate">@{signal.author || signal.author_name || signal.subx}</span>
-        )}
-        {createdAt && (
-          <span className="ml-auto flex shrink-0 items-center gap-1">
-            <Clock className="size-3" />
-            {formatDate(createdAt)}
-          </span>
-        )}
-      </div>
+      {!listFields.length && createdAt && (
+        <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+          <Clock className="size-3" />
+          {formatDate(createdAt)}
+        </div>
+      )}
     </button>
   );
 }
@@ -743,11 +785,12 @@ function MentionDetails({
 }) {
   const score = signalScore(signal);
   const platform = signalPlatform(signal);
-  const body = signalBody(signal);
+  const body = signalBody(signal) || artifactBody(artifactRow);
   const terms = matchedTerms(signal);
   const title = artifactFieldText(artifactRow, "title") || signal.title || "Untitled result";
   const url = artifactFieldText(artifactRow, "url") || signal.url;
   const dynamicFields = artifactDisplayFields(artifactRow, columns);
+  const sourceFields = artifactSourceFactFields(signal, artifactRow, dynamicFields);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -781,8 +824,8 @@ function MentionDetails({
             <PlatformMark platform={platform} />
             <span>{platform}</span>
             {signal.subreddit && <span>r/{signal.subreddit}</span>}
-            {(signal.author || signal.author_name || signal.subx) && (
-              <span>@{signal.author || signal.author_name || signal.subx}</span>
+            {(signal.author || signal.author_username || signal.author_name || signal.subx) && (
+              <span>@{signal.author || signal.author_username || signal.author_name || signal.subx}</span>
             )}
           </div>
           <h2 className="text-lg font-semibold leading-7 text-foreground">
@@ -794,6 +837,25 @@ function MentionDetails({
             </p>
           )}
         </div>
+
+        {sourceFields.length > 0 && (
+          <div className="mt-4 rounded-lg border border-border bg-background p-3">
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+              <FileText className="size-4 text-muted-foreground" />
+              Source facts
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {sourceFields.map((field) => (
+                <div key={field.key} className="rounded-md bg-muted/40 p-2">
+                  <p className="text-[11px] font-medium uppercase text-muted-foreground">
+                    {field.label}
+                  </p>
+                  <ArtifactFieldValue value={field.value} type={field.type} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {dynamicFields.length > 0 && (
           <div className="mt-4 rounded-lg border border-border bg-background p-3">
@@ -1081,26 +1143,134 @@ function signalIdentityValues(signal: AgentSignal) {
     signal.id,
     signal.story_id,
     signal.post_id,
+    signal.tweet_id,
+    signal.status_id,
     signal.url,
     signal.hn_url,
     signal.permalink,
     signal.external_url,
     signal.metadata?.hn_url,
     signal.metadata?.permalink,
+    signal.metadata?.tweet_id,
+    signal.metadata?.status_id,
+    signal.metadata?.tweet_url,
   ]
     .filter((value) => value !== undefined && value !== null && value !== "")
     .map(String);
 }
 
-function artifactRowForSignal(
-  signal: AgentSignal,
-  rowsById: Map<string, AgentArtifactRow>
+function artifactIdentityValues(row: AgentArtifactRow) {
+  return [
+    row.item_id,
+    row.fields.id,
+    row.fields.story_id,
+    row.fields.post_id,
+    row.fields.tweet_id,
+    row.fields.status_id,
+    row.fields.url,
+    row.fields.hn_url,
+    row.fields.permalink,
+    row.fields.external_url,
+    row.fields.tweet_url,
+  ]
+    .filter((value) => value !== undefined && value !== null && value !== "")
+    .map(String);
+}
+
+function buildSignalIdentityMap(signals: AgentSignal[]) {
+  const map = new Map<string, AgentSignal>();
+  for (const signal of signals) {
+    for (const value of signalIdentityValues(signal)) {
+      const normalized = normalizeIdentityValue(value);
+      if (normalized && !map.has(normalized)) {
+        map.set(normalized, signal);
+      }
+    }
+  }
+  return map;
+}
+
+function signalForArtifactRow(
+  row: AgentArtifactRow,
+  signalsByIdentity: Map<string, AgentSignal>
 ) {
-  for (const value of signalIdentityValues(signal)) {
-    const row = rowsById.get(value);
-    if (row) return row;
+  for (const value of artifactIdentityValues(row)) {
+    const signal = signalsByIdentity.get(normalizeIdentityValue(value));
+    if (signal) return signal;
   }
   return undefined;
+}
+
+function signalFromArtifactRow(row: AgentArtifactRow): AgentSignal {
+  return {
+    id: row.item_id,
+    story_id: fieldValue(row, "story_id"),
+    post_id: fieldValue(row, "post_id"),
+    tweet_id: fieldValue(row, "tweet_id") || fieldValue(row, "status_id"),
+    source: fieldValue(row, "source") || fieldValue(row, "platform"),
+    platform: fieldValue(row, "platform") || fieldValue(row, "source"),
+    title:
+      fieldValue(row, "title") ||
+      fieldValue(row, "post_title") ||
+      fieldValue(row, "name"),
+    url:
+      fieldValue(row, "url") ||
+      fieldValue(row, "hn_url") ||
+      fieldValue(row, "permalink") ||
+      fieldValue(row, "tweet_url") ||
+      fieldValue(row, "external_url"),
+    hn_url: fieldValue(row, "hn_url"),
+    permalink: fieldValue(row, "permalink"),
+    external_url: fieldValue(row, "external_url"),
+    content: artifactBody(row),
+    author:
+      fieldValue(row, "author") ||
+      fieldValue(row, "author_name") ||
+      fieldValue(row, "author_username") ||
+      fieldValue(row, "username"),
+    author_username: fieldValue(row, "author_username") || fieldValue(row, "username"),
+    author_name: fieldValue(row, "author_name"),
+    subreddit: fieldValue(row, "subreddit") || fieldValue(row, "community"),
+    published_at:
+      fieldValue(row, "published_at") ||
+      fieldValue(row, "published_date") ||
+      fieldValue(row, "created_at") ||
+      fieldValue(row, "date"),
+    match_reason: fieldValue(row, "match_reason") || fieldValue(row, "reason"),
+    relevance: numericFieldValue(row, "relevance_score") ?? numericFieldValue(row, "fit_score"),
+    likes: fieldValue(row, "likes") || fieldValue(row, "like_count"),
+    retweets: fieldValue(row, "retweets") || fieldValue(row, "retweet_count"),
+    replies: fieldValue(row, "replies") || fieldValue(row, "reply_count"),
+  };
+}
+
+function normalizeIdentityValue(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  try {
+    const url = new URL(trimmed);
+    const host = url.hostname
+      .replace(/^www\./i, "")
+      .replace(/^old\./i, "")
+      .replace(/^twitter\.com$/i, "x.com")
+      .toLowerCase();
+    const pathname = url.pathname.replace(/\/+$/, "");
+    return `${url.protocol}//${host}${pathname}`.toLowerCase();
+  } catch {
+    return trimmed.toLowerCase();
+  }
+}
+
+function fieldValue(row: AgentArtifactRow, key: string) {
+  const value = row.fields[key];
+  if (value === undefined || value === null || value === "") return undefined;
+  return String(value);
+}
+
+function numericFieldValue(row: AgentArtifactRow, key: string) {
+  const value = row.fields[key];
+  const number = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(number) ? number : undefined;
 }
 
 function artifactFieldText(row: AgentArtifactRow | undefined, key: string) {
@@ -1113,37 +1283,263 @@ function artifactDisplayFields(
   row: AgentArtifactRow | undefined,
   columns: ResearchPlanColumn[]
 ) {
-  if (!row || !columns.length) return [];
+  if (!row) return [];
+  if (!columns.length) {
+    return Object.entries(row.fields)
+      .filter(([key]) => key !== "title")
+      .map(([key, value]) => ({
+        key,
+        label: formatFieldLabel(key),
+        type: inferFieldType(key, value),
+        value,
+      }));
+  }
   return columns
-    .filter((column) => column.key && row.fields[column.key] !== undefined)
-    .filter((column) => !["title", "url"].includes(column.key))
+    .filter((column) => column.key && column.key !== "title")
     .map((column) => ({
       key: column.key,
-      label: column.label || column.key.replaceAll("_", " "),
+      label: column.label || formatFieldLabel(column.key),
       type: column.type,
       value: row.fields[column.key],
     }));
 }
 
-function artifactPreviewFields(
+function artifactListFields(
+  signal: AgentSignal,
   row: AgentArtifactRow | undefined,
   columns: ResearchPlanColumn[]
 ) {
-  return artifactDisplayFields(row, columns)
-    .filter((field) => !["match_reason", "why_it_matches", "reason"].includes(field.key))
-    .slice(0, 4);
+  // The title is already the card heading. Every other plan field remains in
+  // the list; presentation below decides whether it is inline or narrative.
+  // Relevance fields are represented by the labelled header badge, avoiding a
+  // duplicate while keeping that plan field visible.
+  const relevanceKeys = new Set(["fit_score", "relevance_score", "relevance"]);
+  const fields = artifactDisplayFields(row, columns).filter(
+    (field) =>
+      !relevanceKeys.has(field.key) || artifactRelevanceScore(signal, row) === undefined
+  );
+  const body = signalBody(signal) || artifactBody(row);
+  const hasBodyField = fields.some((field) => artifactFieldIsBody(field.key));
+  if (row && body && !hasBodyField) {
+    fields.push({
+      key: "post_body",
+      label: "Post body",
+      type: "text" as const,
+      value: body,
+    });
+  }
+  if (fields.length) return fields;
+
+  // Legacy runs may not contain artifact rows. Preserve the compact list
+  // experience with source-truth metadata until they are re-run.
+  const metadata = signal.metadata || {};
+  return [
+    {
+      key: "author",
+      label: "Author",
+      type: "text" as const,
+      value: signal.author || signal.author_username || signal.author_name || signal.subx,
+    },
+    {
+      key: "published_at",
+      label: "Published",
+      type: "date" as const,
+      value: signal.published_at || signal.created_at || signal.time,
+    },
+    {
+      key: "likes",
+      label: "Likes",
+      type: "number" as const,
+      value: signal.likes ?? metadata.likes ?? metadata.like_count,
+    },
+    {
+      key: "retweets",
+      label: "Retweets",
+      type: "number" as const,
+      value: signal.retweets ?? metadata.retweets ?? metadata.retweet_count,
+    },
+    {
+      key: "replies",
+      label: "Replies",
+      type: "number" as const,
+      value: signal.replies ?? metadata.replies ?? metadata.reply_count,
+    },
+    {
+      key: "points",
+      label: "Points",
+      type: "number" as const,
+      value: (signal as Record<string, unknown>).points ?? metadata.points,
+    },
+    {
+      key: "comments",
+      label: "Comments",
+      type: "number" as const,
+      value:
+        (signal as Record<string, unknown>).num_comments ??
+        (signal as Record<string, unknown>).comments ??
+        metadata.num_comments ??
+        metadata.comments,
+    },
+  ].filter((field) => field.value !== undefined && field.value !== null && field.value !== "");
 }
 
-function formatCompactFieldValue(value: unknown) {
+function artifactSourceFactFields(
+  signal: AgentSignal,
+  row: AgentArtifactRow | undefined,
+  dynamicFields: Array<{
+    key: string;
+    label: string;
+    type: ResearchPlanColumn["type"];
+    value: unknown;
+  }>
+) {
+  const dynamicKeys = new Set(
+    dynamicFields.map((field) => normalizeFieldKey(field.key))
+  );
+  const metadata = signal.metadata || {};
+  const facts = [
+    {
+      key: "author",
+      label: "Author",
+      type: "text" as const,
+      value: signal.author || signal.author_username || signal.author_name || signal.subx,
+    },
+    {
+      key: "published_at",
+      label: "Published",
+      type: "date" as const,
+      value: signal.published_at || signal.created_at || signal.time,
+    },
+    {
+      key: "likes",
+      label: "Likes",
+      type: "number" as const,
+      value: signal.likes ?? metadata.likes ?? metadata.like_count,
+    },
+    {
+      key: "retweets",
+      label: "Retweets",
+      type: "number" as const,
+      value: signal.retweets ?? metadata.retweets ?? metadata.retweet_count,
+    },
+    {
+      key: "replies",
+      label: "Replies",
+      type: "number" as const,
+      value: signal.replies ?? metadata.replies ?? metadata.reply_count,
+    },
+    {
+      key: "points",
+      label: "Points",
+      type: "number" as const,
+      value: (signal as Record<string, unknown>).points ?? metadata.points,
+    },
+    {
+      key: "comments",
+      label: "Comments",
+      type: "number" as const,
+      value:
+        (signal as Record<string, unknown>).num_comments ??
+        (signal as Record<string, unknown>).comments ??
+        metadata.num_comments ??
+        metadata.comments,
+    },
+  ];
+
+  return facts.filter(
+    (field) =>
+      field.value !== undefined &&
+      field.value !== null &&
+      field.value !== "" &&
+      !dynamicKeys.has(normalizeFieldKey(field.key))
+  );
+}
+
+function normalizeFieldKey(key: string) {
+  return key.trim().toLowerCase().replace(/[-\s]+/g, "_");
+}
+
+function artifactListFieldIsNarrative(field: {
+  key: string;
+  type: ResearchPlanColumn["type"];
+  value: unknown;
+}) {
+  if (field.type === "url") return true;
+  if (artifactFieldIsBody(field.key)) return true;
+  if (/reason|match|pain|recommendation/i.test(field.key)) {
+    return true;
+  }
+  return String(field.value ?? "").length > 72;
+}
+
+function artifactFieldIsBody(key: string) {
+  return /content|body|description|summary|excerpt|text/i.test(key);
+}
+
+function formatCompactFieldValue(
+  value: unknown,
+  type: ResearchPlanColumn["type"]
+) {
   if (value === null || value === undefined || value === "") return "Unknown";
-  const text = String(value).replace(/\s+/g, " ").trim();
-  return text.length > 36 ? `${text.slice(0, 33)}...` : text;
+  if (type === "date") return formatDate(value as string | number);
+  if (type === "number") {
+    const number = typeof value === "number" ? value : Number(value);
+    if (Number.isFinite(number)) return new Intl.NumberFormat().format(number);
+  }
+  if (Array.isArray(value)) return value.join(", ");
+  return String(value).replace(/\s+/g, " ").trim();
+}
+
+function artifactRelevanceScore(
+  signal: AgentSignal,
+  row: AgentArtifactRow | undefined
+) {
+  const candidates = [
+    row?.fields.fit_score,
+    row?.fields.relevance_score,
+    row?.fields.relevance,
+    signal.overall_score,
+    signal.relevance,
+  ];
+  for (const candidate of candidates) {
+    const score = typeof candidate === "number" ? candidate : Number(candidate);
+    if (candidate !== "" && candidate !== undefined && candidate !== null && Number.isFinite(score)) {
+      return score;
+    }
+  }
+  return undefined;
+}
+
+function formatRelevance(score: number) {
+  return score >= 0 && score <= 1
+    ? `${Math.round(score * 100)}%`
+    : `${Math.round(score)}/100`;
+}
+
+function formatFieldLabel(key: string) {
+  return key
+    .replaceAll("_", " ")
+    .replaceAll("-", " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function inferFieldType(
+  key: string,
+  value: unknown
+): ResearchPlanColumn["type"] {
+  if (/url|link|permalink/i.test(key)) return "url";
+  if (/date|time|published|created/i.test(key)) return "date";
+  if (/score|relevance|fit/i.test(key)) return "score";
+  if (typeof value === "number") return "number";
+  return "text";
 }
 
 function dedupeSignals(signals: AgentSignal[]) {
   const unique = new Map<string, AgentSignal>();
   for (const signal of signals) {
-    const key = signalId(signal);
+    const key = signalIdentityValues(signal)
+      .map(normalizeIdentityValue)
+      .find(Boolean) || signalId(signal);
     const existing = unique.get(key);
     // Prefer the richer/highest-scored copy when duplicate fetches disagree.
     if (
@@ -1208,6 +1604,26 @@ function signalBody(signal: AgentSignal) {
       metadata.description ||
       ""
   ).trim();
+}
+
+function artifactBody(row: AgentArtifactRow | undefined) {
+  if (!row) return "";
+  const bodyKeys = [
+    "post_body",
+    "body",
+    "content",
+    "text",
+    "description",
+    "excerpt",
+    "summary",
+  ];
+  for (const key of bodyKeys) {
+    const value = row.fields[key];
+    if (value !== undefined && value !== null && value !== "") {
+      return String(value).trim();
+    }
+  }
+  return "";
 }
 
 function scoreColor(score: number) {

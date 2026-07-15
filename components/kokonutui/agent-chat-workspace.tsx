@@ -27,7 +27,8 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { useAgentChat } from "@/hooks/useAgentChat";
-import { EXAMPLE_PROMPTS } from "@/lib/agent-chat/types";
+import { resultDisplayCount } from "@/lib/agent-chat/signal-utils";
+import { EXAMPLE_PROMPTS, type AgentRunResponse } from "@/lib/agent-chat/types";
 import { cn } from "@/lib/utils";
 
 export default function AgentChatWorkspace() {
@@ -51,10 +52,14 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
   const [showWorkspacePanel, setShowWorkspacePanel] = useState(false);
   const [activePanel, setActivePanel] = useState<"chat" | "workspace">("chat");
   const [workspaceViewMode, setWorkspaceViewMode] = useState<"plan" | "results">("results");
+  const [selectedResultData, setSelectedResultData] = useState<AgentRunResponse | null>(null);
+  const [selectedResultTitle, setSelectedResultTitle] = useState<string | null>(null);
 
-  const resultCount = chat.workspaceData?.signals.length ?? 0;
+  const workspaceData = selectedResultData || chat.workspaceData;
+  const resultCount = resultDisplayCount(workspaceData);
   const hasResearchPlan = Boolean(chat.researchPlan);
-  const workspaceLabel = chat.researchPlan?.title ? "Plan" : "Results";
+  const workspaceLabel =
+    workspaceViewMode === "plan" && chat.researchPlan?.title ? "Plan" : "Results";
   const hasWorkspace =
     showWorkspace ||
     chat.isSearching ||
@@ -72,6 +77,8 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
     if (prompt.length < 8 || chat.isSearching) return;
 
     setLandingPrompt("");
+    setSelectedResultData(null);
+    setSelectedResultTitle(null);
     setShowWorkspace(true);
     setShowWorkspacePanel(false);
     setActivePanel("chat");
@@ -93,16 +100,24 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
           workspaceEvents={chat.workspaceEvents}
           liveReasoning={chat.liveReasoning}
           onConfirmKeywordPlan={chat.confirmMentionKeywords}
-          onConfirmResearchPlan={chat.confirmResearchPlan}
+          onConfirmResearchPlan={(message, plan) => {
+            setSelectedResultData(null);
+            setSelectedResultTitle(null);
+            chat.confirmResearchPlan(message, plan);
+          }}
           onRejectResearchPlan={chat.rejectResearchPlan}
           onViewResearchPlan={(plan) => {
             chat.openResearchPlan(plan);
+            setSelectedResultData(null);
+            setSelectedResultTitle(null);
             setShowWorkspace(true);
             setShowWorkspacePanel(true);
             setActivePanel("workspace");
             setWorkspaceViewMode("plan");
           }}
-          onViewResults={() => {
+          onViewResults={(data, title) => {
+            setSelectedResultData(data);
+            setSelectedResultTitle(title || null);
             setShowWorkspace(true);
             setShowWorkspacePanel(true);
             setActivePanel("workspace");
@@ -113,7 +128,11 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
       <AgentChatInput
         prompt={chat.prompt}
         setPrompt={chat.setPrompt}
-        onSubmit={(value) => chat.submitPrompt(value ?? chat.prompt)}
+        onSubmit={(value) => {
+          setSelectedResultData(null);
+          setSelectedResultTitle(null);
+          return chat.submitPrompt(value ?? chat.prompt);
+        }}
         onStopSearch={chat.stopSearch}
         canSearch={chat.canSearch}
         isSearching={chat.isSearching}
@@ -133,20 +152,26 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
 
   const workspacePanel = (
     <AgentWorkspacePanel
-      data={chat.workspaceData}
+      data={workspaceData}
       liveSignals={chat.liveAgentSignals}
       workspaceEvents={chat.workspaceEvents}
       isSearching={chat.isSearching}
       viewMode={workspaceViewMode}
       trackerPrompt={chat.initialPrompt}
-      sessionTitle={chat.sessionTitle}
+      sessionTitle={selectedResultTitle || chat.sessionTitle}
       researchPlan={chat.researchPlan}
-      onExecutePlan={chat.confirmResearchPlan}
+      onExecutePlan={(message, plan) => {
+        setSelectedResultData(null);
+        setSelectedResultTitle(null);
+        chat.confirmResearchPlan(message, plan);
+      }}
       onRejectPlan={chat.rejectResearchPlan}
     />
   );
 
   const startNewRun = () => {
+    setSelectedResultData(null);
+    setSelectedResultTitle(null);
     chat.resetSession();
     onNewRun();
   };

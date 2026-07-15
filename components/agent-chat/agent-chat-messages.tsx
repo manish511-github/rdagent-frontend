@@ -25,7 +25,7 @@ type AgentChatMessagesProps = {
   onConfirmResearchPlan?: (message: string, plan: import("@/lib/agent-chat/types").ResearchPlan) => void;
   onRejectResearchPlan?: (message: string, plan: import("@/lib/agent-chat/types").ResearchPlan) => void;
   onViewResearchPlan?: (plan: import("@/lib/agent-chat/types").ResearchPlan) => void;
-  onViewResults?: () => void;
+  onViewResults?: (data: AgentRunResponse, title?: string) => void;
 };
 
 export function AgentChatMessages({
@@ -75,11 +75,11 @@ export function AgentChatMessages({
                       onView={onViewResearchPlan}
                     />
                   )}
-                  {message.data && message.data.signals.length > 0 && (
+                  {message.data && (message.data.artifact_rows?.length || message.data.signals.length) > 0 && (
                     <AgentResultCard
                       data={message.data}
                       title={message.resultTitle}
-                      onViewResults={onViewResults}
+                      onViewResults={() => onViewResults?.(message.data as AgentRunResponse, message.resultTitle)}
                     />
                   )}
                   </>

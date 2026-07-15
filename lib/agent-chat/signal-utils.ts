@@ -2,16 +2,21 @@ import type { AgentRunResponse, AgentSignal } from "./types";
 
 export function signalPlatform(signal: AgentSignal) {
   const url = signal.url || "";
-  if (signal.platform === "x" || signal.source === "x") return "X/Twitter";
-  if (signal.platform === "reddit") return "Reddit";
-  if (signal.platform === "hackernews") return "Hacker News";
-  if (signal.platform === "youtube") return "YouTube";
-  if (signal.platform === "github") return "GitHub";
-  if (signal.platform === "linkedin") return "LinkedIn";
-  if (signal.platform === "devto") return "Dev.to";
-  if (signal.platform === "producthunt") return "Product Hunt";
-  if (signal.platform === "indiehackers") return "Indie Hackers";
-  if (signal.platform === "newsletter") return "Newsletter";
+  const sources = [signal.platform, signal.source]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase());
+  if (sources.some((source) => source === "x" || source === "twitter")) return "X/Twitter";
+  if (sources.includes("reddit")) return "Reddit";
+  if (sources.some((source) => ["hackernews", "hacker_news", "hn"].includes(source))) {
+    return "Hacker News";
+  }
+  if (sources.includes("youtube")) return "YouTube";
+  if (sources.includes("github")) return "GitHub";
+  if (sources.includes("linkedin")) return "LinkedIn";
+  if (sources.includes("devto")) return "Dev.to";
+  if (sources.includes("producthunt")) return "Product Hunt";
+  if (sources.includes("indiehackers")) return "Indie Hackers";
+  if (sources.includes("newsletter")) return "Newsletter";
   if (signal.subreddit || /reddit\.com/i.test(url)) return "Reddit";
   if (signal.subx || /\b(?:x|twitter)\.com\//i.test(url)) return "X/Twitter";
   if (/youtube\.com|youtu\.be/i.test(url)) return "YouTube";
@@ -45,13 +50,18 @@ export function topPlatform(signals: AgentSignal[]) {
 }
 
 export function summarizeRun(data: AgentRunResponse) {
-  const count = data.signals.length;
+  const count = resultDisplayCount(data);
   const platform = topPlatform(data.signals);
   return {
     count,
     skill: formatSkillLabel(data.skill_used),
     platform,
   };
+}
+
+export function resultDisplayCount(data?: AgentRunResponse | null) {
+  if (!data) return 0;
+  return data.artifact_rows?.length || data.signals.length;
 }
 
 export function formatPlatformLabel(platform?: string, tool?: string) {
