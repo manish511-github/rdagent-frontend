@@ -1,6 +1,7 @@
 export type AgentSignal = {
   id?: string | number;
   story_id?: string | number;
+  video_id?: string | number;
   platform?: string;
   source?: string;
   title?: string;
@@ -42,8 +43,16 @@ export type AgentSignal = {
   replies?: number | string | null;
   author_id?: string | number | null;
   author_username?: string | null;
+  channel?: string | null;
+  channel_id?: string | number | null;
+  channel_name?: string | null;
   time?: number;
   relevant_comment_ids?: number[];
+  view_count?: number | string | null;
+  like_count?: number | string | null;
+  comment_count?: number | string | null;
+  duration?: string | number | null;
+  thumbnail_url?: string | null;
 };
 
 export type AgentArtifactRow = {

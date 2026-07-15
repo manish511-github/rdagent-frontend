@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 export type AgentSignal = {
   id?: string | number;
   story_id?: string | number;
+  video_id?: string | number;
   platform?: string;
   source?: string;
   title?: string;
@@ -55,6 +56,9 @@ export type AgentSignal = {
   author_name?: string | null;
   author_username?: string | null;
   author_id?: string | number | null;
+  channel?: string | null;
+  channel_id?: string | number | null;
+  channel_name?: string | null;
   subreddit?: string | null;
   subx?: string | null;
   post_id?: string | null;
@@ -80,6 +84,11 @@ export type AgentSignal = {
   likes?: number | string | null;
   retweets?: number | string | null;
   replies?: number | string | null;
+  view_count?: number | string | null;
+  like_count?: number | string | null;
+  comment_count?: number | string | null;
+  duration?: string | number | null;
+  thumbnail_url?: string | null;
   time?: number;
   relevant_comment_ids?: number[];
 };
@@ -1132,6 +1141,7 @@ function signalId(signal: AgentSignal) {
   return (
     signal.id ||
     signal.story_id ||
+    signal.video_id ||
     signal.url ||
     signal.post_id ||
     `${signalPlatform(signal)}-${signal.title || ""}-${signalTime(signal)}`
@@ -1142,6 +1152,7 @@ function signalIdentityValues(signal: AgentSignal) {
   return [
     signal.id,
     signal.story_id,
+    signal.video_id,
     signal.post_id,
     signal.tweet_id,
     signal.status_id,
@@ -1151,6 +1162,8 @@ function signalIdentityValues(signal: AgentSignal) {
     signal.external_url,
     signal.metadata?.hn_url,
     signal.metadata?.permalink,
+    signal.metadata?.video_id,
+    signal.metadata?.video_url,
     signal.metadata?.tweet_id,
     signal.metadata?.status_id,
     signal.metadata?.tweet_url,
@@ -1164,12 +1177,14 @@ function artifactIdentityValues(row: AgentArtifactRow) {
     row.item_id,
     row.fields.id,
     row.fields.story_id,
+    row.fields.video_id,
     row.fields.post_id,
     row.fields.tweet_id,
     row.fields.status_id,
     row.fields.url,
     row.fields.hn_url,
     row.fields.permalink,
+    row.fields.video_url,
     row.fields.external_url,
     row.fields.tweet_url,
   ]
@@ -1205,6 +1220,7 @@ function signalFromArtifactRow(row: AgentArtifactRow): AgentSignal {
   return {
     id: row.item_id,
     story_id: fieldValue(row, "story_id"),
+    video_id: fieldValue(row, "video_id"),
     post_id: fieldValue(row, "post_id"),
     tweet_id: fieldValue(row, "tweet_id") || fieldValue(row, "status_id"),
     source: fieldValue(row, "source") || fieldValue(row, "platform"),
@@ -1217,6 +1233,7 @@ function signalFromArtifactRow(row: AgentArtifactRow): AgentSignal {
       fieldValue(row, "url") ||
       fieldValue(row, "hn_url") ||
       fieldValue(row, "permalink") ||
+      fieldValue(row, "video_url") ||
       fieldValue(row, "tweet_url") ||
       fieldValue(row, "external_url"),
     hn_url: fieldValue(row, "hn_url"),
@@ -1227,9 +1244,14 @@ function signalFromArtifactRow(row: AgentArtifactRow): AgentSignal {
       fieldValue(row, "author") ||
       fieldValue(row, "author_name") ||
       fieldValue(row, "author_username") ||
-      fieldValue(row, "username"),
+      fieldValue(row, "username") ||
+      fieldValue(row, "channel") ||
+      fieldValue(row, "channel_name"),
     author_username: fieldValue(row, "author_username") || fieldValue(row, "username"),
     author_name: fieldValue(row, "author_name"),
+    channel: fieldValue(row, "channel") || fieldValue(row, "channel_name"),
+    channel_name: fieldValue(row, "channel_name") || fieldValue(row, "channel"),
+    channel_id: fieldValue(row, "channel_id"),
     subreddit: fieldValue(row, "subreddit") || fieldValue(row, "community"),
     published_at:
       fieldValue(row, "published_at") ||
@@ -1239,6 +1261,11 @@ function signalFromArtifactRow(row: AgentArtifactRow): AgentSignal {
     match_reason: fieldValue(row, "match_reason") || fieldValue(row, "reason"),
     relevance: numericFieldValue(row, "relevance_score") ?? numericFieldValue(row, "fit_score"),
     likes: fieldValue(row, "likes") || fieldValue(row, "like_count"),
+    like_count: fieldValue(row, "like_count") || fieldValue(row, "likes"),
+    view_count: fieldValue(row, "view_count") || fieldValue(row, "views"),
+    comment_count: fieldValue(row, "comment_count") || fieldValue(row, "comments"),
+    duration: fieldValue(row, "duration"),
+    thumbnail_url: fieldValue(row, "thumbnail_url"),
     retweets: fieldValue(row, "retweets") || fieldValue(row, "retweet_count"),
     replies: fieldValue(row, "replies") || fieldValue(row, "reply_count"),
   };
@@ -1254,11 +1281,27 @@ function normalizeIdentityValue(value: string) {
       .replace(/^old\./i, "")
       .replace(/^twitter\.com$/i, "x.com")
       .toLowerCase();
+    const youtubeVideoId = youtubeVideoIdFromUrl(url, host);
+    if (youtubeVideoId) {
+      return `youtube:${youtubeVideoId.toLowerCase()}`;
+    }
     const pathname = url.pathname.replace(/\/+$/, "");
     return `${url.protocol}//${host}${pathname}`.toLowerCase();
   } catch {
     return trimmed.toLowerCase();
   }
+}
+
+function youtubeVideoIdFromUrl(url: URL, host: string) {
+  if (host === "youtu.be") {
+    return url.pathname.split("/").filter(Boolean)[0] || "";
+  }
+  if (!host.endsWith("youtube.com")) return "";
+  const watchId = url.searchParams.get("v");
+  if (watchId) return watchId;
+  const [kind, id] = url.pathname.split("/").filter(Boolean);
+  if (["shorts", "embed", "live"].includes(kind || "") && id) return id;
+  return "";
 }
 
 function fieldValue(row: AgentArtifactRow, key: string) {
@@ -1341,16 +1384,28 @@ function artifactListFields(
       value: signal.author || signal.author_username || signal.author_name || signal.subx,
     },
     {
+      key: "channel",
+      label: "Channel",
+      type: "text" as const,
+      value: signal.channel || signal.channel_name || metadata.channel || metadata.channel_name,
+    },
+    {
       key: "published_at",
       label: "Published",
       type: "date" as const,
       value: signal.published_at || signal.created_at || signal.time,
     },
     {
+      key: "view_count",
+      label: "Views",
+      type: "number" as const,
+      value: signal.view_count ?? metadata.view_count ?? metadata.views,
+    },
+    {
       key: "likes",
       label: "Likes",
       type: "number" as const,
-      value: signal.likes ?? metadata.likes ?? metadata.like_count,
+      value: signal.likes ?? signal.like_count ?? metadata.likes ?? metadata.like_count,
     },
     {
       key: "retweets",
@@ -1405,16 +1460,28 @@ function artifactSourceFactFields(
       value: signal.author || signal.author_username || signal.author_name || signal.subx,
     },
     {
+      key: "channel",
+      label: "Channel",
+      type: "text" as const,
+      value: signal.channel || signal.channel_name || metadata.channel || metadata.channel_name,
+    },
+    {
       key: "published_at",
       label: "Published",
       type: "date" as const,
       value: signal.published_at || signal.created_at || signal.time,
     },
     {
+      key: "view_count",
+      label: "Views",
+      type: "number" as const,
+      value: signal.view_count ?? metadata.view_count ?? metadata.views,
+    },
+    {
       key: "likes",
       label: "Likes",
       type: "number" as const,
-      value: signal.likes ?? metadata.likes ?? metadata.like_count,
+      value: signal.likes ?? signal.like_count ?? metadata.likes ?? metadata.like_count,
     },
     {
       key: "retweets",
@@ -1441,8 +1508,16 @@ function artifactSourceFactFields(
       value:
         (signal as Record<string, unknown>).num_comments ??
         (signal as Record<string, unknown>).comments ??
+        signal.comment_count ??
+        metadata.comment_count ??
         metadata.num_comments ??
         metadata.comments,
+    },
+    {
+      key: "duration",
+      label: "Duration",
+      type: "text" as const,
+      value: signal.duration ?? metadata.duration,
     },
   ];
 

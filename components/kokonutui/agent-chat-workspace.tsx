@@ -15,7 +15,6 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { AgentBottomToolbar } from "@/components/agent-chat/agent-bottom-toolbar";
 import { AgentChatInput } from "@/components/agent-chat/agent-chat-input";
 import { AgentChatMessages } from "@/components/agent-chat/agent-chat-messages";
@@ -28,7 +27,7 @@ import {
 } from "@/components/ui/resizable";
 import { useAgentChat } from "@/hooks/useAgentChat";
 import { resultDisplayCount } from "@/lib/agent-chat/signal-utils";
-import { EXAMPLE_PROMPTS, type AgentRunResponse } from "@/lib/agent-chat/types";
+import type { AgentRunResponse } from "@/lib/agent-chat/types";
 import { cn } from "@/lib/utils";
 
 export default function AgentChatWorkspace() {
@@ -136,16 +135,6 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
         onStopSearch={chat.stopSearch}
         canSearch={chat.canSearch}
         isSearching={chat.isSearching}
-        showSettings={chat.showSettings}
-        setShowSettings={chat.setShowSettings}
-        agentMode={chat.agentMode}
-        setAgentMode={chat.setAgentMode}
-        aiExpandKeywords={chat.aiExpandKeywords}
-        setAiExpandKeywords={chat.setAiExpandKeywords}
-        productName={chat.productName}
-        setProductName={chat.setProductName}
-        competitors={chat.competitors}
-        setCompetitors={chat.setCompetitors}
       />
     </div>
   );
@@ -210,21 +199,6 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
                 />
               </PromptInputFooter>
             </PromptInput>
-
-            <div className="mx-auto mt-4 max-w-2xl">
-              <Suggestions>
-                {EXAMPLE_PROMPTS.map((example) => (
-                  <Suggestion
-                    key={example}
-                    suggestion={example}
-                    onClick={() => {
-                      setLandingPrompt(example);
-                      void startRun(example);
-                    }}
-                  />
-                ))}
-              </Suggestions>
-            </div>
           </div>
         </div>
       </div>
