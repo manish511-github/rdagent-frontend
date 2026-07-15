@@ -4,19 +4,21 @@ import { MessageSquare, Radio } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-type MentionTrackingBottomToolbarProps = {
+type AgentBottomToolbarProps = {
   activePanel: "chat" | "workspace";
   onPanelChange: (panel: "chat" | "workspace") => void;
   hasWorkspace: boolean;
   resultCount?: number;
+  workspaceLabel?: string;
 };
 
-export function MentionTrackingBottomToolbar({
+export function AgentBottomToolbar({
   activePanel,
   onPanelChange,
   hasWorkspace,
   resultCount = 0,
-}: MentionTrackingBottomToolbarProps) {
+  workspaceLabel = "Results",
+}: AgentBottomToolbarProps) {
   return (
     <div className="border-t bg-background px-2 py-3 lg:hidden">
       <div className="mx-auto flex max-w-xs items-center justify-center">
@@ -47,7 +49,7 @@ export function MentionTrackingBottomToolbar({
             )}
           >
             <Radio className="size-3" />
-            Mentions
+            {workspaceLabel}
             {resultCount > 0 && (
               <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground">
                 {resultCount}

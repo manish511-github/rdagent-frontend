@@ -5,20 +5,20 @@ import { Check, Loader2, Plus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { MentionKeywordPlan } from "@/lib/mention-tracking/types";
-import { normalizeKeywords } from "@/lib/mention-tracking/skill-utils";
+import type { AgentKeywordPlan } from "@/lib/agent-chat/types";
+import { normalizeKeywords } from "@/lib/agent-chat/skill-utils";
 
-type MentionTrackingKeywordConfirmationProps = {
-  plan: MentionKeywordPlan;
+type AgentKeywordConfirmationProps = {
+  plan: AgentKeywordPlan;
   disabled: boolean;
   onConfirm: (message: string, keywords: string[]) => void;
 };
 
-export function MentionTrackingKeywordConfirmation({
+export function AgentKeywordConfirmation({
   plan,
   disabled,
   onConfirm,
-}: MentionTrackingKeywordConfirmationProps) {
+}: AgentKeywordConfirmationProps) {
   const initialKeywords = useMemo(
     () => normalizeKeywords(plan.extracted_keywords),
     [plan.extracted_keywords]

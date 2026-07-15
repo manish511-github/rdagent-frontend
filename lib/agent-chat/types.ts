@@ -5,6 +5,9 @@ export type AgentSignal = {
   url?: string;
   snippet?: string;
   text?: string;
+  content?: string;
+  body?: string;
+  description?: string;
   author?: string | null;
   author_name?: string | null;
   subreddit?: string | null;
@@ -13,10 +16,11 @@ export type AgentSignal = {
   overall_score?: number;
   category?: string;
   reason?: string;
+  match_reason?: string;
   suggested_action?: string;
   query?: string;
-  published_at?: string | null;
-  created_at?: string | null;
+  published_at?: string | number | null;
+  created_at?: string | number | null;
   matched_terms?: string[];
   matched_keywords?: string[];
   sentiment?: string;
@@ -38,6 +42,7 @@ export type AgentToolCall = {
 
 export type AgentRunResponse = {
   answer: string;
+  chat_summary?: string;
   skill_used: string;
   tool_calls: AgentToolCall[];
   signals: AgentSignal[];
@@ -153,7 +158,7 @@ export type ResearchPlan = {
   warnings: string[];
 };
 
-export type MentionKeywordPlan = {
+export type AgentKeywordPlan = {
   message: string;
   extracted_keywords: string[];
   suggested_keywords: string[];
@@ -170,14 +175,15 @@ export type ChatMessage =
       role: "assistant";
       content: string;
       data?: AgentRunResponse;
-      keywordPlan?: MentionKeywordPlan;
+      keywordPlan?: AgentKeywordPlan;
       researchPlan?: ResearchPlan;
+      resultTitle?: string;
       reasoning?: string;
     };
 
 export type AgentMode = "auto" | "reddit" | "hackernews" | "x" | "mention";
 
-export type MentionWorkspaceEvent = {
+export type AgentWorkspaceEvent = {
   id: string;
   type:
     | "thinking"

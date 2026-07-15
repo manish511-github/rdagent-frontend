@@ -11,10 +11,10 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { Button } from "@/components/ui/button";
-import type { AgentMode } from "@/lib/mention-tracking/types";
-import { EXAMPLE_PROMPTS } from "@/lib/mention-tracking/types";
+import type { AgentMode } from "@/lib/agent-chat/types";
+import { EXAMPLE_PROMPTS } from "@/lib/agent-chat/types";
 
-type MentionTrackingChatInputProps = {
+type AgentChatInputProps = {
   prompt: string;
   setPrompt: (value: string) => void;
   onSubmit: (value?: string) => void;
@@ -33,7 +33,7 @@ type MentionTrackingChatInputProps = {
   setCompetitors: (value: string) => void;
 };
 
-export function MentionTrackingChatInput({
+export function AgentChatInput({
   prompt,
   setPrompt,
   onSubmit,
@@ -50,7 +50,7 @@ export function MentionTrackingChatInput({
   setProductName,
   competitors,
   setCompetitors,
-}: MentionTrackingChatInputProps) {
+}: AgentChatInputProps) {
   return (
     <div className="border-t bg-background px-4 py-4">
       <div className="mx-auto max-w-2xl space-y-3">

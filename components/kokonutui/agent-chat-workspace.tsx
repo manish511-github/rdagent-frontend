@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   MessageSquarePlus,
   PanelRightClose,
@@ -16,18 +16,18 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
-import { MentionTrackingBottomToolbar } from "@/components/mention-tracking/mention-tracking-bottom-toolbar";
-import { MentionTrackingChatInput } from "@/components/mention-tracking/mention-tracking-chat-input";
-import { MentionTrackingChatMessages } from "@/components/mention-tracking/mention-tracking-chat-messages";
-import { MentionWorkspacePanel } from "@/components/mentions/mention-workspace-panel";
+import { AgentBottomToolbar } from "@/components/agent-chat/agent-bottom-toolbar";
+import { AgentChatInput } from "@/components/agent-chat/agent-chat-input";
+import { AgentChatMessages } from "@/components/agent-chat/agent-chat-messages";
+import { AgentWorkspacePanel } from "@/components/agent-chat/agent-workspace-panel";
 import { Button } from "@/components/ui/button";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { useMentionTrackingChat } from "@/hooks/useMentionTrackingChat";
-import { EXAMPLE_PROMPTS } from "@/lib/mention-tracking/types";
+import { useAgentChat } from "@/hooks/useAgentChat";
+import { EXAMPLE_PROMPTS } from "@/lib/agent-chat/types";
 import { cn } from "@/lib/utils";
 
 export default function AgentChatWorkspace() {
@@ -42,17 +42,19 @@ export default function AgentChatWorkspace() {
 }
 
 function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
-  const chat = useMentionTrackingChat({
+  const chat = useAgentChat({
     includeWelcomeMessage: false,
     persistKey: "zooptics:agent-chat:current-session",
   });
   const [landingPrompt, setLandingPrompt] = useState("");
   const [showWorkspace, setShowWorkspace] = useState(false);
-  const [showMentionsPanel, setShowMentionsPanel] = useState(true);
+  const [showWorkspacePanel, setShowWorkspacePanel] = useState(false);
   const [activePanel, setActivePanel] = useState<"chat" | "workspace">("chat");
-  const wasSearchingRef = useRef(false);
+  const [workspaceViewMode, setWorkspaceViewMode] = useState<"plan" | "results">("results");
 
   const resultCount = chat.workspaceData?.signals.length ?? 0;
+  const hasResearchPlan = Boolean(chat.researchPlan);
+  const workspaceLabel = chat.researchPlan?.title ? "Plan" : "Results";
   const hasWorkspace =
     showWorkspace ||
     chat.isSearching ||
@@ -63,11 +65,7 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
     if (chat.hasSessionActivity) {
       setShowWorkspace(true);
     }
-    if (wasSearchingRef.current && !chat.isSearching && resultCount > 0) {
-      setActivePanel("workspace");
-    }
-    wasSearchingRef.current = chat.isSearching;
-  }, [chat.hasSessionActivity, chat.isSearching, resultCount]);
+  }, [chat.hasSessionActivity]);
 
   const startRun = async (value: string) => {
     const prompt = value.trim();
@@ -75,7 +73,9 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
 
     setLandingPrompt("");
     setShowWorkspace(true);
+    setShowWorkspacePanel(false);
     setActivePanel("chat");
+    setWorkspaceViewMode("plan");
     const didStart = await chat.submitPrompt(prompt);
     if (!didStart) {
       setLandingPrompt(prompt);
@@ -86,7 +86,7 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
   const chatPanel = (
     <div className="flex h-full min-h-0 flex-col bg-background">
       <div className="min-h-0 flex-1 overflow-hidden">
-        <MentionTrackingChatMessages
+        <AgentChatMessages
           messages={chat.messages}
           isSearching={chat.isSearching}
           streamStatus={chat.streamStatus}
@@ -98,11 +98,19 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
           onViewResearchPlan={(plan) => {
             chat.openResearchPlan(plan);
             setShowWorkspace(true);
+            setShowWorkspacePanel(true);
             setActivePanel("workspace");
+            setWorkspaceViewMode("plan");
+          }}
+          onViewResults={() => {
+            setShowWorkspace(true);
+            setShowWorkspacePanel(true);
+            setActivePanel("workspace");
+            setWorkspaceViewMode("results");
           }}
         />
       </div>
-      <MentionTrackingChatInput
+      <AgentChatInput
         prompt={chat.prompt}
         setPrompt={chat.setPrompt}
         onSubmit={(value) => chat.submitPrompt(value ?? chat.prompt)}
@@ -124,11 +132,12 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
   );
 
   const workspacePanel = (
-    <MentionWorkspacePanel
+    <AgentWorkspacePanel
       data={chat.workspaceData}
-      liveSignals={chat.liveMentionSignals}
+      liveSignals={chat.liveAgentSignals}
       workspaceEvents={chat.workspaceEvents}
       isSearching={chat.isSearching}
+      viewMode={workspaceViewMode}
       trackerPrompt={chat.initialPrompt}
       sessionTitle={chat.sessionTitle}
       researchPlan={chat.researchPlan}
@@ -210,24 +219,26 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
         <MessageSquarePlus className="size-4" />
         <span className="text-xs">New chat</span>
       </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="absolute right-3 top-3 z-10 hidden h-8 gap-1.5 px-2 lg:flex"
-        onClick={() => setShowMentionsPanel((v) => !v)}
-        title={showMentionsPanel ? "Hide panel" : "Show panel"}
-      >
-        {showMentionsPanel ? (
-          <PanelRightClose className="size-4" />
-        ) : (
-          <PanelRightOpen className="size-4" />
-        )}
-        <span className="text-xs">{showMentionsPanel ? "Hide" : "Show"}</span>
-      </Button>
+      {hasResearchPlan && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="absolute right-3 top-3 z-10 hidden h-8 gap-1.5 px-2 lg:flex"
+          onClick={() => setShowWorkspacePanel((v) => !v)}
+          title={showWorkspacePanel ? "Hide plan" : "Show plan"}
+        >
+          {showWorkspacePanel ? (
+            <PanelRightClose className="size-4" />
+          ) : (
+            <PanelRightOpen className="size-4" />
+          )}
+          <span className="text-xs">{showWorkspacePanel ? "Hide" : "Show plan"}</span>
+        </Button>
+      )}
 
       <div className="hidden min-h-0 flex-1 lg:flex">
-        {showMentionsPanel ? (
+        {showWorkspacePanel ? (
           <ResizablePanelGroup direction="horizontal">
             <ResizablePanel defaultSize={42} minSize={30}>
               {chatPanel}
@@ -259,11 +270,12 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
         >
           {workspacePanel}
         </div>
-        <MentionTrackingBottomToolbar
+        <AgentBottomToolbar
           activePanel={activePanel}
           onPanelChange={setActivePanel}
           hasWorkspace={hasWorkspace}
           resultCount={resultCount}
+          workspaceLabel={workspaceLabel}
         />
       </div>
     </div>

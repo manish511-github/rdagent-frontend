@@ -25,20 +25,23 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { ResearchPlan } from "@/lib/mention-tracking/types";
+import type { ResearchPlan } from "@/lib/agent-chat/types";
 import {
   formatPlatformLabel,
   signalPlatform,
-} from "@/lib/mention-tracking/signal-utils";
+} from "@/lib/agent-chat/signal-utils";
 import { cn } from "@/lib/utils";
 
-export type MentionSignal = {
+export type AgentSignal = {
   platform?: string;
   source?: string;
   title?: string;
   url?: string;
   snippet?: string;
   text?: string;
+  content?: string;
+  body?: string;
+  description?: string;
   author?: string | null;
   author_name?: string | null;
   subreddit?: string | null;
@@ -47,10 +50,11 @@ export type MentionSignal = {
   overall_score?: number;
   category?: string;
   reason?: string;
+  match_reason?: string;
   suggested_action?: string;
   query?: string;
-  published_at?: string | null;
-  created_at?: string | null;
+  published_at?: string | number | null;
+  created_at?: string | number | null;
   matched_terms?: string[];
   matched_keywords?: string[];
   sentiment?: string;
@@ -64,7 +68,7 @@ export type MentionSignal = {
   relevant_comment_ids?: number[];
 };
 
-export type MentionWorkspaceEvent = {
+export type AgentWorkspaceEvent = {
   id: string;
   type:
     | "thinking"
@@ -82,7 +86,7 @@ export type MentionWorkspaceEvent = {
   createdAt: number;
 };
 
-type MentionWorkspaceData = {
+type AgentWorkspaceData = {
   answer: string;
   skill_used: string;
   tool_calls: Array<{
@@ -90,17 +94,18 @@ type MentionWorkspaceData = {
     args: Record<string, unknown>;
     result?: Record<string, unknown>;
   }>;
-  signals: MentionSignal[];
+  signals: AgentSignal[];
 };
 
 type StatusFilter = "all" | "actionable" | "comments" | "news" | "promo" | "low_relevance";
 type SortOrder = "relevance" | "newest" | "oldest";
 
-type MentionWorkspacePanelProps = {
-  data?: MentionWorkspaceData;
-  liveSignals: MentionSignal[];
-  workspaceEvents?: MentionWorkspaceEvent[];
+type AgentWorkspacePanelProps = {
+  data?: AgentWorkspaceData;
+  liveSignals: AgentSignal[];
+  workspaceEvents?: AgentWorkspaceEvent[];
   isSearching: boolean;
+  viewMode?: "plan" | "results";
   trackerPrompt?: string;
   sessionTitle?: string;
   researchPlan?: ResearchPlan | null;
@@ -108,17 +113,18 @@ type MentionWorkspacePanelProps = {
   onRejectPlan?: (message: string, plan: ResearchPlan) => void;
 };
 
-export function MentionWorkspacePanel({
+export function AgentWorkspacePanel({
   data,
   liveSignals,
   workspaceEvents = [],
   isSearching,
+  viewMode = "results",
   trackerPrompt,
   sessionTitle,
   researchPlan,
   onExecutePlan,
   onRejectPlan,
-}: MentionWorkspacePanelProps) {
+}: AgentWorkspacePanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOrder, setSortOrder] = useState<SortOrder>("relevance");
@@ -185,8 +191,17 @@ export function MentionWorkspacePanel({
   const trackerTerms = useMemo(() => {
     return Array.from(new Set(signals.flatMap(matchedTerms))).slice(0, 16);
   }, [signals]);
+  const workspaceTitle =
+    researchPlan?.title ||
+    sessionTitle ||
+    trackerPrompt ||
+    "Research results";
+  const shouldShowPlanReview =
+    Boolean(researchPlan && onExecutePlan) &&
+    viewMode === "plan" &&
+    researchPlan?.status !== "rejected";
 
-  if (researchPlan && onExecutePlan) {
+  if (researchPlan && onExecutePlan && shouldShowPlanReview) {
     return (
       <div className="flex h-full min-h-0 flex-col bg-gray-50 dark:bg-black">
         <div className="border-b bg-background px-4 py-3">
@@ -270,9 +285,9 @@ export function MentionWorkspacePanel({
                 <Radio className="size-4" />
               </div>
               <div className="min-w-0">
-                <h2 className="truncate text-base font-semibold">Mentions</h2>
+                <h2 className="truncate text-base font-semibold">{workspaceTitle}</h2>
                 <p className="truncate text-xs text-muted-foreground">
-                  {signals.length} mention{signals.length === 1 ? "" : "s"}
+                  {signals.length} result{signals.length === 1 ? "" : "s"}
                 </p>
               </div>
             </div>
@@ -302,7 +317,7 @@ export function MentionWorkspacePanel({
                 <Input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search mentions..."
+                  placeholder="Search results..."
                   className="h-9 bg-muted/40 pl-9 pr-9 text-sm"
                 />
                 {searchQuery && (
@@ -366,12 +381,12 @@ export function MentionWorkspacePanel({
                 <div>
                   <Search className="mx-auto size-5 text-muted-foreground" />
                   <p className="mt-2 text-sm font-medium text-foreground">
-                    No mentions yet
+                    No results yet
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {isSearching
-                      ? "Waiting for mentions…"
-                      : "Run a mention tracking search."}
+                      ? "Waiting for results..."
+                      : "Run a research search."}
                   </p>
                 </div>
               </div>
@@ -449,7 +464,7 @@ function SourceSummaryPanel({ summaries }: { summaries: PlatformSummary[] }) {
             <SourceStatusBadge status={source.status} />
           </div>
           <div className="mt-4 text-2xl font-semibold">{source.count}</div>
-          <p className="text-xs text-muted-foreground">mentions in this run</p>
+          <p className="text-xs text-muted-foreground">results in this run</p>
         </div>
       ))}
     </div>
@@ -472,7 +487,7 @@ function TrackerSummaryPanel({
   return (
     <div className="space-y-3">
       <div className="rounded-lg border bg-background p-4">
-        <h3 className="text-sm font-semibold">{title || "Mention tracker"}</h3>
+        <h3 className="text-sm font-semibold">{title || "Research workspace"}</h3>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
           {prompt || "The tracker configuration will appear after the first prompt."}
         </p>
@@ -516,7 +531,7 @@ function TrackerSummaryPanel({
                 ))
               ) : (
                 <span className="text-sm text-muted-foreground">
-                  Terms will appear as mentions stream in.
+                  Terms will appear as results stream in.
                 </span>
               )}
             </div>
@@ -531,7 +546,7 @@ function ActivityTimeline({
   events,
   isSearching,
 }: {
-  events: MentionWorkspaceEvent[];
+  events: AgentWorkspaceEvent[];
   isSearching: boolean;
 }) {
   if (!events.length) {
@@ -613,14 +628,14 @@ function MentionListItem({
   isSelected,
   onSelect,
 }: {
-  signal: MentionSignal;
+  signal: AgentSignal;
   isNew: boolean;
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const body = signal.snippet || signal.text || "";
+  const body = signalBody(signal);
   const platform = signalPlatform(signal);
-  const createdAt = signal.created_at || signal.published_at;
+  const createdAt = signal.created_at || signal.published_at || signal.time;
 
   return (
     <button
@@ -669,10 +684,10 @@ function MentionListItem({
   );
 }
 
-function MentionDetails({ signal }: { signal: MentionSignal }) {
+function MentionDetails({ signal }: { signal: AgentSignal }) {
   const score = signalScore(signal);
   const platform = signalPlatform(signal);
-  const body = signal.text || signal.snippet || "";
+  const body = signalBody(signal);
   const terms = matchedTerms(signal);
 
   return (
@@ -736,7 +751,7 @@ function MentionDetails({ signal }: { signal: MentionSignal }) {
           </div>
         )}
 
-        {(signal.reason || signal.suggested_action || signal.relevant_comment_ids?.length) && (
+        {(signal.reason || signal.match_reason || signal.suggested_action || signal.relevant_comment_ids?.length) && (
           <div className="mt-4 rounded-lg border border-border bg-background p-3">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium">
               <MessageSquare className="size-4 text-muted-foreground" />
@@ -744,6 +759,7 @@ function MentionDetails({ signal }: { signal: MentionSignal }) {
             </div>
             <div className="space-y-2 text-sm leading-6 text-muted-foreground">
               {signal.reason && <p>{signal.reason}</p>}
+              {!signal.reason && signal.match_reason && <p>{signal.match_reason}</p>}
               {signal.suggested_action && <p>{signal.suggested_action}</p>}
               {signal.relevant_comment_ids?.length ? (
                 <p>{signal.relevant_comment_ids.length} relevant comments matched.</p>
@@ -793,7 +809,7 @@ function SourceStatusBadge({ status }: { status: PlatformSummary["status"] }) {
   );
 }
 
-function ActivityIcon({ event }: { event: MentionWorkspaceEvent }) {
+function ActivityIcon({ event }: { event: AgentWorkspaceEvent }) {
   const baseClass =
     "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border";
 
@@ -829,8 +845,8 @@ function ActivityIcon({ event }: { event: MentionWorkspaceEvent }) {
 }
 
 function summarizePlatforms(
-  signals: MentionSignal[],
-  events: MentionWorkspaceEvent[],
+  signals: AgentSignal[],
+  events: AgentWorkspaceEvent[],
   isSearching: boolean
 ): PlatformSummary[] {
   const platformIds = Array.from(
@@ -872,8 +888,8 @@ function sourceStatusDetail(
   if (status === "queued") return `${label} is queued for this run.`;
   if (status === "complete") {
     return count
-      ? `${label} returned ${count} mention${count === 1 ? "" : "s"}.`
-      : `${label} completed with no mentions.`;
+      ? `${label} returned ${count} result${count === 1 ? "" : "s"}.`
+      : `${label} completed with no results.`;
   }
   if (status === "error") return `${label} returned an error during this run.`;
   return `${label} has not run yet.`;
@@ -902,7 +918,7 @@ function formatEventTime(value: number) {
   }).format(new Date(value));
 }
 
-function matchesStatusFilter(signal: MentionSignal, filter: StatusFilter) {
+function matchesStatusFilter(signal: AgentSignal, filter: StatusFilter) {
   switch (filter) {
     case "actionable":
       return Boolean(signal.is_actionable);
@@ -919,12 +935,12 @@ function matchesStatusFilter(signal: MentionSignal, filter: StatusFilter) {
   }
 }
 
-function signalId(signal: MentionSignal) {
+function signalId(signal: AgentSignal) {
   return signal.url || signal.post_id || `${signalPlatform(signal)}-${signal.title || ""}-${signalTime(signal)}`;
 }
 
-function dedupeSignals(signals: MentionSignal[]) {
-  const unique = new Map<string, MentionSignal>();
+function dedupeSignals(signals: AgentSignal[]) {
+  const unique = new Map<string, AgentSignal>();
   for (const signal of signals) {
     const key = signalId(signal);
     const existing = unique.get(key);
@@ -940,41 +956,57 @@ function dedupeSignals(signals: MentionSignal[]) {
   return [...unique.values()];
 }
 
-function signalTextLength(signal: MentionSignal) {
-  return String(signal.text || signal.snippet || signal.title || "").length;
+function signalTextLength(signal: AgentSignal) {
+  return String(signalBody(signal) || signal.title || "").length;
 }
 
-function signalScore(signal: MentionSignal) {
+function signalScore(signal: AgentSignal) {
   if (typeof signal.overall_score === "number") return signal.overall_score;
   if (typeof signal.relevance === "number") return signal.relevance;
   if (typeof signal.score === "number") return signal.score;
   return 0;
 }
 
-function signalTime(signal: MentionSignal) {
+function signalTime(signal: AgentSignal) {
   if (signal.created_at) {
-    const date = new Date(signal.created_at).getTime();
+    const date = parseSignalDate(signal.created_at).getTime();
     return Number.isNaN(date) ? 0 : date;
   }
   if (signal.published_at) {
-    const date = new Date(signal.published_at).getTime();
+    const date = parseSignalDate(signal.published_at).getTime();
     return Number.isNaN(date) ? 0 : date;
   }
   if (typeof signal.time === "number") return signal.time * 1000;
   return 0;
 }
 
-function signalSourceType(signal: MentionSignal) {
+function signalSourceType(signal: AgentSignal) {
   const metadata = signal.metadata || {};
   const value = metadata.source_type;
   return typeof value === "string" && value.trim() ? value : "";
 }
 
-function matchedTerms(signal: MentionSignal) {
+function matchedTerms(signal: AgentSignal) {
   return [...(signal.matched_terms || []), ...(signal.matched_keywords || [])]
     .map((term) => term.trim())
     .filter((term, index, values) => term && !term.startsWith("noise:") && values.indexOf(term) === index)
     .slice(0, 12);
+}
+
+function signalBody(signal: AgentSignal) {
+  const metadata = signal.metadata || {};
+  return String(
+    signal.text ||
+      signal.snippet ||
+      signal.content ||
+      signal.body ||
+      signal.description ||
+      metadata.content ||
+      metadata.text ||
+      metadata.body ||
+      metadata.description ||
+      ""
+  ).trim();
 }
 
 function scoreColor(score: number) {
@@ -994,11 +1026,24 @@ function formatScore(score: number) {
   return score > 0 && score <= 1 ? score.toFixed(2) : Math.round(score).toString();
 }
 
-function formatDate(value: string) {
-  const date = new Date(value);
+function formatDate(value: string | number) {
+  const date = parseSignalDate(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
   }).format(date);
+}
+
+function parseSignalDate(value: string | number) {
+  if (typeof value === "number") {
+    // HN/Firebase timestamps are Unix seconds. JavaScript Date expects
+    // milliseconds, so convert second-scale values defensively.
+    return new Date(value < 10_000_000_000 ? value * 1000 : value);
+  }
+  const numericValue = Number(value);
+  if (value.trim() && Number.isFinite(numericValue) && /^\d+(\.\d+)?$/.test(value.trim())) {
+    return new Date(numericValue < 10_000_000_000 ? numericValue * 1000 : numericValue);
+  }
+  return new Date(value);
 }

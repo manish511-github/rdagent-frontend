@@ -6,11 +6,11 @@ import { toast } from "sonner";
 
 import { getApiUrl } from "@/lib/config";
 import {
-  mergeMentionSignal,
+  mergeAgentSignal,
   normalizeStreamEvent,
   parseSseChunk,
   readError,
-} from "@/lib/mention-tracking/stream-utils";
+} from "@/lib/agent-chat/stream-utils";
 import {
   type AgentMode,
   type AgentRuntimeMode,
@@ -19,11 +19,11 @@ import {
   type AgentTurnEvent,
   type AgentTurnRequest,
   type ChatMessage,
-  type MentionWorkspaceEvent,
+  type AgentWorkspaceEvent,
   type ResearchPlan,
-} from "@/lib/mention-tracking/types";
+} from "@/lib/agent-chat/types";
 
-type UseMentionTrackingChatOptions = {
+type UseAgentChatOptions = {
   includeWelcomeMessage?: boolean;
   persistKey?: string;
 };
@@ -35,7 +35,7 @@ const welcomeMessage: ChatMessage = {
     "Tell me what brand, product, competitor, or keyword you want to track. I can monitor mentions across Reddit, X/Twitter, Hacker News, YouTube, GitHub, LinkedIn, and newsletters.",
 };
 
-type PersistedMentionTrackingSession = {
+type PersistedAgentChatSession = {
   version: 2;
   sessionId: string;
   sessionTitle: string;
@@ -46,8 +46,8 @@ type PersistedMentionTrackingSession = {
   productName: string;
   competitors: string;
   messages: ChatMessage[];
-  workspaceEvents: MentionWorkspaceEvent[];
-  liveMentionSignals: AgentRunResponse["signals"];
+  workspaceEvents: AgentWorkspaceEvent[];
+  liveAgentSignals: AgentRunResponse["signals"];
   researchPlan?: ResearchPlan | null;
   updatedAt: number;
 };
@@ -61,7 +61,7 @@ function createClientId() {
 
 function titleFromPrompt(prompt: string) {
   const compact = prompt.replace(/\s+/g, " ").trim();
-  if (!compact) return "New mention tracker";
+  if (!compact) return "New agent chat";
   return compact.length > 72 ? `${compact.slice(0, 69)}...` : compact;
 }
 
@@ -109,22 +109,22 @@ function turnEventToStreamEvent(event: AgentTurnEvent): AgentStreamEvent {
 
 function readPersistedSession(
   persistKey?: string
-): PersistedMentionTrackingSession | null {
+): PersistedAgentChatSession | null {
   if (!persistKey || typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(persistKey);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as PersistedMentionTrackingSession;
+    const parsed = JSON.parse(raw) as PersistedAgentChatSession;
     return parsed.version === 2 ? parsed : null;
   } catch {
     return null;
   }
 }
 
-export function useMentionTrackingChat({
+export function useAgentChat({
   includeWelcomeMessage = true,
   persistKey,
-}: UseMentionTrackingChatOptions = {}) {
+}: UseAgentChatOptions = {}) {
   const persistedSession = useMemo(
     () => readPersistedSession(persistKey),
     [persistKey]
@@ -159,11 +159,11 @@ export function useMentionTrackingChat({
   const [isSearching, setIsSearching] = useState(false);
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
   const [workspaceEvents, setWorkspaceEvents] = useState<
-    MentionWorkspaceEvent[]
+    AgentWorkspaceEvent[]
   >(() => persistedSession?.workspaceEvents || []);
-  const [liveMentionSignals, setLiveMentionSignals] = useState<
+  const [liveAgentSignals, setLiveAgentSignals] = useState<
     AgentRunResponse["signals"]
-  >(() => persistedSession?.liveMentionSignals || []);
+  >(() => persistedSession?.liveAgentSignals || []);
   const [liveReasoning, setLiveReasoning] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
     persistedSession?.messages ||
@@ -179,7 +179,7 @@ export function useMentionTrackingChat({
   const canSearch = canSubmitPrompt(prompt);
 
   const pushWorkspaceEvent = useCallback((
-    event: Omit<MentionWorkspaceEvent, "id" | "createdAt">
+    event: Omit<AgentWorkspaceEvent, "id" | "createdAt">
   ) => {
     setWorkspaceEvents((current) => {
       if (event.type === "thinking") {
@@ -233,10 +233,10 @@ export function useMentionTrackingChat({
     });
   }, []);
 
-  const handleMentionStreamEvent = useCallback((event: AgentStreamEvent) => {
+  const handleAgentStreamEvent = useCallback((event: AgentStreamEvent) => {
     if (event.type === "mention_found" && event.mention) {
-      setLiveMentionSignals((current) =>
-        mergeMentionSignal(current, event.mention as AgentRunResponse["signals"][number])
+      setLiveAgentSignals((current) =>
+        mergeAgentSignal(current, event.mention as AgentRunResponse["signals"][number])
       );
     }
 
@@ -323,7 +323,7 @@ export function useMentionTrackingChat({
             : "Planning research..."
     );
     setLiveReasoning("");
-    setLiveMentionSignals([]);
+    setLiveAgentSignals([]);
     if (!approvedPlan) {
       setResearchPlan(null);
     }
@@ -464,17 +464,19 @@ export function useMentionTrackingChat({
           if (event.type === "answer.completed") {
             const data = event.data?.response as AgentRunResponse | undefined;
             if (!data) continue;
-            setLiveMentionSignals(data.signals);
+            setLiveAgentSignals(data.signals);
             if (approvedPlan) {
               setMessagePlanStatus(approvedPlan.plan_id, "complete");
+              setResearchPlan({ ...approvedPlan, status: "complete" });
             }
             setMessages((current) => [
               ...current,
               {
                 id: createClientId(),
                 role: "assistant",
-                content: data.answer,
+                content: buildExecutionSummary(data),
                 data,
+                resultTitle: approvedPlan?.title || titleFromPrompt(initialPrompt || message),
                 reasoning: data.reasoning || undefined,
               },
             ]);
@@ -494,7 +496,7 @@ export function useMentionTrackingChat({
             throw new Error(event.message || "Agent turn failed");
           }
 
-          handleMentionStreamEvent(turnEventToStreamEvent(event));
+          handleAgentStreamEvent(turnEventToStreamEvent(event));
         }
       }
     } catch (error) {
@@ -730,30 +732,30 @@ export function useMentionTrackingChat({
 
   const workspaceData = useMemo(() => {
     if (latestData) return latestData;
-    if (liveMentionSignals.length) {
+    if (liveAgentSignals.length) {
       return {
         answer: "",
         skill_used: "mention-tracking",
         tool_calls: [],
-        signals: liveMentionSignals,
+        signals: liveAgentSignals,
       };
     }
     return undefined;
-  }, [latestData, liveMentionSignals]);
+  }, [latestData, liveAgentSignals]);
 
   const hasSessionActivity = useMemo(() => {
     return (
       messages.some((message) => message.id !== "welcome") ||
       workspaceEvents.length > 0 ||
-      liveMentionSignals.length > 0
+      liveAgentSignals.length > 0
     );
-  }, [liveMentionSignals.length, messages, workspaceEvents.length]);
+  }, [liveAgentSignals.length, messages, workspaceEvents.length]);
 
   useEffect(() => {
     if (!persistKey || typeof window === "undefined") return;
     if (!hasSessionActivity) return;
 
-    const payload: PersistedMentionTrackingSession = {
+    const payload: PersistedAgentChatSession = {
       version: 2,
       sessionId,
       sessionTitle: sessionTitle || titleFromPrompt(initialPrompt),
@@ -765,7 +767,7 @@ export function useMentionTrackingChat({
       competitors,
       messages,
       workspaceEvents,
-      liveMentionSignals,
+      liveAgentSignals,
       researchPlan,
       updatedAt: Date.now(),
     };
@@ -778,7 +780,7 @@ export function useMentionTrackingChat({
     competitors,
     hasSessionActivity,
     initialPrompt,
-    liveMentionSignals,
+    liveAgentSignals,
     messages,
     persistKey,
     productName,
@@ -799,7 +801,7 @@ export function useMentionTrackingChat({
     setInitialPrompt("");
     setPrompt("");
     setWorkspaceEvents([]);
-    setLiveMentionSignals([]);
+    setLiveAgentSignals([]);
     setLiveReasoning("");
     setResearchPlan(null);
     setRuntimeMode("chat");
@@ -840,10 +842,14 @@ export function useMentionTrackingChat({
     rejectResearchPlan,
     openResearchPlan,
     workspaceData,
-    liveMentionSignals,
+    liveAgentSignals,
     liveReasoning,
     researchPlan,
   };
 }
 
-export type MentionTrackingChatState = ReturnType<typeof useMentionTrackingChat>;
+function buildExecutionSummary(data: AgentRunResponse) {
+  return data.chat_summary || "";
+}
+
+export type AgentChatState = ReturnType<typeof useAgentChat>;

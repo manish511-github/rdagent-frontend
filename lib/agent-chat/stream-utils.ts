@@ -2,7 +2,7 @@ import { formatPlatformLabel } from "./signal-utils";
 import type {
   AgentSignal,
   AgentStreamEvent,
-  MentionWorkspaceEvent,
+  AgentWorkspaceEvent,
 } from "./types";
 
 export function parseSseChunk(chunk: string): AgentStreamEvent | null {
@@ -16,40 +16,40 @@ export function parseSseChunk(chunk: string): AgentStreamEvent | null {
   }
 }
 
-export function mergeMentionSignal(
+export function mergeAgentSignal(
   current: AgentSignal[],
-  mention: AgentSignal
+  signal: AgentSignal
 ) {
-  const incomingKey = mentionSignalKey(mention);
-  if (!incomingKey) return [...current, mention];
+  const incomingKey = agentSignalKey(signal);
+  if (!incomingKey) return [...current, signal];
   const existingIndex = current.findIndex((item) => {
-    const itemKey = mentionSignalKey(item);
+    const itemKey = agentSignalKey(item);
     return itemKey === incomingKey;
   });
-  if (existingIndex === -1) return [...current, mention];
+  if (existingIndex === -1) return [...current, signal];
   return current.map((item, index) =>
-    index === existingIndex ? mention : item
+    index === existingIndex ? signal : item
   );
 }
 
-export function mentionSignalKey(mention: AgentSignal) {
+export function agentSignalKey(signal: AgentSignal) {
   return (
-    mention.url ||
-    mention.post_id ||
-    `${mention.platform || mention.source || "mention"}-${mention.title || ""}`
+    signal.url ||
+    signal.post_id ||
+    `${signal.platform || signal.source || "signal"}-${signal.title || ""}`
   );
 }
 
 export function normalizeStreamEvent(
   event: AgentStreamEvent
-): Omit<MentionWorkspaceEvent, "id" | "createdAt"> | null {
+): Omit<AgentWorkspaceEvent, "id" | "createdAt"> | null {
   if (event.type === "mention_found" && event.mention) {
     return {
       type: "mention_found",
       label: event.mention.title || "New mention found",
       detail: event.mention.platform || event.mention.source,
       platform: event.mention.platform,
-      signalKey: mentionSignalKey(event.mention),
+      signalKey: agentSignalKey(event.mention),
     };
   }
 

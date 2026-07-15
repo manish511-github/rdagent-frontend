@@ -10,15 +10,15 @@ import {
   TaskTrigger,
 } from "@/components/ai-elements/task";
 import { cn } from "@/lib/utils";
-import type { MentionWorkspaceEvent } from "@/lib/mention-tracking/types";
+import type { AgentWorkspaceEvent } from "@/lib/agent-chat/types";
 
-type MentionTrackingStreamActivityProps = {
-  events: MentionWorkspaceEvent[];
+type AgentStreamActivityProps = {
+  events: AgentWorkspaceEvent[];
   isSearching: boolean;
   streamStatus: string | null;
 };
 
-function formatTaskLabel(event: MentionWorkspaceEvent) {
+function formatTaskLabel(event: AgentWorkspaceEvent) {
   if (event.type === "mention_found") {
     const platform = event.platform ? ` on ${event.platform}` : "";
     return `Found mention${platform}`;
@@ -29,17 +29,17 @@ function formatTaskLabel(event: MentionWorkspaceEvent) {
   return event.label;
 }
 
-export function MentionTrackingStreamActivity({
+export function AgentStreamActivity({
   events,
   isSearching,
   streamStatus,
-}: MentionTrackingStreamActivityProps) {
+}: AgentStreamActivityProps) {
   const currentThinking = useMemo(
     () => [...events].reverse().find((event) => event.type === "thinking"),
     [events]
   );
   const taskEvents = useMemo(() => {
-    const seen = new Map<string, MentionWorkspaceEvent>();
+    const seen = new Map<string, AgentWorkspaceEvent>();
 
     for (const event of events) {
       if (["thinking", "completed"].includes(event.type)) continue;

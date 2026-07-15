@@ -4,9 +4,9 @@ import { ChevronRight, FileSpreadsheet, Loader2, Play, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { ResearchPlan } from "@/lib/mention-tracking/types";
+import type { ResearchPlan } from "@/lib/agent-chat/types";
 
-type ResearchPlanCardProps = {
+type AgentPlanCardProps = {
   plan: ResearchPlan;
   disabled: boolean;
   onExecute: (message: string, plan: ResearchPlan) => void;
@@ -14,13 +14,13 @@ type ResearchPlanCardProps = {
   onView?: (plan: ResearchPlan) => void;
 };
 
-export function ResearchPlanCard({
+export function AgentPlanCard({
   plan,
   disabled,
   onExecute,
   onReject,
   onView,
-}: ResearchPlanCardProps) {
+}: AgentPlanCardProps) {
   const canDecide = plan.status === "draft";
 
   return (
