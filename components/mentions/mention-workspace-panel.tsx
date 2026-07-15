@@ -25,6 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { ResearchPlan } from "@/lib/mention-tracking/types";
 import {
   formatPlatformLabel,
   signalPlatform,
@@ -100,9 +101,10 @@ type MentionWorkspacePanelProps = {
   liveSignals: MentionSignal[];
   workspaceEvents?: MentionWorkspaceEvent[];
   isSearching: boolean;
-  selectedPlatforms?: string[];
   trackerPrompt?: string;
   sessionTitle?: string;
+  researchPlan?: ResearchPlan | null;
+  onExecutePlan?: (message: string, plan: ResearchPlan) => void;
 };
 
 export function MentionWorkspacePanel({
@@ -110,9 +112,10 @@ export function MentionWorkspacePanel({
   liveSignals,
   workspaceEvents = [],
   isSearching,
-  selectedPlatforms = [],
   trackerPrompt,
   sessionTitle,
+  researchPlan,
+  onExecutePlan,
 }: MentionWorkspacePanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -122,7 +125,9 @@ export function MentionWorkspacePanel({
 
   const signals = useMemo(() => {
     const finalSignals = data?.signals || [];
-    return finalSignals.length ? finalSignals : liveSignals;
+    // Reddit can surface the same post through multiple expanded queries.
+    // Keep every distinct post, but render each canonical URL only once.
+    return dedupeSignals(finalSignals.length ? finalSignals : liveSignals);
   }, [data?.signals, liveSignals]);
 
   const filteredSignals = useMemo(() => {
@@ -172,12 +177,74 @@ export function MentionWorkspacePanel({
     );
   }, [workspaceEvents]);
   const platformSummaries = useMemo(
-    () => summarizePlatforms(selectedPlatforms, signals, workspaceEvents, isSearching),
-    [isSearching, selectedPlatforms, signals, workspaceEvents]
+    () => summarizePlatforms(signals, workspaceEvents, isSearching),
+    [isSearching, signals, workspaceEvents]
   );
   const trackerTerms = useMemo(() => {
     return Array.from(new Set(signals.flatMap(matchedTerms))).slice(0, 16);
   }, [signals]);
+
+  if (researchPlan && onExecutePlan) {
+    return (
+      <div className="flex h-full min-h-0 flex-col bg-gray-50 dark:bg-black">
+        <div className="border-b bg-background px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-semibold">{researchPlan.title}</h2>
+              <p className="truncate text-xs text-muted-foreground">Review the plan, then run the search loop.</p>
+            </div>
+            <Button
+              size="sm"
+              disabled={isSearching}
+              onClick={() => onExecutePlan(researchPlan.message, researchPlan)}
+            >
+              {isSearching ? "Running..." : "Execute plan"}
+            </Button>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-auto p-4">
+          <div className="space-y-4 rounded-lg border bg-background p-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Objective</p>
+              <p className="mt-1 text-sm leading-relaxed">{researchPlan.objective || researchPlan.overview}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sources</p>
+              <div className="mt-2 space-y-2">
+                {researchPlan.sources.map((source, index) => (
+                  <div key={`${source.source}-${source.query}-${index}`} className="rounded-md border p-3 text-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="secondary">{formatPlatformLabel(source.source)}</Badge>
+                      <span className="font-medium">{source.query}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Last {source.recency_days} days · limit {source.limit}
+                    </p>
+                    {source.rationale && (
+                      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{source.rationale}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {researchPlan.steps.length > 0 && (
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Loop</p>
+                <ol className="mt-2 space-y-2 text-sm">
+                  {researchPlan.steps.map((step) => (
+                    <li key={step.id} className="rounded-md bg-muted/40 p-3">
+                      <p className="font-medium">{step.title}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{step.description}</p>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex h-full min-h-0 flex-col bg-gray-50 dark:bg-black">
@@ -268,9 +335,9 @@ export function MentionWorkspacePanel({
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             {filteredSignals.length ? (
-              filteredSignals.map((signal) => (
+              filteredSignals.map((signal, index) => (
                 <MentionListItem
-                  key={signalId(signal)}
+                  key={`${signalId(signal)}-${index}`}
                   signal={signal}
                   isNew={latestSignalKeys.has(signalId(signal))}
                   isSelected={signalId(signal) === selectedId}
@@ -748,15 +815,13 @@ function ActivityIcon({ event }: { event: MentionWorkspaceEvent }) {
 }
 
 function summarizePlatforms(
-  selectedPlatforms: string[],
   signals: MentionSignal[],
   events: MentionWorkspaceEvent[],
   isSearching: boolean
 ): PlatformSummary[] {
-  const platformIds =
-    selectedPlatforms.length > 0
-      ? selectedPlatforms
-      : Array.from(new Set(signals.map((signal) => platformIdFromLabel(signalPlatform(signal)))));
+  const platformIds = Array.from(
+    new Set(signals.map((signal) => platformIdFromLabel(signalPlatform(signal))))
+  );
 
   return platformIds.map((platformId) => {
     const label = formatPlatformLabel(platformId);
@@ -842,6 +907,27 @@ function matchesStatusFilter(signal: MentionSignal, filter: StatusFilter) {
 
 function signalId(signal: MentionSignal) {
   return signal.url || signal.post_id || `${signalPlatform(signal)}-${signal.title || ""}-${signalTime(signal)}`;
+}
+
+function dedupeSignals(signals: MentionSignal[]) {
+  const unique = new Map<string, MentionSignal>();
+  for (const signal of signals) {
+    const key = signalId(signal);
+    const existing = unique.get(key);
+    // Prefer the richer/highest-scored copy when duplicate fetches disagree.
+    if (
+      !existing ||
+      signalScore(signal) > signalScore(existing) ||
+      signalTextLength(signal) > signalTextLength(existing)
+    ) {
+      unique.set(key, signal);
+    }
+  }
+  return [...unique.values()];
+}
+
+function signalTextLength(signal: MentionSignal) {
+  return String(signal.text || signal.snippet || signal.title || "").length;
 }
 
 function signalScore(signal: MentionSignal) {

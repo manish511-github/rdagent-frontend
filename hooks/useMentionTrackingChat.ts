@@ -5,7 +5,6 @@ import Cookies from "js-cookie";
 import { toast } from "sonner";
 
 import { getApiUrl } from "@/lib/config";
-import { inferSkillFromPrompt } from "@/lib/mention-tracking/skill-utils";
 import {
   mergeMentionSignal,
   normalizeStreamEvent,
@@ -16,9 +15,11 @@ import {
   type AgentMode,
   type AgentRunResponse,
   type AgentStreamEvent,
+  type AgentTurnEvent,
+  type AgentTurnRequest,
   type ChatMessage,
   type MentionWorkspaceEvent,
-  SKILL_BY_MODE,
+  type ResearchPlan,
 } from "@/lib/mention-tracking/types";
 
 type UseMentionTrackingChatOptions = {
@@ -34,7 +35,7 @@ const welcomeMessage: ChatMessage = {
 };
 
 type PersistedMentionTrackingSession = {
-  version: 1;
+  version: 2;
   sessionId: string;
   sessionTitle: string;
   initialPrompt: string;
@@ -42,10 +43,10 @@ type PersistedMentionTrackingSession = {
   aiExpandKeywords: boolean;
   productName: string;
   competitors: string;
-  selectedPlatforms: string[];
   messages: ChatMessage[];
   workspaceEvents: MentionWorkspaceEvent[];
   liveMentionSignals: AgentRunResponse["signals"];
+  researchPlan?: ResearchPlan | null;
   updatedAt: number;
 };
 
@@ -62,6 +63,44 @@ function titleFromPrompt(prompt: string) {
   return compact.length > 72 ? `${compact.slice(0, 69)}...` : compact;
 }
 
+function normalizeTurnEvent(event: AgentTurnEvent): AgentTurnEvent {
+  if (event.type) return event;
+  const statusToType: Record<string, AgentTurnEvent["type"]> = {
+    planning: "run.status",
+    running: "run.status",
+    tool_call: "tool.called",
+    tool_result: "tool.completed",
+    quality: "quality.checked",
+    repairing: "repair.started",
+    complete: "answer.completed",
+    error: "turn.failed",
+  };
+  return {
+    ...event,
+    type: event.status ? statusToType[event.status] : undefined,
+  };
+}
+
+function turnEventToStreamEvent(event: AgentTurnEvent): AgentStreamEvent {
+  const statusByType: Record<string, string> = {
+    "run.status": event.status || "running",
+    "tool.called": "tool_call",
+    "tool.completed": "tool_result",
+    "quality.checked": "quality",
+    "repair.started": "repairing",
+    "answer.completed": "complete",
+    "turn.failed": "error",
+    "clarification.requested": "error",
+  };
+  const type = event.type || "";
+  return {
+    status: event.status || statusByType[type],
+    message: event.message,
+    data: event.data,
+    type: event.type,
+  };
+}
+
 function readPersistedSession(
   persistKey?: string
 ): PersistedMentionTrackingSession | null {
@@ -70,7 +109,7 @@ function readPersistedSession(
     const raw = window.localStorage.getItem(persistKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PersistedMentionTrackingSession;
-    return parsed.version === 1 ? parsed : null;
+    return parsed.version === 2 ? parsed : null;
   } catch {
     return null;
   }
@@ -117,29 +156,18 @@ export function useMentionTrackingChat({
     AgentRunResponse["signals"]
   >(() => persistedSession?.liveMentionSignals || []);
   const [liveReasoning, setLiveReasoning] = useState<string>("");
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(
-    () =>
-      persistedSession?.selectedPlatforms || [
-        "x",
-        "reddit",
-        "hackernews",
-        "youtube",
-        "github",
-        "linkedin",
-      ]
-  );
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
     persistedSession?.messages ||
     (includeWelcomeMessage ? [welcomeMessage] : [])
+  );
+  const [researchPlan, setResearchPlan] = useState<ResearchPlan | null>(
+    () => persistedSession?.researchPlan || null
   );
 
   const canSubmitPrompt = (value: string) =>
     value.trim().length >= 8 && !isSearching;
 
   const canSearch = canSubmitPrompt(prompt);
-
-  const resolveSkill = (value: string) =>
-    agentMode === "auto" ? inferSkillFromPrompt(value) : SKILL_BY_MODE[agentMode];
 
   const pushWorkspaceEvent = useCallback((
     event: Omit<MentionWorkspaceEvent, "id" | "createdAt">
@@ -221,17 +249,17 @@ export function useMentionTrackingChat({
     });
   }, [pushWorkspaceEvent]);
 
-  const runAgent = async ({
+  const sendTurn = async ({
     message,
-    skill,
     token,
-    keywords,
+    approvedPlan,
+    approvedKeywords,
     addUserMessage,
   }: {
     message: string;
-    skill: string;
     token: string;
-    keywords?: string[];
+    approvedPlan?: ResearchPlan;
+    approvedKeywords?: string[];
     addUserMessage: boolean;
   }) => {
     if (addUserMessage) {
@@ -245,61 +273,74 @@ export function useMentionTrackingChat({
       ]);
     }
 
-    const isMentionRun = skill === "mention-tracking";
     setIsSearching(true);
-    setStreamStatus("Starting mention tracking...");
+    setStreamStatus(
+      approvedKeywords?.length
+        ? "Preparing mention tracking..."
+        : approvedPlan
+          ? "Preparing approved research..."
+          : "Planning research..."
+    );
     setLiveReasoning("");
+    setLiveMentionSignals([]);
+    if (!approvedPlan) {
+      setResearchPlan(null);
+    }
     setWorkspaceEvents([
       {
         id: createClientId(),
         type: "thinking",
-        label: isMentionRun
+        label: approvedKeywords?.length
           ? "Preparing mention tracking"
-          : "Planning mention search",
-        detail: "Extracting keywords and search plan.",
+          : approvedPlan
+          ? "Preparing approved research"
+          : "Planning research strategy",
+        detail: approvedKeywords?.length
+          ? "Searching the keywords you approved."
+          : approvedPlan
+          ? "Executing the plan you approved."
+          : "Deciding which sources and queries to use.",
         createdAt: Date.now(),
       },
     ]);
-    if (isMentionRun) {
-      setLiveMentionSignals([]);
-    }
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     try {
-      const response = await fetch(getApiUrl("agent-runtime/stream"), {
+      const body: AgentTurnRequest = {
+        message,
+        ...(approvedPlan ? { approved_plan: approvedPlan } : {}),
+        ...(approvedKeywords?.length ? { approved_keywords: approvedKeywords } : {}),
+        tool_options: {
+          mention_tracking: {
+            ai_expand_keywords: false,
+            ...(approvedKeywords?.length ? { keywords: approvedKeywords } : {}),
+            ...(productName ? { product_name: productName.trim() } : {}),
+            ...(competitors
+              ? {
+                  competitors: competitors
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                }
+              : {}),
+          },
+        },
+      };
+      const response = await fetch(getApiUrl("agent-runtime/turn"), {
         method: "POST",
         signal: controller.signal,
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          message,
-          skill,
-          tool_options: {
-            mention_tracking: {
-              ai_expand_keywords: false,
-              platforms: selectedPlatforms,
-              ...(keywords?.length ? { keywords } : {}),
-              ...(productName ? { product_name: productName.trim() } : {}),
-              ...(competitors
-                ? {
-                    competitors: competitors
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter(Boolean),
-                  }
-                : {}),
-            },
-          },
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
         const error = await readError(response);
-        throw new Error(error || "Mention tracking run failed");
+        throw new Error(error || "Agent turn failed");
       }
 
       if (!response.body) throw new Error("No response body");
@@ -319,17 +360,36 @@ export function useMentionTrackingChat({
         buffer = chunks.pop() || "";
 
         for (const chunk of chunks) {
-          const event = parseSseChunk(chunk);
-          if (!event) continue;
+          const parsed = parseSseChunk(chunk) as AgentTurnEvent | null;
+          if (!parsed) continue;
+          const event = normalizeTurnEvent(parsed);
 
-          if (event.status === "thinking" && event.message) {
-            setLiveReasoning((current) => current + event.message);
-          } else {
-            handleMentionStreamEvent(event);
+          if (event.type === "plan.created") {
+            const plan = event.data?.plan as ResearchPlan | undefined;
+            if (!plan) continue;
+            setResearchPlan(plan);
+            pushWorkspaceEvent({
+              type: "tool_completed",
+              label: `Plan ready: ${plan.sources.length} source(s)`,
+              detail: plan.sources.map((s) => `${s.source}: "${s.query}"`).join(", "),
+              count: plan.sources.length,
+            });
+            setMessages((current) => [
+              ...current,
+              {
+                id: createClientId(),
+                role: "assistant",
+                content: `Here is my research plan for: "${message}"`,
+                researchPlan: plan,
+              },
+            ]);
+            setStreamStatus(null);
+            continue;
           }
 
-          if (event.status === "complete" && event.data) {
-            const data = event.data as AgentRunResponse;
+          if (event.type === "answer.completed") {
+            const data = event.data?.response as AgentRunResponse | undefined;
+            if (!data) continue;
             setLiveMentionSignals(data.signals);
             setMessages((current) => [
               ...current,
@@ -343,25 +403,32 @@ export function useMentionTrackingChat({
             ]);
             pushWorkspaceEvent({
               type: "completed",
-              label: `Run completed with ${data.signals.length} mention${
+              label: `Run completed with ${data.signals.length} result${
                 data.signals.length === 1 ? "" : "s"
               }`,
               count: data.signals.length,
             });
             setStreamStatus(null);
-          } else if (event.status === "error") {
-            throw new Error(event.message || "Agent runtime failed");
+            continue;
           }
+
+          if (event.type === "turn.failed") {
+            throw new Error(event.message || "Agent turn failed");
+          }
+
+          handleMentionStreamEvent(turnEventToStreamEvent(event));
         }
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
+        if (approvedPlan) setResearchPlan({ ...approvedPlan, status: "draft" });
         setMessages((current) => [
           ...current,
           {
             id: createClientId(),
             role: "assistant",
-            content: "I stopped the current mention run. You can adjust the prompt or sources and run it again.",
+            content:
+              "I stopped the current research turn. You can adjust the prompt or sources and run it again.",
           },
         ]);
         return;
@@ -369,7 +436,8 @@ export function useMentionTrackingChat({
 
       const messageText =
         error instanceof Error ? error.message : "Something went wrong";
-      toast.error("Mention tracking failed", { description: messageText });
+      if (approvedPlan) setResearchPlan({ ...approvedPlan, status: "draft" });
+      toast.error("Agent turn failed", { description: messageText });
       pushWorkspaceEvent({
         type: "error",
         label: messageText,
@@ -379,7 +447,7 @@ export function useMentionTrackingChat({
         {
           id: createClientId(),
           role: "assistant",
-          content: `I could not complete that run. ${messageText}`,
+          content: `I could not complete that turn. ${messageText}`,
         },
       ]);
     } finally {
@@ -388,6 +456,9 @@ export function useMentionTrackingChat({
       }
       setIsSearching(false);
       setStreamStatus(null);
+      if (approvedPlan || approvedKeywords?.length) {
+        setResearchPlan(null);
+      }
     }
   };
 
@@ -481,39 +552,45 @@ export function useMentionTrackingChat({
     const token = Cookies.get("access_token");
     if (!token) {
       toast.error("Please sign in first", {
-        description: "A login token is required to run mention tracking.",
+        description: "A login token is required to run the agent.",
       });
       return false;
     }
 
-    const skill = resolveSkill(trimmedPrompt);
     if (!initialPrompt) {
       setInitialPrompt(trimmedPrompt);
       setSessionTitle(titleFromPrompt(trimmedPrompt));
     }
-    setMessages((current) => [
-      ...current,
-      {
-        id: createClientId(),
-        role: "user",
-        content: trimmedPrompt,
-      },
-    ]);
     setPrompt("");
 
-    if (skill === "mention-tracking") {
-      await previewMentionKeywords(trimmedPrompt, token);
-      return true;
-    }
-
-    await runAgent({
+    await sendTurn({
       message: trimmedPrompt,
-      skill,
       token,
-      addUserMessage: false,
+      addUserMessage: true,
     });
     return true;
   };
+
+  const confirmResearchPlan = async (message: string, plan: ResearchPlan) => {
+    const token = Cookies.get("access_token");
+    if (!token) {
+      toast.error("Please sign in first");
+      return;
+    }
+
+    setResearchPlan({ ...plan, status: "running" });
+
+    await sendTurn({
+      message,
+      token,
+      approvedPlan: plan,
+      addUserMessage: false,
+    });
+  };
+
+  const openResearchPlan = useCallback((plan: ResearchPlan) => {
+    setResearchPlan(plan);
+  }, []);
 
   const submitSearch = async (event?: FormEvent) => {
     return submitPrompt(prompt, event);
@@ -534,11 +611,10 @@ export function useMentionTrackingChat({
       toast.error("Select at least one keyword");
       return;
     }
-    await runAgent({
+    await sendTurn({
       message,
-      skill: "mention-tracking",
       token,
-      keywords,
+      approvedKeywords: keywords,
       addUserMessage: false,
     });
   };
@@ -579,7 +655,7 @@ export function useMentionTrackingChat({
     if (!hasSessionActivity) return;
 
     const payload: PersistedMentionTrackingSession = {
-      version: 1,
+      version: 2,
       sessionId,
       sessionTitle: sessionTitle || titleFromPrompt(initialPrompt),
       initialPrompt,
@@ -587,10 +663,10 @@ export function useMentionTrackingChat({
       aiExpandKeywords,
       productName,
       competitors,
-      selectedPlatforms,
       messages,
       workspaceEvents,
       liveMentionSignals,
+      researchPlan,
       updatedAt: Date.now(),
     };
 
@@ -605,7 +681,7 @@ export function useMentionTrackingChat({
     messages,
     persistKey,
     productName,
-    selectedPlatforms,
+    researchPlan,
     sessionId,
     sessionTitle,
     workspaceEvents,
@@ -624,6 +700,7 @@ export function useMentionTrackingChat({
     setWorkspaceEvents([]);
     setLiveMentionSignals([]);
     setLiveReasoning("");
+    setResearchPlan(null);
     setMessages(includeWelcomeMessage ? [welcomeMessage] : []);
     setIsSearching(false);
     setStreamStatus(null);
@@ -648,8 +725,6 @@ export function useMentionTrackingChat({
     isSearching,
     streamStatus,
     workspaceEvents,
-    selectedPlatforms,
-    setSelectedPlatforms,
     messages,
     canSearch,
     hasSessionActivity,
@@ -658,9 +733,12 @@ export function useMentionTrackingChat({
     stopSearch,
     resetSession,
     confirmMentionKeywords,
+    confirmResearchPlan,
+    openResearchPlan,
     workspaceData,
     liveMentionSignals,
     liveReasoning,
+    researchPlan,
   };
 }
 

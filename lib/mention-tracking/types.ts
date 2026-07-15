@@ -42,6 +42,7 @@ export type AgentRunResponse = {
   tool_calls: AgentToolCall[];
   signals: AgentSignal[];
   reasoning?: string;
+  steps_taken?: number;
 };
 
 export type AgentStreamEvent = {
@@ -56,6 +57,82 @@ export type AgentStreamEvent = {
   detail?: string;
   count?: number;
   summary?: string;
+};
+
+export type AgentTurnEvent = {
+  type?:
+    | "turn.routed"
+    | "plan.created"
+    | "run.status"
+    | "tool.called"
+    | "tool.completed"
+    | "quality.checked"
+    | "repair.started"
+    | "answer.completed"
+    | "clarification.requested"
+    | "turn.failed";
+  status?: string;
+  message?: string;
+  data?: Record<string, unknown>;
+  terminal?: boolean;
+};
+
+export type AgentTurnRequest = {
+  message: string;
+  approved_plan?: ResearchPlan;
+  approved_keywords?: string[];
+  tool_options?: Record<string, unknown>;
+};
+
+export type ResearchPlanSource = {
+  source: string;
+  query: string;
+  recency_days: number;
+  limit: number;
+  rationale?: string;
+};
+
+export type ResearchPlanColumn = {
+  key: string;
+  label: string;
+  type: "text" | "number" | "score" | "date" | "url" | "badge";
+  description?: string;
+};
+
+export type ResearchPlanStep = {
+  id: string;
+  title: string;
+  description: string;
+  kind: "search" | "quality" | "enrich" | "present";
+  source?: string | null;
+};
+
+export type ResearchPlanScoutFinding = {
+  source: string;
+  candidates_checked: number;
+  observation: string;
+  sample_titles: string[];
+};
+
+export type ResearchPlan = {
+  plan_id: string;
+  version: number;
+  status: "draft" | "approved" | "running" | "complete";
+  message: string;
+  skill: string;
+  title: string;
+  objective: string;
+  overview: string;
+  sources: ResearchPlanSource[];
+  intent: string;
+  output: {
+    table_name: string;
+    columns: ResearchPlanColumn[];
+  };
+  steps: ResearchPlanStep[];
+  scout_findings: ResearchPlanScoutFinding[];
+  generation_mode: "llm";
+  warnings: string[];
 };
 
 export type MentionKeywordPlan = {
@@ -76,6 +153,7 @@ export type ChatMessage =
       content: string;
       data?: AgentRunResponse;
       keywordPlan?: MentionKeywordPlan;
+      researchPlan?: ResearchPlan;
       reasoning?: string;
     };
 
@@ -105,10 +183,3 @@ export const EXAMPLE_PROMPTS = [
   "Find Reddit posts about customer support automation for SaaS teams",
   "Find HN discussions about observability tools for startups",
 ];
-
-export const SKILL_BY_MODE: Record<Exclude<AgentMode, "auto">, string> = {
-  reddit: "reddit-lead-discovery",
-  hackernews: "hackernews-lead-discovery",
-  x: "x-lead-discovery",
-  mention: "mention-tracking",
-};

@@ -31,8 +31,6 @@ type MentionTrackingChatInputProps = {
   setProductName: (value: string) => void;
   competitors: string;
   setCompetitors: (value: string) => void;
-  selectedPlatforms: string[];
-  setSelectedPlatforms: React.Dispatch<React.SetStateAction<string[]>>;
 };
 
 export function MentionTrackingChatInput({
@@ -52,8 +50,6 @@ export function MentionTrackingChatInput({
   setProductName,
   competitors,
   setCompetitors,
-  selectedPlatforms,
-  setSelectedPlatforms,
 }: MentionTrackingChatInputProps) {
   return (
     <div className="border-t bg-background px-4 py-4">
@@ -91,45 +87,6 @@ export function MentionTrackingChatInput({
 
             {(agentMode === "mention" || agentMode === "auto") && (
               <>
-                <div>
-                  <label className="mb-2 block text-xs text-muted-foreground">
-                    Platforms to track
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { id: "x", label: "X / Twitter" },
-                      { id: "reddit", label: "Reddit" },
-                      { id: "hackernews", label: "Hacker News" },
-                      { id: "youtube", label: "YouTube" },
-                      { id: "github", label: "GitHub" },
-                      { id: "linkedin", label: "LinkedIn" },
-                      { id: "devto", label: "Dev.to" },
-                      { id: "producthunt", label: "Product Hunt" },
-                      { id: "indiehackers", label: "Indie Hackers" },
-                      { id: "newsletter", label: "Newsletters" },
-                    ].map((platform) => (
-                      <button
-                        key={platform.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedPlatforms((prev) =>
-                            prev.includes(platform.id)
-                              ? prev.filter((id) => id !== platform.id)
-                              : [...prev, platform.id]
-                          );
-                        }}
-                        className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                          selectedPlatforms.includes(platform.id)
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border bg-background text-muted-foreground hover:border-primary/40"
-                        }`}
-                      >
-                        {platform.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 <div>
                   <label className="mb-2 block text-xs text-muted-foreground">
                     Product name (optional)

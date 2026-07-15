@@ -1,22 +1,5 @@
 import type { AgentRunResponse } from "./types";
 
-export function inferSkillFromPrompt(prompt: string) {
-  if (
-    /\b(track|tracking|monitor|watch|mentions?|social listening|keyword tracking|brand monitoring)\b/i.test(
-      prompt
-    )
-  ) {
-    return "mention-tracking";
-  }
-  if (/\b(hacker news|hackernews|hn)\b/i.test(prompt)) {
-    return "hackernews-lead-discovery";
-  }
-  if (/\b(twitter|x\.com|x)\b/i.test(prompt)) {
-    return "x-lead-discovery";
-  }
-  return "reddit-lead-discovery";
-}
-
 export function isMentionTrackingResult(data: AgentRunResponse) {
   return (
     data.skill_used === "mention-tracking" ||

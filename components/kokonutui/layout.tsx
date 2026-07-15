@@ -35,12 +35,12 @@ export default function Layout({ children }: LayoutProps) {
       }`}
     >
       <Sidebar />
-      <div className="flex flex-1 flex-col" id="agent-detail-page-container">
+      <div className="flex min-w-0 flex-1 flex-col" id="agent-detail-page-container">
         <header className="h-10 border-b border-gray-200 dark:border-[#1F1F23]">
           <TopNav />
         </header>
         <main
-          className={`flex-1 ${
+          className={`min-h-0 min-w-0 flex-1 ${
             isAgentPage || isCompanyAnalysisPage || isAgentChatPage ? "overflow-hidden" : "overflow-auto"
           } bg-white dark:bg-black`}
         >

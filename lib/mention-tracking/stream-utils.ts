@@ -78,7 +78,7 @@ export function normalizeStreamEvent(
     };
   }
 
-  if (event.type === "error") {
+  if (event.type === "error" || event.status === "error") {
     return {
       type: "error",
       label: event.message || "Run failed",
@@ -86,6 +86,62 @@ export function normalizeStreamEvent(
     };
   }
 
+  // ---------------------------------------------------------------
+  // Status-based events from the Origami-style agent loop.
+  // The backend emits { status, message, data } instead of { type, ... }.
+  // ---------------------------------------------------------------
+
+  // tool_call → tool_started: the LLM chose a fetcher to invoke.
+  if (event.status === "tool_call") {
+    const data = event.data as Record<string, unknown> | undefined;
+    const tool = (data?.tool as string) || "";
+    const platform = formatPlatformLabel(undefined, tool);
+    return {
+      type: "tool_started",
+      label: event.message || `Searching ${platform}...`,
+      detail: tool,
+      platform: tool,
+    };
+  }
+
+  // tool_result → tool_completed: the fetcher returned signals.
+  if (event.status === "tool_result") {
+    const data = event.data as Record<string, unknown> | undefined;
+    const tool = (data?.tool as string) || "";
+    const count = data?.count as number | undefined;
+    const platform = formatPlatformLabel(undefined, tool);
+    return {
+      type: "tool_completed",
+      label: event.message || `${platform} complete`,
+      detail: tool,
+      platform: tool,
+      count,
+    };
+  }
+
+  // planning / running → thinking (activity indicator)
+  if (
+    event.status === "planning" ||
+    event.status === "running"
+  ) {
+    if (event.message) {
+      return {
+        type: "thinking",
+        label: event.message,
+      };
+    }
+  }
+
+  // Quality/repair events are internal orchestration state. Surface a calm
+  // progress message instead of exposing evaluator codes to the user.
+  if (event.status === "quality") {
+    return { type: "thinking", label: "Checking the result quality..." };
+  }
+  if (event.status === "repairing") {
+    return { type: "thinking", label: "Trying broader searches for better matches..." };
+  }
+
+  // Legacy fallback: any event with a message becomes a thinking entry.
   if (event.message) {
     return {
       type: "thinking",

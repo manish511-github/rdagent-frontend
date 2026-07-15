@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Dispatch, SetStateAction } from "react";
 import {
+  MessageSquarePlus,
   PanelRightClose,
   PanelRightOpen,
-  SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
 
@@ -30,16 +29,6 @@ import {
 import { useMentionTrackingChat } from "@/hooks/useMentionTrackingChat";
 import { EXAMPLE_PROMPTS } from "@/lib/mention-tracking/types";
 import { cn } from "@/lib/utils";
-
-const platformOptions = [
-  { id: "x", label: "X" },
-  { id: "reddit", label: "Reddit" },
-  { id: "hackernews", label: "HN" },
-  { id: "youtube", label: "YouTube" },
-  { id: "github", label: "GitHub" },
-  { id: "linkedin", label: "LinkedIn" },
-  { id: "newsletter", label: "Newsletters" },
-];
 
 export default function AgentChatWorkspace() {
   const [runKey, setRunKey] = useState(0);
@@ -104,6 +93,12 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
           workspaceEvents={chat.workspaceEvents}
           liveReasoning={chat.liveReasoning}
           onConfirmKeywordPlan={chat.confirmMentionKeywords}
+          onConfirmResearchPlan={chat.confirmResearchPlan}
+          onViewResearchPlan={(plan) => {
+            chat.openResearchPlan(plan);
+            setShowWorkspace(true);
+            setActivePanel("workspace");
+          }}
         />
       </div>
       <MentionTrackingChatInput
@@ -123,8 +118,6 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
         setProductName={chat.setProductName}
         competitors={chat.competitors}
         setCompetitors={chat.setCompetitors}
-        selectedPlatforms={chat.selectedPlatforms}
-        setSelectedPlatforms={chat.setSelectedPlatforms}
       />
     </div>
   );
@@ -135,9 +128,10 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
       liveSignals={chat.liveMentionSignals}
       workspaceEvents={chat.workspaceEvents}
       isSearching={chat.isSearching}
-      selectedPlatforms={chat.selectedPlatforms}
       trackerPrompt={chat.initialPrompt}
       sessionTitle={chat.sessionTitle}
+      researchPlan={chat.researchPlan}
+      onExecutePlan={chat.confirmResearchPlan}
     />
   );
 
@@ -172,18 +166,7 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
                 disabled={chat.isSearching}
               />
               <PromptInputFooter>
-                <PromptInputTools>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => chat.setShowSettings((value) => !value)}
-                  >
-                    <SlidersHorizontal className="size-4" />
-                    Sources
-                  </Button>
-                </PromptInputTools>
+                <PromptInputTools />
                 <PromptInputSubmit
                   disabled={landingPrompt.trim().length < 8 || chat.isSearching}
                   onStop={chat.stopSearch}
@@ -191,13 +174,6 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
                 />
               </PromptInputFooter>
             </PromptInput>
-
-            {chat.showSettings && (
-              <PlatformSelector
-                selectedPlatforms={chat.selectedPlatforms}
-                onChange={chat.setSelectedPlatforms}
-              />
-            )}
 
             <div className="mx-auto mt-4 max-w-2xl">
               <Suggestions>
@@ -220,7 +196,18 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
   }
 
   return (
-    <div className="relative flex h-full min-h-[calc(100vh-2.5rem)] flex-col bg-gray-50 dark:bg-black">
+    <div className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-gray-50 dark:bg-black">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="absolute left-3 top-3 z-10 h-8 gap-1.5 px-2"
+        onClick={startNewRun}
+        title="Start a new chat"
+      >
+        <MessageSquarePlus className="size-4" />
+        <span className="text-xs">New chat</span>
+      </Button>
       <Button
         type="button"
         variant="outline"
@@ -277,43 +264,6 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
           resultCount={resultCount}
         />
       </div>
-    </div>
-  );
-}
-
-function PlatformSelector({
-  selectedPlatforms,
-  onChange,
-}: {
-  selectedPlatforms: string[];
-  onChange: Dispatch<SetStateAction<string[]>>;
-}) {
-  return (
-    <div className="mx-auto mt-3 flex max-w-2xl flex-wrap justify-center gap-2">
-      {platformOptions.map((platform) => {
-        const selected = selectedPlatforms.includes(platform.id);
-        return (
-          <button
-            key={platform.id}
-            type="button"
-            onClick={() => {
-              onChange((current) =>
-                selected
-                  ? current.filter((id) => id !== platform.id)
-                  : [...current, platform.id]
-              );
-            }}
-            className={cn(
-              "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-              selected
-                ? "border-foreground bg-foreground text-background"
-                : "border-border bg-background text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {platform.label}
-          </button>
-        );
-      })}
     </div>
   );
 }

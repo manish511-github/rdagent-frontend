@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, Brain, CheckCircle2, Loader2 } from "lucide-react";
 
 import {
   Task,
@@ -32,7 +32,12 @@ function formatTaskLabel(event: MentionWorkspaceEvent) {
 export function MentionTrackingStreamActivity({
   events,
   isSearching,
+  streamStatus,
 }: MentionTrackingStreamActivityProps) {
+  const currentThinking = useMemo(
+    () => [...events].reverse().find((event) => event.type === "thinking"),
+    [events]
+  );
   const taskEvents = useMemo(() => {
     const seen = new Map<string, MentionWorkspaceEvent>();
 
@@ -65,7 +70,24 @@ export function MentionTrackingStreamActivity({
   if (!isSearching && events.length === 0) return null;
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3 rounded-xl border bg-muted/10 p-3">
+      <div className="flex min-w-0 items-center gap-2 text-sm">
+        {isSearching ? (
+          <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
+        ) : (
+          <Brain className="size-4 shrink-0 text-muted-foreground" />
+        )}
+        <span className="min-w-0 truncate font-medium">
+          {isSearching ? "Agent is working" : "Agent activity"}
+        </span>
+      </div>
+      {(currentThinking?.label || streamStatus) && (
+        <div className="flex min-w-0 items-start gap-2 border-l-2 border-primary/40 pl-3 text-xs leading-5 text-muted-foreground">
+          <span className="min-w-0 break-words">
+            {currentThinking?.label || streamStatus}
+          </span>
+        </div>
+      )}
       {taskEvents.length > 0 && (
         <Task className="w-full" defaultOpen={isSearching}>
           <TaskTrigger title="Agent tasks" />
