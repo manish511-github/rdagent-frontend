@@ -1,8 +1,13 @@
 export type AgentSignal = {
+  id?: string | number;
+  story_id?: string | number;
   platform?: string;
   source?: string;
   title?: string;
   url?: string;
+  hn_url?: string;
+  permalink?: string;
+  external_url?: string;
   snippet?: string;
   text?: string;
   content?: string;
@@ -34,6 +39,11 @@ export type AgentSignal = {
   relevant_comment_ids?: number[];
 };
 
+export type AgentArtifactRow = {
+  item_id: string;
+  fields: Record<string, unknown>;
+};
+
 export type AgentToolCall = {
   name: string;
   args: Record<string, unknown>;
@@ -46,6 +56,7 @@ export type AgentRunResponse = {
   skill_used: string;
   tool_calls: AgentToolCall[];
   signals: AgentSignal[];
+  artifact_rows?: AgentArtifactRow[];
   reasoning?: string;
   steps_taken?: number;
 };

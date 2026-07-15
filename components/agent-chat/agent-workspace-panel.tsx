@@ -25,7 +25,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { ResearchPlan } from "@/lib/agent-chat/types";
+import type {
+  AgentArtifactRow,
+  ResearchPlan,
+  ResearchPlanColumn,
+} from "@/lib/agent-chat/types";
 import {
   formatPlatformLabel,
   signalPlatform,
@@ -33,10 +37,15 @@ import {
 import { cn } from "@/lib/utils";
 
 export type AgentSignal = {
+  id?: string | number;
+  story_id?: string | number;
   platform?: string;
   source?: string;
   title?: string;
   url?: string;
+  hn_url?: string;
+  permalink?: string;
+  external_url?: string;
   snippet?: string;
   text?: string;
   content?: string;
@@ -95,6 +104,7 @@ type AgentWorkspaceData = {
     result?: Record<string, unknown>;
   }>;
   signals: AgentSignal[];
+  artifact_rows?: AgentArtifactRow[];
 };
 
 type StatusFilter = "all" | "actionable" | "comments" | "news" | "promo" | "low_relevance";
@@ -138,6 +148,16 @@ export function AgentWorkspacePanel({
     return dedupeSignals(finalSignals.length ? finalSignals : liveSignals);
   }, [data?.signals, liveSignals]);
 
+  const artifactRowsById = useMemo(() => {
+    const rows = data?.artifact_rows || [];
+    return new Map(rows.map((row) => [row.item_id, row]));
+  }, [data?.artifact_rows]);
+
+  const artifactColumns = useMemo(
+    () => researchPlan?.output?.columns || [],
+    [researchPlan?.output?.columns]
+  );
+
   const filteredSignals = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     const filtered = signals.filter((signal) => {
@@ -176,6 +196,9 @@ export function AgentWorkspacePanel({
   }, [filteredSignals, selectedId]);
 
   const selectedSignal = filteredSignals.find((signal) => signalId(signal) === selectedId) || null;
+  const selectedArtifactRow = selectedSignal
+    ? artifactRowForSignal(selectedSignal, artifactRowsById)
+    : undefined;
   const latestSignalKeys = useMemo(() => {
     return new Set(
       workspaceEvents
@@ -368,6 +391,8 @@ export function AgentWorkspacePanel({
                 <MentionListItem
                   key={`${signalId(signal)}-${index}`}
                   signal={signal}
+                  artifactRow={artifactRowForSignal(signal, artifactRowsById)}
+                  columns={artifactColumns}
                   isNew={latestSignalKeys.has(signalId(signal))}
                   isSelected={signalId(signal) === selectedId}
                   onSelect={() => {
@@ -397,7 +422,11 @@ export function AgentWorkspacePanel({
         {isDetailsOpen && selectedSignal && (
           <div className="relative ml-2 hidden min-h-0 min-w-0 flex-[3] flex-col lg:flex">
             <div className="flex h-full flex-col overflow-hidden rounded-lg border border-border bg-background">
-              <MentionDetails signal={selectedSignal} />
+              <MentionDetails
+                signal={selectedSignal}
+                artifactRow={selectedArtifactRow}
+                columns={artifactColumns}
+              />
             </div>
             <button
               type="button"
@@ -624,11 +653,15 @@ function EmptyPanel({
 
 function MentionListItem({
   signal,
+  artifactRow,
+  columns,
   isNew,
   isSelected,
   onSelect,
 }: {
   signal: AgentSignal;
+  artifactRow?: AgentArtifactRow;
+  columns: ResearchPlanColumn[];
   isNew: boolean;
   isSelected: boolean;
   onSelect: () => void;
@@ -636,6 +669,12 @@ function MentionListItem({
   const body = signalBody(signal);
   const platform = signalPlatform(signal);
   const createdAt = signal.created_at || signal.published_at || signal.time;
+  const title = artifactFieldText(artifactRow, "title") || signal.title || "Untitled result";
+  const preview =
+    artifactFieldText(artifactRow, "match_reason") ||
+    artifactFieldText(artifactRow, "reason") ||
+    body;
+  const previewFields = artifactPreviewFields(artifactRow, columns);
 
   return (
     <button
@@ -661,12 +700,21 @@ function MentionListItem({
         )}
       </div>
       <h3 className="line-clamp-1 text-sm font-medium text-foreground">
-        {signal.title || "Untitled mention"}
+        {title}
       </h3>
-      {body && (
+      {preview && (
         <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-          {body}
+          {preview}
         </p>
+      )}
+      {previewFields.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {previewFields.map((field) => (
+            <Badge key={field.key} variant="outline" className="max-w-full truncate px-1.5 py-0 text-[10px]">
+              {field.label}: {formatCompactFieldValue(field.value)}
+            </Badge>
+          ))}
+        </div>
       )}
       <div className="mt-2 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
         {signal.subreddit && <span className="truncate">r/{signal.subreddit}</span>}
@@ -684,11 +732,22 @@ function MentionListItem({
   );
 }
 
-function MentionDetails({ signal }: { signal: AgentSignal }) {
+function MentionDetails({
+  signal,
+  artifactRow,
+  columns,
+}: {
+  signal: AgentSignal;
+  artifactRow?: AgentArtifactRow;
+  columns: ResearchPlanColumn[];
+}) {
   const score = signalScore(signal);
   const platform = signalPlatform(signal);
   const body = signalBody(signal);
   const terms = matchedTerms(signal);
+  const title = artifactFieldText(artifactRow, "title") || signal.title || "Untitled result";
+  const url = artifactFieldText(artifactRow, "url") || signal.url;
+  const dynamicFields = artifactDisplayFields(artifactRow, columns);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -705,9 +764,9 @@ function MentionDetails({ signal }: { signal: AgentSignal }) {
               {signal.is_actionable && <Badge variant="outline">Actionable</Badge>}
             </div>
           </div>
-          {signal.url && (
+          {url && (
             <Button variant="outline" size="sm" asChild>
-              <a href={signal.url} target="_blank" rel="noopener noreferrer">
+              <a href={url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="mr-1.5 size-3.5" />
                 Open
               </a>
@@ -727,7 +786,7 @@ function MentionDetails({ signal }: { signal: AgentSignal }) {
             )}
           </div>
           <h2 className="text-lg font-semibold leading-7 text-foreground">
-            {signal.title || "Untitled mention"}
+            {title}
           </h2>
           {body && (
             <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
@@ -735,6 +794,25 @@ function MentionDetails({ signal }: { signal: AgentSignal }) {
             </p>
           )}
         </div>
+
+        {dynamicFields.length > 0 && (
+          <div className="mt-4 rounded-lg border border-border bg-background p-3">
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+              <ListChecks className="size-4 text-muted-foreground" />
+              Plan fields
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {dynamicFields.map((field) => (
+                <div key={field.key} className="rounded-md bg-muted/40 p-2">
+                  <p className="text-[11px] font-medium uppercase text-muted-foreground">
+                    {field.label}
+                  </p>
+                  <ArtifactFieldValue value={field.value} type={field.type} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {terms.length > 0 && (
           <div className="mt-4">
@@ -778,6 +856,59 @@ function PlatformMark({ platform }: { platform: string }) {
     <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-foreground">
       {label}
     </span>
+  );
+}
+
+function ArtifactFieldValue({
+  value,
+  type,
+}: {
+  value: unknown;
+  type: ResearchPlanColumn["type"];
+}) {
+  if (value === null || value === undefined || value === "") {
+    return <p className="mt-1 text-sm text-muted-foreground">Unknown</p>;
+  }
+
+  if (type === "url") {
+    const href = String(value);
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-1 block truncate text-sm text-primary underline-offset-2 hover:underline"
+      >
+        {href}
+      </a>
+    );
+  }
+
+  if (type === "badge") {
+    return (
+      <div className="mt-1">
+        <Badge variant="secondary">{String(value)}</Badge>
+      </div>
+    );
+  }
+
+  if (type === "score") {
+    const score = typeof value === "number" ? value : Number(value);
+    return (
+      <p className="mt-1 text-sm font-medium">
+        {Number.isFinite(score) ? formatScore(score) : String(value)}
+      </p>
+    );
+  }
+
+  if (type === "date") {
+    return <p className="mt-1 text-sm">{formatDate(String(value))}</p>;
+  }
+
+  return (
+    <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-5">
+      {String(value)}
+    </p>
   );
 }
 
@@ -936,7 +1067,77 @@ function matchesStatusFilter(signal: AgentSignal, filter: StatusFilter) {
 }
 
 function signalId(signal: AgentSignal) {
-  return signal.url || signal.post_id || `${signalPlatform(signal)}-${signal.title || ""}-${signalTime(signal)}`;
+  return (
+    signal.id ||
+    signal.story_id ||
+    signal.url ||
+    signal.post_id ||
+    `${signalPlatform(signal)}-${signal.title || ""}-${signalTime(signal)}`
+  ).toString();
+}
+
+function signalIdentityValues(signal: AgentSignal) {
+  return [
+    signal.id,
+    signal.story_id,
+    signal.post_id,
+    signal.url,
+    signal.hn_url,
+    signal.permalink,
+    signal.external_url,
+    signal.metadata?.hn_url,
+    signal.metadata?.permalink,
+  ]
+    .filter((value) => value !== undefined && value !== null && value !== "")
+    .map(String);
+}
+
+function artifactRowForSignal(
+  signal: AgentSignal,
+  rowsById: Map<string, AgentArtifactRow>
+) {
+  for (const value of signalIdentityValues(signal)) {
+    const row = rowsById.get(value);
+    if (row) return row;
+  }
+  return undefined;
+}
+
+function artifactFieldText(row: AgentArtifactRow | undefined, key: string) {
+  const value = row?.fields?.[key];
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
+
+function artifactDisplayFields(
+  row: AgentArtifactRow | undefined,
+  columns: ResearchPlanColumn[]
+) {
+  if (!row || !columns.length) return [];
+  return columns
+    .filter((column) => column.key && row.fields[column.key] !== undefined)
+    .filter((column) => !["title", "url"].includes(column.key))
+    .map((column) => ({
+      key: column.key,
+      label: column.label || column.key.replaceAll("_", " "),
+      type: column.type,
+      value: row.fields[column.key],
+    }));
+}
+
+function artifactPreviewFields(
+  row: AgentArtifactRow | undefined,
+  columns: ResearchPlanColumn[]
+) {
+  return artifactDisplayFields(row, columns)
+    .filter((field) => !["match_reason", "why_it_matches", "reason"].includes(field.key))
+    .slice(0, 4);
+}
+
+function formatCompactFieldValue(value: unknown) {
+  if (value === null || value === undefined || value === "") return "Unknown";
+  const text = String(value).replace(/\s+/g, " ").trim();
+  return text.length > 36 ? `${text.slice(0, 33)}...` : text;
 }
 
 function dedupeSignals(signals: AgentSignal[]) {
