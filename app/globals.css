@@ -69,6 +69,32 @@
   }
 }
 
+@layer components {
+  .zooptics-agent-grid {
+    --ag-font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    --ag-font-size: 12px;
+    --ag-background-color: hsl(var(--background));
+    --ag-foreground-color: hsl(var(--foreground));
+    --ag-header-background-color: hsl(var(--muted) / 0.55);
+    --ag-border-color: hsl(var(--border));
+    --ag-row-hover-color: hsl(var(--muted) / 0.55);
+    --ag-selected-row-background-color: hsl(var(--primary) / 0.08);
+    --ag-odd-row-background-color: hsl(var(--muted) / 0.16);
+    --ag-wrapper-border-radius: 0.375rem;
+    --ag-header-height: 36px;
+    --ag-row-height: 38px;
+  }
+
+  .zooptics-agent-grid .zooptics-agent-grid-selected-row {
+    background-color: hsl(var(--primary) / 0.08) !important;
+  }
+
+  .zooptics-agent-grid .ag-cell {
+    display: flex;
+    align-items: center;
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

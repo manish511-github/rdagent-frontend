@@ -3,6 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
+  AllCommunityModule,
+  ModuleRegistry,
+  type ColDef,
+  type RowClickedEvent,
+} from "ag-grid-community";
+import { AgGridReact } from "ag-grid-react";
+import {
   Activity,
   AlertCircle,
   ArrowUpDown,
@@ -19,6 +26,7 @@ import {
   MessageSquare,
   Radio,
   Search,
+  Table2,
   XIcon,
 } from "lucide-react";
 
@@ -35,6 +43,8 @@ import {
   signalPlatform,
 } from "@/lib/agent-chat/signal-utils";
 import { cn } from "@/lib/utils";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 export type AgentSignal = {
   id?: string | number;
@@ -125,11 +135,18 @@ type AgentWorkspaceData = {
 
 type StatusFilter = "all" | "actionable" | "comments" | "news" | "promo" | "low_relevance";
 type SortOrder = "relevance" | "newest" | "oldest";
+type ResultPresentationMode = "list" | "table";
 
 type AgentDisplayRecord = {
   id: string;
   signal: AgentSignal;
   artifactRow?: AgentArtifactRow;
+};
+
+type AgentTableRow = {
+  __recordId: string;
+  __record: AgentDisplayRecord;
+  [key: string]: unknown;
 };
 
 type AgentWorkspacePanelProps = {
@@ -162,6 +179,7 @@ export function AgentWorkspacePanel({
   const [sortOrder, setSortOrder] = useState<SortOrder>("relevance");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [presentationMode, setPresentationMode] = useState<ResultPresentationMode>("list");
 
   const signals = useMemo(() => {
     const finalSignals = data?.signals || [];
@@ -425,25 +443,59 @@ export function AgentWorkspacePanel({
                   <option value="oldest">Oldest</option>
                 </select>
               </label>
+              <div className="flex h-9 rounded-md border bg-muted/30 p-0.5">
+                <Button
+                  type="button"
+                  variant={presentationMode === "list" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-xs"
+                  onClick={() => setPresentationMode("list")}
+                >
+                  <ListChecks className="size-3.5" />
+                  List
+                </Button>
+                <Button
+                  type="button"
+                  variant={presentationMode === "table" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-xs"
+                  onClick={() => setPresentationMode("table")}
+                >
+                  <Table2 className="size-3.5" />
+                  Table
+                </Button>
+              </div>
             </div>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             {filteredRecords.length ? (
-              filteredRecords.map((record) => (
-                <MentionListItem
-                  key={record.id}
-                  signal={record.signal}
-                  artifactRow={record.artifactRow}
+              presentationMode === "table" ? (
+                <AgentResultsTable
+                  records={filteredRecords}
                   columns={artifactColumns}
-                  isNew={latestSignalKeys.has(signalId(record.signal))}
-                  isSelected={record.id === selectedId}
-                  onSelect={() => {
+                  selectedId={selectedId}
+                  onSelect={(record) => {
                     setSelectedId(record.id);
                     setIsDetailsOpen(true);
                   }}
                 />
-              ))
+              ) : (
+                filteredRecords.map((record) => (
+                  <MentionListItem
+                    key={record.id}
+                    signal={record.signal}
+                    artifactRow={record.artifactRow}
+                    columns={artifactColumns}
+                    isNew={latestSignalKeys.has(signalId(record.signal))}
+                    isSelected={record.id === selectedId}
+                    onSelect={() => {
+                      setSelectedId(record.id);
+                      setIsDetailsOpen(true);
+                    }}
+                  />
+                ))
+              )
             ) : (
               <div className="flex h-full items-center justify-center p-6 text-center">
                 <div>
@@ -689,6 +741,111 @@ function EmptyPanel({
         <p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">
           {description}
         </p>
+      </div>
+    </div>
+  );
+}
+
+function AgentResultsTable({
+  records,
+  columns,
+  selectedId,
+  onSelect,
+}: {
+  records: AgentDisplayRecord[];
+  columns: ResearchPlanColumn[];
+  selectedId: string | null;
+  onSelect: (record: AgentDisplayRecord) => void;
+}) {
+  const tableColumns = useMemo(() => buildAgentTableColumns(columns), [columns]);
+  const rowData = useMemo(
+    () =>
+      records.map((record) => {
+        const row: AgentTableRow = {
+          __recordId: record.id,
+          __record: record,
+        };
+        for (const column of tableColumns) {
+          row[column.key] = agentTableColumnValue(record, column.key);
+        }
+        return row;
+      }),
+    [records, tableColumns]
+  );
+  const columnDefs = useMemo<ColDef<AgentTableRow>[]>(
+    () =>
+      tableColumns.map((column) => ({
+        field: column.key,
+        headerName: column.label || formatFieldLabel(column.key),
+        minWidth: agentTableColumnWidth(column.key),
+        flex: agentTableColumnFlex(column.key),
+        filter:
+          column.type === "number" || column.type === "score"
+            ? "agNumberColumnFilter"
+            : "agTextColumnFilter",
+        valueFormatter: ({ value }) => String(formatCompactFieldValue(value, column.type)),
+        tooltipValueGetter: ({ value }) => String(formatCompactFieldValue(value, column.type)),
+        cellRenderer: ({ value, data }: { value: unknown; data?: AgentTableRow }) => {
+          if (column.type === "url" && value) {
+            return (
+              <a
+                href={String(value)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline-offset-2 hover:underline"
+                onClick={(event) => event.stopPropagation()}
+              >
+                Open
+              </a>
+            );
+          }
+          if (/score|relevance|fit/i.test(column.key) && value !== undefined && value !== null && value !== "") {
+            const score = typeof value === "number" ? value : Number(value);
+            if (Number.isFinite(score)) {
+              return <span className="font-medium">{formatRelevance(score)}</span>;
+            }
+          }
+          const formatted = formatCompactFieldValue(value, column.type);
+          const isTitle = column.key === "title" || /title|name/i.test(column.key);
+          return (
+            <span className={cn("block truncate", isTitle && "font-medium text-foreground")}>
+              {formatted}
+              {isTitle && data?.__record.signal.is_actionable && (
+                <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
+                  Actionable
+                </span>
+              )}
+            </span>
+          );
+        },
+      })),
+    [tableColumns]
+  );
+
+  return (
+    <div className="h-full min-h-[420px] p-2">
+      <div className="ag-theme-quartz zooptics-agent-grid h-full min-h-[400px] overflow-hidden rounded-md border">
+        <AgGridReact<AgentTableRow>
+          rowData={rowData}
+          columnDefs={columnDefs}
+          defaultColDef={{
+            sortable: true,
+            filter: true,
+            floatingFilter: true,
+            resizable: true,
+          }}
+          getRowId={({ data }) => data.__recordId}
+          getRowClass={({ data }) =>
+            data?.__recordId === selectedId ? "zooptics-agent-grid-selected-row" : ""
+          }
+          onRowClicked={(event: RowClickedEvent<AgentTableRow>) => {
+            if (event.data) onSelect(event.data.__record);
+          }}
+          pagination={rowData.length > 25}
+          paginationPageSize={25}
+          suppressCellFocus
+          animateRows
+        />
       </div>
     </div>
   );
@@ -1345,6 +1502,99 @@ function artifactDisplayFields(
       type: column.type,
       value: row.fields[column.key],
     }));
+}
+
+function buildAgentTableColumns(columns: ResearchPlanColumn[]) {
+  const result: ResearchPlanColumn[] = [];
+  const pushColumn = (column: ResearchPlanColumn) => {
+    const key = column.key.trim();
+    if (!key || result.some((item) => normalizeFieldKey(item.key) === normalizeFieldKey(key))) {
+      return;
+    }
+    result.push({ ...column, key, label: column.label || formatFieldLabel(key) });
+  };
+
+  pushColumn({ key: "platform", label: "Source", type: "badge" });
+  pushColumn({ key: "title", label: "Title", type: "text" });
+  for (const column of columns) pushColumn(column);
+  pushColumn({ key: "relevance_score", label: "Relevance", type: "score" });
+  pushColumn({ key: "published_at", label: "Published", type: "date" });
+  pushColumn({ key: "author", label: "Author", type: "text" });
+  pushColumn({ key: "url", label: "URL", type: "url" });
+
+  return result;
+}
+
+function agentTableColumnValue(record: AgentDisplayRecord, key: string) {
+  const { signal, artifactRow } = record;
+  const artifactValue = artifactRow?.fields?.[key];
+  if (artifactValue !== undefined && artifactValue !== null && artifactValue !== "") {
+    return artifactValue;
+  }
+
+  switch (key) {
+    case "platform":
+    case "source":
+      return signalPlatform(signal);
+    case "title":
+    case "post_title":
+    case "name":
+      return artifactFieldText(artifactRow, "title") || signal.title;
+    case "url":
+    case "link":
+      return artifactFieldText(artifactRow, "url") || signal.url || signal.hn_url || signal.permalink;
+    case "author":
+      return signal.author || signal.author_username || signal.author_name || signal.channel || signal.channel_name;
+    case "community":
+      return signal.subreddit || signal.channel || signal.channel_name;
+    case "published_at":
+    case "published_date":
+    case "date":
+      return signal.published_at || signal.created_at || signal.time;
+    case "relevance_score":
+    case "fit_score":
+    case "relevance":
+      return artifactRelevanceScore(signal, artifactRow);
+    case "content":
+    case "body":
+    case "description":
+    case "post_body":
+    case "text":
+      return signalBody(signal) || artifactBody(artifactRow);
+    case "comments":
+    case "comment_count":
+      return (signal as Record<string, unknown>).num_comments ??
+        (signal as Record<string, unknown>).comments ??
+        signal.comment_count ??
+        signal.metadata?.comment_count ??
+        signal.metadata?.comments;
+    case "points":
+      return (signal as Record<string, unknown>).points ?? signal.metadata?.points;
+    case "likes":
+    case "like_count":
+      return signal.likes ?? signal.like_count ?? signal.metadata?.likes ?? signal.metadata?.like_count;
+    case "views":
+    case "view_count":
+      return signal.view_count ?? signal.metadata?.view_count ?? signal.metadata?.views;
+    case "duration":
+      return signal.duration ?? signal.metadata?.duration;
+    default:
+      return (signal as Record<string, unknown>)[key] ?? signal.metadata?.[key] ?? "";
+  }
+}
+
+function agentTableColumnWidth(key: string) {
+  if (/title|content|body|description|reason|summary|text/i.test(key)) return 260;
+  if (/url|link|permalink/i.test(key)) return 110;
+  if (/date|time|published|created/i.test(key)) return 150;
+  if (/score|relevance|fit|points|comments|likes|views/i.test(key)) return 120;
+  return 140;
+}
+
+function agentTableColumnFlex(key: string) {
+  if (/title|content|body|description|reason|summary|text/i.test(key)) return 1.5;
+  if (/url|link|permalink|score|relevance|fit|points|comments|likes|views/i.test(key)) return 0;
+  return 1;
 }
 
 function artifactListFields(

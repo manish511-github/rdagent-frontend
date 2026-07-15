@@ -49,6 +49,8 @@
     "@tanstack/react-query": "^5.83.0",
     "@tanstack/react-table": "^8.21.3",
     "@xyflow/react": "^12.11.1",
+    "ag-grid-community": "^36.0.1",
+    "ag-grid-react": "^36.0.1",
     "ai": "^7.0.15",
     "ansi-to-react": "^6.2.6",
     "autoprefixer": "^10.4.20",
