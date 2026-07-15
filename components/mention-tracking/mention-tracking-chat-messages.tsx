@@ -23,6 +23,7 @@ type MentionTrackingChatMessagesProps = {
   liveReasoning?: string;
   onConfirmKeywordPlan: (message: string, keywords: string[]) => void;
   onConfirmResearchPlan?: (message: string, plan: import("@/lib/mention-tracking/types").ResearchPlan) => void;
+  onRejectResearchPlan?: (message: string, plan: import("@/lib/mention-tracking/types").ResearchPlan) => void;
   onViewResearchPlan?: (plan: import("@/lib/mention-tracking/types").ResearchPlan) => void;
 };
 
@@ -34,6 +35,7 @@ export function MentionTrackingChatMessages({
   liveReasoning,
   onConfirmKeywordPlan,
   onConfirmResearchPlan,
+  onRejectResearchPlan,
   onViewResearchPlan,
 }: MentionTrackingChatMessagesProps) {
   return (
@@ -61,6 +63,7 @@ export function MentionTrackingChatMessages({
                       plan={message.researchPlan}
                       disabled={isSearching}
                       onExecute={onConfirmResearchPlan}
+                      onReject={onRejectResearchPlan}
                       onView={onViewResearchPlan}
                     />
                   )}

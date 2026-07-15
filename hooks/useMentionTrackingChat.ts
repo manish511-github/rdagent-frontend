@@ -13,6 +13,7 @@ import {
 } from "@/lib/mention-tracking/stream-utils";
 import {
   type AgentMode,
+  type AgentRuntimeMode,
   type AgentRunResponse,
   type AgentStreamEvent,
   type AgentTurnEvent,
@@ -40,6 +41,7 @@ type PersistedMentionTrackingSession = {
   sessionTitle: string;
   initialPrompt: string;
   agentMode: AgentMode;
+  runtimeMode: AgentRuntimeMode;
   aiExpandKeywords: boolean;
   productName: string;
   competitors: string;
@@ -83,6 +85,10 @@ function normalizeTurnEvent(event: AgentTurnEvent): AgentTurnEvent {
 
 function turnEventToStreamEvent(event: AgentTurnEvent): AgentStreamEvent {
   const statusByType: Record<string, string> = {
+    "plan.started": "planning",
+    "plan.approved": "running",
+    "plan.rejected": "rejected",
+    "run.started": "running",
     "run.status": event.status || "running",
     "tool.called": "tool_call",
     "tool.completed": "tool_result",
@@ -136,6 +142,9 @@ export function useMentionTrackingChat({
   const [prompt, setPrompt] = useState("");
   const [agentMode, setAgentMode] = useState<AgentMode>(
     () => persistedSession?.agentMode || "auto"
+  );
+  const [runtimeMode, setRuntimeMode] = useState<AgentRuntimeMode>(
+    () => persistedSession?.runtimeMode || "chat"
   );
   const [aiExpandKeywords, setAiExpandKeywords] = useState(
     () => persistedSession?.aiExpandKeywords ?? true
@@ -249,16 +258,38 @@ export function useMentionTrackingChat({
     });
   }, [pushWorkspaceEvent]);
 
+  const setMessagePlanStatus = useCallback((
+    planId: string,
+    status: ResearchPlan["status"]
+  ) => {
+    setMessages((current) =>
+      current.map((message) => {
+        if (
+          message.role !== "assistant" ||
+          message.researchPlan?.plan_id !== planId
+        ) {
+          return message;
+        }
+        return {
+          ...message,
+          researchPlan: { ...message.researchPlan, status },
+        };
+      })
+    );
+  }, []);
+
   const sendTurn = async ({
     message,
     token,
     approvedPlan,
+    planDecision = "approve",
     approvedKeywords,
     addUserMessage,
   }: {
     message: string;
     token: string;
     approvedPlan?: ResearchPlan;
+    planDecision?: "approve" | "reject";
     approvedKeywords?: string[];
     addUserMessage: boolean;
   }) => {
@@ -273,13 +304,23 @@ export function useMentionTrackingChat({
       ]);
     }
 
+    const isPlanRejection = Boolean(
+      approvedPlan && planDecision === "reject"
+    );
+    const isExecution = Boolean(
+      (approvedPlan && !isPlanRejection) || approvedKeywords?.length
+    );
+
     setIsSearching(true);
+    setRuntimeMode(isExecution ? "executing" : isPlanRejection ? "chat" : "planning");
     setStreamStatus(
       approvedKeywords?.length
         ? "Preparing mention tracking..."
-        : approvedPlan
-          ? "Preparing approved research..."
-          : "Planning research..."
+        : isPlanRejection
+          ? "Rejecting research plan..."
+          : approvedPlan
+            ? "Preparing approved research..."
+            : "Planning research..."
     );
     setLiveReasoning("");
     setLiveMentionSignals([]);
@@ -290,16 +331,20 @@ export function useMentionTrackingChat({
       {
         id: createClientId(),
         type: "thinking",
-        label: approvedKeywords?.length
-          ? "Preparing mention tracking"
-          : approvedPlan
-          ? "Preparing approved research"
-          : "Planning research strategy",
-        detail: approvedKeywords?.length
-          ? "Searching the keywords you approved."
-          : approvedPlan
-          ? "Executing the plan you approved."
-          : "Deciding which sources and queries to use.",
+        label: isPlanRejection
+          ? "Rejecting research plan"
+          : approvedKeywords?.length
+            ? "Preparing mention tracking"
+            : approvedPlan
+              ? "Preparing approved research"
+              : "Planning research strategy",
+        detail: isPlanRejection
+          ? "Cancelling the draft without executing search tools."
+          : approvedKeywords?.length
+            ? "Searching the keywords you approved."
+            : approvedPlan
+              ? "Executing the plan you approved."
+              : "Deciding which sources and queries to use.",
         createdAt: Date.now(),
       },
     ]);
@@ -310,7 +355,16 @@ export function useMentionTrackingChat({
     try {
       const body: AgentTurnRequest = {
         message,
-        ...(approvedPlan ? { approved_plan: approvedPlan } : {}),
+        ...(approvedPlan
+          ? {
+              plan_approval: {
+                plan_id: approvedPlan.plan_id,
+                version: approvedPlan.version,
+                decision: planDecision,
+                plan: approvedPlan,
+              },
+            }
+          : {}),
         ...(approvedKeywords?.length ? { approved_keywords: approvedKeywords } : {}),
         tool_options: {
           mention_tracking: {
@@ -363,6 +417,7 @@ export function useMentionTrackingChat({
           const parsed = parseSseChunk(chunk) as AgentTurnEvent | null;
           if (!parsed) continue;
           const event = normalizeTurnEvent(parsed);
+          if (event.mode) setRuntimeMode(event.mode);
 
           if (event.type === "plan.created") {
             const plan = event.data?.plan as ResearchPlan | undefined;
@@ -384,6 +439,25 @@ export function useMentionTrackingChat({
               },
             ]);
             setStreamStatus(null);
+            setRuntimeMode("awaiting_approval");
+            continue;
+          }
+
+          if (event.type === "plan.rejected") {
+            setResearchPlan(null);
+            if (approvedPlan) {
+              setMessagePlanStatus(approvedPlan.plan_id, "rejected");
+            }
+            setRuntimeMode("chat");
+            setMessages((current) => [
+              ...current,
+              {
+                id: createClientId(),
+                role: "assistant",
+                content: "Plan cancelled. No search tools were executed.",
+              },
+            ]);
+            setStreamStatus(null);
             continue;
           }
 
@@ -391,6 +465,9 @@ export function useMentionTrackingChat({
             const data = event.data?.response as AgentRunResponse | undefined;
             if (!data) continue;
             setLiveMentionSignals(data.signals);
+            if (approvedPlan) {
+              setMessagePlanStatus(approvedPlan.plan_id, "complete");
+            }
             setMessages((current) => [
               ...current,
               {
@@ -409,6 +486,7 @@ export function useMentionTrackingChat({
               count: data.signals.length,
             });
             setStreamStatus(null);
+            setRuntimeMode("chat");
             continue;
           }
 
@@ -422,6 +500,8 @@ export function useMentionTrackingChat({
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         if (approvedPlan) setResearchPlan({ ...approvedPlan, status: "draft" });
+        if (approvedPlan) setMessagePlanStatus(approvedPlan.plan_id, "draft");
+        setRuntimeMode(approvedPlan ? "awaiting_approval" : "chat");
         setMessages((current) => [
           ...current,
           {
@@ -437,6 +517,8 @@ export function useMentionTrackingChat({
       const messageText =
         error instanceof Error ? error.message : "Something went wrong";
       if (approvedPlan) setResearchPlan({ ...approvedPlan, status: "draft" });
+      if (approvedPlan) setMessagePlanStatus(approvedPlan.plan_id, "draft");
+      setRuntimeMode(approvedPlan ? "awaiting_approval" : "chat");
       toast.error("Agent turn failed", { description: messageText });
       pushWorkspaceEvent({
         type: "error",
@@ -579,11 +661,28 @@ export function useMentionTrackingChat({
     }
 
     setResearchPlan({ ...plan, status: "running" });
+    setMessagePlanStatus(plan.plan_id, "running");
 
     await sendTurn({
       message,
       token,
       approvedPlan: plan,
+      addUserMessage: false,
+    });
+  };
+
+  const rejectResearchPlan = async (message: string, plan: ResearchPlan) => {
+    const token = Cookies.get("access_token");
+    if (!token) {
+      toast.error("Please sign in first");
+      return;
+    }
+
+    await sendTurn({
+      message,
+      token,
+      approvedPlan: plan,
+      planDecision: "reject",
       addUserMessage: false,
     });
   };
@@ -660,6 +759,7 @@ export function useMentionTrackingChat({
       sessionTitle: sessionTitle || titleFromPrompt(initialPrompt),
       initialPrompt,
       agentMode,
+      runtimeMode,
       aiExpandKeywords,
       productName,
       competitors,
@@ -673,6 +773,7 @@ export function useMentionTrackingChat({
     window.localStorage.setItem(persistKey, JSON.stringify(payload));
   }, [
     agentMode,
+    runtimeMode,
     aiExpandKeywords,
     competitors,
     hasSessionActivity,
@@ -701,6 +802,7 @@ export function useMentionTrackingChat({
     setLiveMentionSignals([]);
     setLiveReasoning("");
     setResearchPlan(null);
+    setRuntimeMode("chat");
     setMessages(includeWelcomeMessage ? [welcomeMessage] : []);
     setIsSearching(false);
     setStreamStatus(null);
@@ -714,6 +816,7 @@ export function useMentionTrackingChat({
     setPrompt,
     agentMode,
     setAgentMode,
+    runtimeMode,
     aiExpandKeywords,
     setAiExpandKeywords,
     productName,
@@ -734,6 +837,7 @@ export function useMentionTrackingChat({
     resetSession,
     confirmMentionKeywords,
     confirmResearchPlan,
+    rejectResearchPlan,
     openResearchPlan,
     workspaceData,
     liveMentionSignals,

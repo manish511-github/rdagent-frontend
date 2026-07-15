@@ -62,7 +62,11 @@ export type AgentStreamEvent = {
 export type AgentTurnEvent = {
   type?:
     | "turn.routed"
+    | "plan.started"
     | "plan.created"
+    | "plan.approved"
+    | "plan.rejected"
+    | "run.started"
     | "run.status"
     | "tool.called"
     | "tool.completed"
@@ -71,15 +75,29 @@ export type AgentTurnEvent = {
     | "answer.completed"
     | "clarification.requested"
     | "turn.failed";
+  mode?: AgentRuntimeMode;
   status?: string;
   message?: string;
   data?: Record<string, unknown>;
   terminal?: boolean;
 };
 
+export type AgentRuntimeMode =
+  | "chat"
+  | "planning"
+  | "awaiting_approval"
+  | "executing";
+
+export type PlanApproval = {
+  plan_id: string;
+  version: number;
+  decision: "approve" | "reject";
+  plan: ResearchPlan;
+};
+
 export type AgentTurnRequest = {
   message: string;
-  approved_plan?: ResearchPlan;
+  plan_approval?: PlanApproval;
   approved_keywords?: string[];
   tool_options?: Record<string, unknown>;
 };
@@ -117,7 +135,7 @@ export type ResearchPlanScoutFinding = {
 export type ResearchPlan = {
   plan_id: string;
   version: number;
-  status: "draft" | "approved" | "running" | "complete";
+  status: "draft" | "approved" | "running" | "complete" | "rejected";
   message: string;
   skill: string;
   title: string;

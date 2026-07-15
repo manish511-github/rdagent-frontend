@@ -94,6 +94,7 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
           liveReasoning={chat.liveReasoning}
           onConfirmKeywordPlan={chat.confirmMentionKeywords}
           onConfirmResearchPlan={chat.confirmResearchPlan}
+          onRejectResearchPlan={chat.rejectResearchPlan}
           onViewResearchPlan={(plan) => {
             chat.openResearchPlan(plan);
             setShowWorkspace(true);
@@ -132,6 +133,7 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
       sessionTitle={chat.sessionTitle}
       researchPlan={chat.researchPlan}
       onExecutePlan={chat.confirmResearchPlan}
+      onRejectPlan={chat.rejectResearchPlan}
     />
   );
 

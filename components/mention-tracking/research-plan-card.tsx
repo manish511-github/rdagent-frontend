@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, FileSpreadsheet, Loader2, Play } from "lucide-react";
+import { ChevronRight, FileSpreadsheet, Loader2, Play, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ type ResearchPlanCardProps = {
   plan: ResearchPlan;
   disabled: boolean;
   onExecute: (message: string, plan: ResearchPlan) => void;
+  onReject?: (message: string, plan: ResearchPlan) => void;
   onView?: (plan: ResearchPlan) => void;
 };
 
@@ -17,8 +18,11 @@ export function ResearchPlanCard({
   plan,
   disabled,
   onExecute,
+  onReject,
   onView,
 }: ResearchPlanCardProps) {
+  const canDecide = plan.status === "draft";
+
   return (
     <div className="mt-4 overflow-hidden rounded-xl border bg-background shadow-sm">
       <div className="border-b px-4 py-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
@@ -48,20 +52,39 @@ export function ResearchPlanCard({
           {plan.warnings[0]}
         </p>
       )}
-      <div className="flex justify-end border-t px-3 py-2">
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => onExecute(plan.message, plan)}
-          disabled={disabled}
-        >
-          {disabled ? (
-            <Loader2 className="mr-2 size-3.5 animate-spin" />
-          ) : (
-            <Play className="mr-2 size-3.5" />
-          )}
-          Execute plan
-        </Button>
+      <div className="flex items-center justify-end gap-2 border-t px-3 py-2">
+        {!canDecide && (
+          <Badge variant="outline" className="mr-auto capitalize">
+            {plan.status}
+          </Badge>
+        )}
+        {canDecide && onReject && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => onReject(plan.message, plan)}
+            disabled={disabled}
+          >
+            <X className="mr-2 size-3.5" />
+            Reject
+          </Button>
+        )}
+        {canDecide && (
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => onExecute(plan.message, plan)}
+            disabled={disabled}
+          >
+            {disabled ? (
+              <Loader2 className="mr-2 size-3.5 animate-spin" />
+            ) : (
+              <Play className="mr-2 size-3.5" />
+            )}
+            Execute plan
+          </Button>
+        )}
       </div>
     </div>
   );

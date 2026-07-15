@@ -105,6 +105,7 @@ type MentionWorkspacePanelProps = {
   sessionTitle?: string;
   researchPlan?: ResearchPlan | null;
   onExecutePlan?: (message: string, plan: ResearchPlan) => void;
+  onRejectPlan?: (message: string, plan: ResearchPlan) => void;
 };
 
 export function MentionWorkspacePanel({
@@ -116,6 +117,7 @@ export function MentionWorkspacePanel({
   sessionTitle,
   researchPlan,
   onExecutePlan,
+  onRejectPlan,
 }: MentionWorkspacePanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -193,13 +195,25 @@ export function MentionWorkspacePanel({
               <h2 className="truncate text-base font-semibold">{researchPlan.title}</h2>
               <p className="truncate text-xs text-muted-foreground">Review the plan, then run the search loop.</p>
             </div>
-            <Button
-              size="sm"
-              disabled={isSearching}
-              onClick={() => onExecutePlan(researchPlan.message, researchPlan)}
-            >
-              {isSearching ? "Running..." : "Execute plan"}
-            </Button>
+            <div className="flex items-center gap-2">
+              {onRejectPlan && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={isSearching}
+                  onClick={() => onRejectPlan(researchPlan.message, researchPlan)}
+                >
+                  Reject
+                </Button>
+              )}
+              <Button
+                size="sm"
+                disabled={isSearching}
+                onClick={() => onExecutePlan(researchPlan.message, researchPlan)}
+              >
+                {isSearching ? "Running..." : "Execute plan"}
+              </Button>
+            </div>
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-auto p-4">
