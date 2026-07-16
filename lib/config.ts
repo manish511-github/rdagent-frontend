@@ -5,9 +5,9 @@
 export const config = {
   /**
    * Get the backend URL from environment variables
-   * Falls back to localhost:8000 if not set
+   * Falls back to the deployed API if not set
    */
-  backendUrl: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000',
+  backendUrl: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api-zooptics-ferrari.zoocloud.space',
 } as const;
 
 /**
