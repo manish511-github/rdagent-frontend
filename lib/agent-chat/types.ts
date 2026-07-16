@@ -73,6 +73,9 @@ export type AgentRunResponse = {
   tool_calls: AgentToolCall[];
   signals: AgentSignal[];
   artifact_rows?: AgentArtifactRow[];
+  artifact_id?: string;
+  artifact_version?: number;
+  run_id?: string;
   reasoning?: string;
   steps_taken?: number;
 };
@@ -93,6 +96,7 @@ export type AgentStreamEvent = {
 
 export type AgentTurnEvent = {
   type?:
+    | "conversation.ready"
     | "turn.routed"
     | "plan.started"
     | "plan.created"
@@ -111,6 +115,7 @@ export type AgentTurnEvent = {
   status?: string;
   message?: string;
   data?: Record<string, unknown>;
+  conversation_id?: string | null;
   terminal?: boolean;
 };
 
@@ -129,9 +134,56 @@ export type PlanApproval = {
 
 export type AgentTurnRequest = {
   message: string;
+  conversation_id?: string | null;
   plan_approval?: PlanApproval;
   approved_keywords?: string[];
   tool_options?: Record<string, unknown>;
+};
+
+export type AgentConversationMessage = {
+  id: number;
+  role: string;
+  content: string;
+  event_type?: string | null;
+  payload?: AgentTurnEvent | null;
+  created_at: string;
+};
+
+export type AgentConversationDetail = {
+  conversation_id: string;
+  title: string;
+  status: string;
+  created_at: string;
+  updated_at?: string | null;
+  last_message_at: string;
+  messages: AgentConversationMessage[];
+};
+
+export type AgentArtifactRecordRow = {
+  id: number;
+  row_key: string;
+  source?: string | null;
+  fields: Record<string, unknown>;
+  raw_signal?: AgentSignal | null;
+  created_at: string;
+};
+
+export type AgentArtifactDetail = {
+  artifact_id: string;
+  conversation_id: string;
+  plan_id?: string | null;
+  run_id?: string | null;
+  version: number;
+  title: string;
+  artifact_type: string;
+  schema?: Record<string, unknown> | null;
+  summary: string;
+  source_coverage?: Record<string, unknown> | null;
+  query_history?: Record<string, unknown>[] | null;
+  row_count: number;
+  created_at: string;
+  updated_at?: string | null;
+  rows: AgentArtifactRecordRow[];
 };
 
 export type ResearchPlanSource = {

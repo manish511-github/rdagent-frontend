@@ -15,6 +15,7 @@ import { resultDisplayCount } from "@/lib/agent-chat/signal-utils";
 import {
   type AgentMode,
   type AgentRuntimeMode,
+  type AgentConversationDetail,
   type AgentRunResponse,
   type AgentStreamEvent,
   type AgentTurnEvent,
@@ -37,8 +38,9 @@ const welcomeMessage: ChatMessage = {
 };
 
 type PersistedAgentChatSession = {
-  version: 2;
+  version: 2 | 3;
   sessionId: string;
+  conversationId?: string | null;
   sessionTitle: string;
   initialPrompt: string;
   agentMode: AgentMode;
@@ -116,10 +118,68 @@ function readPersistedSession(
     const raw = window.localStorage.getItem(persistKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PersistedAgentChatSession;
-    return parsed.version === 2 ? parsed : null;
+    return parsed.version === 2 || parsed.version === 3 ? parsed : null;
   } catch {
     return null;
   }
+}
+
+function messagesFromConversation(
+  conversation: AgentConversationDetail,
+  includeWelcomeMessage: boolean
+): ChatMessage[] {
+  const restored: ChatMessage[] = [];
+  for (const item of conversation.messages || []) {
+    if (item.role === "user") {
+      restored.push({
+        id: `server-${item.id}`,
+        role: "user",
+        content: item.content,
+      });
+      continue;
+    }
+
+    const event = item.payload;
+    if (event?.type === "plan.created") {
+      const plan = event.data?.plan as ResearchPlan | undefined;
+      if (plan) {
+        restored.push({
+          id: `server-${item.id}`,
+          role: "assistant",
+          content: `Here is my research plan for: "${plan.message || conversation.title}"`,
+          researchPlan: plan,
+        });
+        continue;
+      }
+    }
+
+    if (event?.type === "answer.completed") {
+      const data = event.data?.response as AgentRunResponse | undefined;
+      if (data) {
+        restored.push({
+          id: `server-${item.id}`,
+          role: "assistant",
+          content: buildExecutionSummary(data),
+          data,
+          resultTitle: conversation.title,
+          reasoning: data.reasoning || undefined,
+        });
+        continue;
+      }
+    }
+
+    if (item.content) {
+      restored.push({
+        id: `server-${item.id}`,
+        role: "assistant",
+        content: item.content,
+      });
+    }
+  }
+  if (!restored.length && includeWelcomeMessage) {
+    return [welcomeMessage];
+  }
+  return restored;
 }
 
 export function useAgentChat({
@@ -133,6 +193,9 @@ export function useAgentChat({
   const abortControllerRef = useRef<AbortController | null>(null);
   const [sessionId, setSessionId] = useState(
     () => persistedSession?.sessionId || createClientId()
+  );
+  const [conversationId, setConversationId] = useState<string | null>(
+    () => persistedSession?.conversationId || null
   );
   const [sessionTitle, setSessionTitle] = useState(
     () => persistedSession?.sessionTitle || ""
@@ -173,11 +236,67 @@ export function useAgentChat({
   const [researchPlan, setResearchPlan] = useState<ResearchPlan | null>(
     () => persistedSession?.researchPlan || null
   );
+  const [hasRestoredConversation, setHasRestoredConversation] = useState(
+    () => !persistedSession?.conversationId
+  );
 
   const canSubmitPrompt = (value: string) =>
     value.trim().length >= 8 && !isSearching;
 
   const canSearch = canSubmitPrompt(prompt);
+
+  useEffect(() => {
+    if (!conversationId || hasRestoredConversation) return;
+    const token = Cookies.get("access_token");
+    if (!token) {
+      setHasRestoredConversation(true);
+      return;
+    }
+
+    let cancelled = false;
+    const restoreConversation = async () => {
+      try {
+        const response = await fetch(
+          getApiUrl(`agent-runtime/conversations/${conversationId}`),
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (!response.ok) return;
+        const conversation = (await response.json()) as AgentConversationDetail;
+        if (cancelled) return;
+        const restoredMessages = messagesFromConversation(
+          conversation,
+          includeWelcomeMessage
+        );
+        setMessages(restoredMessages);
+        setSessionTitle(conversation.title);
+        setInitialPrompt(
+          restoredMessages.find((message) => message.role === "user")?.content ||
+            conversation.title
+        );
+        const latestAssistant = [...restoredMessages].reverse().find(
+          (message): message is Extract<ChatMessage, { role: "assistant" }> =>
+            message.role === "assistant"
+        );
+        if (latestAssistant?.researchPlan) {
+          setResearchPlan(latestAssistant.researchPlan);
+        }
+        if (latestAssistant?.data) {
+          setLiveAgentSignals(latestAssistant.data.signals);
+        }
+      } finally {
+        if (!cancelled) setHasRestoredConversation(true);
+      }
+    };
+
+    void restoreConversation();
+    return () => {
+      cancelled = true;
+    };
+  }, [conversationId, hasRestoredConversation, includeWelcomeMessage]);
 
   const pushWorkspaceEvent = useCallback((
     event: Omit<AgentWorkspaceEvent, "id" | "createdAt">
@@ -356,6 +475,7 @@ export function useAgentChat({
     try {
       const body: AgentTurnRequest = {
         message,
+        ...(conversationId ? { conversation_id: conversationId } : {}),
         ...(approvedPlan
           ? {
               plan_approval: {
@@ -418,6 +538,14 @@ export function useAgentChat({
           const parsed = parseSseChunk(chunk) as AgentTurnEvent | null;
           if (!parsed) continue;
           const event = normalizeTurnEvent(parsed);
+          const eventConversationId =
+            event.conversation_id ||
+            (typeof event.data?.conversation_id === "string"
+              ? event.data.conversation_id
+              : null);
+          if (eventConversationId) {
+            setConversationId(eventConversationId);
+          }
           if (event.mode) setRuntimeMode(event.mode);
 
           if (event.type === "plan.created") {
@@ -758,8 +886,9 @@ export function useAgentChat({
     if (!hasSessionActivity) return;
 
     const payload: PersistedAgentChatSession = {
-      version: 2,
+      version: 3,
       sessionId,
+      conversationId,
       sessionTitle: sessionTitle || titleFromPrompt(initialPrompt),
       initialPrompt,
       agentMode,
@@ -777,6 +906,7 @@ export function useAgentChat({
     window.localStorage.setItem(persistKey, JSON.stringify(payload));
   }, [
     agentMode,
+    conversationId,
     runtimeMode,
     aiExpandKeywords,
     competitors,
@@ -799,6 +929,7 @@ export function useAgentChat({
       window.localStorage.removeItem(persistKey);
     }
     setSessionId(createClientId());
+    setConversationId(null);
     setSessionTitle("");
     setInitialPrompt("");
     setPrompt("");
@@ -814,6 +945,7 @@ export function useAgentChat({
 
   return {
     sessionId,
+    conversationId,
     sessionTitle,
     initialPrompt,
     prompt,
