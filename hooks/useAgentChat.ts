@@ -38,9 +38,10 @@ const welcomeMessage: ChatMessage = {
 };
 
 type PersistedAgentChatSession = {
-  version: 2 | 3;
+  version: 2 | 3 | 4;
   sessionId: string;
   conversationId?: string | null;
+  visibleArtifactId?: string | null;
   sessionTitle: string;
   initialPrompt: string;
   agentMode: AgentMode;
@@ -118,7 +119,9 @@ function readPersistedSession(
     const raw = window.localStorage.getItem(persistKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PersistedAgentChatSession;
-    return parsed.version === 2 || parsed.version === 3 ? parsed : null;
+    return parsed.version === 2 || parsed.version === 3 || parsed.version === 4
+      ? parsed
+      : null;
   } catch {
     return null;
   }
@@ -197,6 +200,10 @@ export function useAgentChat({
   const [conversationId, setConversationId] = useState<string | null>(
     () => persistedSession?.conversationId || null
   );
+  const [visibleArtifactId, setVisibleArtifactId] = useState<string | null>(
+    () => persistedSession?.visibleArtifactId || null
+  );
+  const [selectedArtifactRowKey, setSelectedArtifactRowKey] = useState<string | null>(null);
   const [sessionTitle, setSessionTitle] = useState(
     () => persistedSession?.sessionTitle || ""
   );
@@ -239,6 +246,7 @@ export function useAgentChat({
   const [hasRestoredConversation, setHasRestoredConversation] = useState(
     () => !persistedSession?.conversationId
   );
+  const [isRestoringConversation, setIsRestoringConversation] = useState(false);
 
   const canSubmitPrompt = (value: string) =>
     value.trim().length >= 8 && !isSearching;
@@ -255,6 +263,7 @@ export function useAgentChat({
 
     let cancelled = false;
     const restoreConversation = async () => {
+      setIsRestoringConversation(true);
       try {
         const response = await fetch(
           getApiUrl(`agent-runtime/conversations/${conversationId}`),
@@ -264,7 +273,9 @@ export function useAgentChat({
             },
           }
         );
-        if (!response.ok) return;
+        if (!response.ok) {
+          throw new Error("The selected conversation could not be loaded.");
+        }
         const conversation = (await response.json()) as AgentConversationDetail;
         if (cancelled) return;
         const restoredMessages = messagesFromConversation(
@@ -277,18 +288,34 @@ export function useAgentChat({
           restoredMessages.find((message) => message.role === "user")?.content ||
             conversation.title
         );
-        const latestAssistant = [...restoredMessages].reverse().find(
+
+        // Plans and completed results are separate persisted assistant events.
+        // Find each independently so switching to an older completed chat
+        // restores both its Plan card and its Result card.
+        const latestPlanMessage = [...restoredMessages].reverse().find(
           (message): message is Extract<ChatMessage, { role: "assistant" }> =>
-            message.role === "assistant"
+            message.role === "assistant" && Boolean(message.researchPlan)
         );
-        if (latestAssistant?.researchPlan) {
-          setResearchPlan(latestAssistant.researchPlan);
-        }
-        if (latestAssistant?.data) {
-          setLiveAgentSignals(latestAssistant.data.signals);
+        const latestResultMessage = [...restoredMessages].reverse().find(
+          (message): message is Extract<ChatMessage, { role: "assistant" }> =>
+            message.role === "assistant" && Boolean(message.data)
+        );
+        setResearchPlan(latestPlanMessage?.researchPlan || null);
+        setLiveAgentSignals(latestResultMessage?.data?.signals || []);
+        setWorkspaceEvents([]);
+        setLiveReasoning("");
+      } catch (error) {
+        if (!cancelled) {
+          toast.error("Could not open chat", {
+            description:
+              error instanceof Error ? error.message : "Please try again.",
+          });
         }
       } finally {
-        if (!cancelled) setHasRestoredConversation(true);
+        if (!cancelled) {
+          setHasRestoredConversation(true);
+          setIsRestoringConversation(false);
+        }
       }
     };
 
@@ -297,6 +324,45 @@ export function useAgentChat({
       cancelled = true;
     };
   }, [conversationId, hasRestoredConversation, includeWelcomeMessage]);
+
+  /**
+   * Switch the active chat using the backend-owned conversation id.
+   *
+   * We intentionally clear the previous transcript before changing the id.
+   * Otherwise the UI can briefly show Hacker News rows while a selected Reddit
+   * conversation is loading. The restore effect above then rebuilds rich plan
+   * and result cards from the persisted event payloads.
+   */
+  const selectConversation = useCallback(
+    (nextConversationId: string) => {
+      if (
+        !nextConversationId ||
+        nextConversationId === conversationId ||
+        isSearching
+      ) {
+        return;
+      }
+
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+      setConversationId(nextConversationId);
+      setVisibleArtifactId(null);
+      setSelectedArtifactRowKey(null);
+      setHasRestoredConversation(false);
+      setSessionId(createClientId());
+      setSessionTitle("");
+      setInitialPrompt("");
+      setPrompt("");
+      setWorkspaceEvents([]);
+      setLiveAgentSignals([]);
+      setLiveReasoning("");
+      setResearchPlan(null);
+      setRuntimeMode("chat");
+      setMessages(includeWelcomeMessage ? [welcomeMessage] : []);
+      setStreamStatus(null);
+    },
+    [conversationId, includeWelcomeMessage, isSearching]
+  );
 
   const pushWorkspaceEvent = useCallback((
     event: Omit<AgentWorkspaceEvent, "id" | "createdAt">
@@ -476,6 +542,17 @@ export function useAgentChat({
       const body: AgentTurnRequest = {
         message,
         ...(conversationId ? { conversation_id: conversationId } : {}),
+        ...(visibleArtifactId
+          ? {
+              ui_context: {
+                visible_panel: "results" as const,
+                visible_artifact_id: visibleArtifactId,
+                ...(selectedArtifactRowKey
+                  ? { selected_row_key: selectedArtifactRowKey }
+                  : {}),
+              },
+            }
+          : {}),
         ...(approvedPlan
           ? {
               plan_approval: {
@@ -886,9 +963,10 @@ export function useAgentChat({
     if (!hasSessionActivity) return;
 
     const payload: PersistedAgentChatSession = {
-      version: 3,
+      version: 4,
       sessionId,
       conversationId,
+      visibleArtifactId,
       sessionTitle: sessionTitle || titleFromPrompt(initialPrompt),
       initialPrompt,
       agentMode,
@@ -907,6 +985,7 @@ export function useAgentChat({
   }, [
     agentMode,
     conversationId,
+    visibleArtifactId,
     runtimeMode,
     aiExpandKeywords,
     competitors,
@@ -930,6 +1009,8 @@ export function useAgentChat({
     }
     setSessionId(createClientId());
     setConversationId(null);
+    setVisibleArtifactId(null);
+    setSelectedArtifactRowKey(null);
     setSessionTitle("");
     setInitialPrompt("");
     setPrompt("");
@@ -941,11 +1022,17 @@ export function useAgentChat({
     setMessages(includeWelcomeMessage ? [welcomeMessage] : []);
     setIsSearching(false);
     setStreamStatus(null);
+    setIsRestoringConversation(false);
+    setHasRestoredConversation(true);
   }, [includeWelcomeMessage, persistKey]);
 
   return {
     sessionId,
     conversationId,
+    visibleArtifactId,
+    setVisibleArtifactId,
+    selectedArtifactRowKey,
+    setSelectedArtifactRowKey,
     sessionTitle,
     initialPrompt,
     prompt,
@@ -962,6 +1049,7 @@ export function useAgentChat({
     showSettings,
     setShowSettings,
     isSearching,
+    isRestoringConversation,
     streamStatus,
     workspaceEvents,
     messages,
@@ -971,6 +1059,7 @@ export function useAgentChat({
     submitSearch,
     stopSearch,
     resetSession,
+    selectConversation,
     confirmMentionKeywords,
     confirmResearchPlan,
     rejectResearchPlan,

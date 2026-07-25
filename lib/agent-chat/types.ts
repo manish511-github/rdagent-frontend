@@ -135,6 +135,11 @@ export type PlanApproval = {
 export type AgentTurnRequest = {
   message: string;
   conversation_id?: string | null;
+  ui_context?: {
+    visible_panel?: "chat" | "plan" | "results";
+    visible_artifact_id?: string;
+    selected_row_key?: string;
+  };
   plan_approval?: PlanApproval;
   approved_keywords?: string[];
   tool_options?: Record<string, unknown>;
@@ -159,6 +164,8 @@ export type AgentConversationDetail = {
   messages: AgentConversationMessage[];
 };
 
+export type AgentConversationSummary = Omit<AgentConversationDetail, "messages">;
+
 export type AgentArtifactRecordRow = {
   id: number;
   row_key: string;
@@ -170,6 +177,8 @@ export type AgentArtifactRecordRow = {
 
 export type AgentArtifactDetail = {
   artifact_id: string;
+  root_artifact_id: string;
+  parent_artifact_id?: string | null;
   conversation_id: string;
   plan_id?: string | null;
   run_id?: string | null;
@@ -180,6 +189,7 @@ export type AgentArtifactDetail = {
   summary: string;
   source_coverage?: Record<string, unknown> | null;
   query_history?: Record<string, unknown>[] | null;
+  operation?: Record<string, unknown> | null;
   row_count: number;
   created_at: string;
   updated_at?: string | null;

@@ -160,6 +160,7 @@ type AgentWorkspacePanelProps = {
   researchPlan?: ResearchPlan | null;
   onExecutePlan?: (message: string, plan: ResearchPlan) => void;
   onRejectPlan?: (message: string, plan: ResearchPlan) => void;
+  onSelectedRowChange?: (rowKey: string | null) => void;
 };
 
 export function AgentWorkspacePanel({
@@ -173,6 +174,7 @@ export function AgentWorkspacePanel({
   researchPlan,
   onExecutePlan,
   onRejectPlan,
+  onSelectedRowChange,
 }: AgentWorkspacePanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -261,6 +263,13 @@ export function AgentWorkspacePanel({
   const selectedRecord = filteredRecords.find((record) => record.id === selectedId) || null;
   const selectedSignal = selectedRecord?.signal || null;
   const selectedArtifactRow = selectedRecord?.artifactRow;
+  useEffect(() => {
+    onSelectedRowChange?.(
+      isDetailsOpen && selectedArtifactRow?.item_id
+        ? selectedArtifactRow.item_id
+        : null
+    );
+  }, [isDetailsOpen, onSelectedRowChange, selectedArtifactRow?.item_id]);
   const latestSignalKeys = useMemo(() => {
     return new Set(
       workspaceEvents

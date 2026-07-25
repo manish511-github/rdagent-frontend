@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  Loader2,
   MessageSquarePlus,
   PanelRightClose,
   PanelRightOpen,
@@ -18,6 +19,7 @@ import {
 import { AgentBottomToolbar } from "@/components/agent-chat/agent-bottom-toolbar";
 import { AgentChatInput } from "@/components/agent-chat/agent-chat-input";
 import { AgentChatMessages } from "@/components/agent-chat/agent-chat-messages";
+import { AgentConversationMenu } from "@/components/agent-chat/agent-conversation-menu";
 import { AgentWorkspacePanel } from "@/components/agent-chat/agent-workspace-panel";
 import { Button } from "@/components/ui/button";
 import {
@@ -71,6 +73,16 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
     }
   }, [chat.hasSessionActivity]);
 
+  useEffect(() => {
+    if (
+      showWorkspacePanel &&
+      workspaceViewMode === "results" &&
+      workspaceData?.artifact_id
+    ) {
+      chat.setVisibleArtifactId(workspaceData.artifact_id);
+    }
+  }, [showWorkspacePanel, workspaceData?.artifact_id, workspaceViewMode]);
+
   const startRun = async (value: string) => {
     const prompt = value.trim();
     if (prompt.length < 8 || chat.isSearching) return;
@@ -92,37 +104,48 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
   const chatPanel = (
     <div className="flex h-full min-h-0 flex-col bg-background">
       <div className="min-h-0 flex-1 overflow-hidden">
-        <AgentChatMessages
-          messages={chat.messages}
-          isSearching={chat.isSearching}
-          streamStatus={chat.streamStatus}
-          workspaceEvents={chat.workspaceEvents}
-          liveReasoning={chat.liveReasoning}
-          onConfirmKeywordPlan={chat.confirmMentionKeywords}
-          onConfirmResearchPlan={(message, plan) => {
-            setSelectedResultData(null);
-            setSelectedResultTitle(null);
-            chat.confirmResearchPlan(message, plan);
-          }}
-          onRejectResearchPlan={chat.rejectResearchPlan}
-          onViewResearchPlan={(plan) => {
-            chat.openResearchPlan(plan);
-            setSelectedResultData(null);
-            setSelectedResultTitle(null);
-            setShowWorkspace(true);
-            setShowWorkspacePanel(true);
-            setActivePanel("workspace");
-            setWorkspaceViewMode("plan");
-          }}
-          onViewResults={(data, title) => {
-            setSelectedResultData(data);
-            setSelectedResultTitle(title || null);
-            setShowWorkspace(true);
-            setShowWorkspacePanel(true);
-            setActivePanel("workspace");
-            setWorkspaceViewMode("results");
-          }}
-        />
+        {chat.isRestoringConversation ? (
+          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            <Loader2 className="mr-2 size-4 animate-spin" />
+            Opening conversation…
+          </div>
+        ) : (
+          <AgentChatMessages
+            messages={chat.messages}
+            isSearching={chat.isSearching}
+            streamStatus={chat.streamStatus}
+            workspaceEvents={chat.workspaceEvents}
+            liveReasoning={chat.liveReasoning}
+            onConfirmKeywordPlan={chat.confirmMentionKeywords}
+            onConfirmResearchPlan={(message, plan) => {
+              setSelectedResultData(null);
+              setSelectedResultTitle(null);
+              chat.confirmResearchPlan(message, plan);
+            }}
+            onRejectResearchPlan={chat.rejectResearchPlan}
+            onViewResearchPlan={(plan) => {
+              chat.openResearchPlan(plan);
+              chat.setVisibleArtifactId(null);
+              chat.setSelectedArtifactRowKey(null);
+              setSelectedResultData(null);
+              setSelectedResultTitle(null);
+              setShowWorkspace(true);
+              setShowWorkspacePanel(true);
+              setActivePanel("workspace");
+              setWorkspaceViewMode("plan");
+            }}
+            onViewResults={(data, title) => {
+              chat.setVisibleArtifactId(data.artifact_id || null);
+              chat.setSelectedArtifactRowKey(null);
+              setSelectedResultData(data);
+              setSelectedResultTitle(title || null);
+              setShowWorkspace(true);
+              setShowWorkspacePanel(true);
+              setActivePanel("workspace");
+              setWorkspaceViewMode("results");
+            }}
+          />
+        )}
       </div>
       <AgentChatInput
         prompt={chat.prompt}
@@ -155,6 +178,7 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
         chat.confirmResearchPlan(message, plan);
       }}
       onRejectPlan={chat.rejectResearchPlan}
+      onSelectedRowChange={chat.setSelectedArtifactRowKey}
     />
   );
 
@@ -165,9 +189,77 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
     onNewRun();
   };
 
+  const openConversation = (conversationId: string) => {
+    setSelectedResultData(null);
+    setSelectedResultTitle(null);
+    setShowWorkspace(true);
+    setShowWorkspacePanel(false);
+    setActivePanel("chat");
+    setWorkspaceViewMode("results");
+    chat.setVisibleArtifactId(null);
+    chat.setSelectedArtifactRowKey(null);
+    chat.selectConversation(conversationId);
+  };
+
+  const chatControls = (
+    <div className="absolute left-3 top-3 z-20 flex max-w-[calc(100%-1.5rem)] items-center gap-1 rounded-lg border bg-background/95 p-1 shadow-sm backdrop-blur">
+      <div className="min-w-0 max-w-52 px-2 sm:max-w-80">
+        <span className="block truncate text-sm font-medium">
+          {chat.sessionTitle || "New agent chat"}
+        </span>
+      </div>
+
+      <AgentConversationMenu
+        activeConversationId={chat.conversationId}
+        disabled={chat.isSearching}
+        onNewChat={startNewRun}
+        onSelectConversation={openConversation}
+      />
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-8"
+        onClick={startNewRun}
+        title="Start a new chat"
+        aria-label="Start a new chat"
+      >
+        <MessageSquarePlus className="size-4" />
+      </Button>
+    </div>
+  );
+
+  const workspaceControl = hasResearchPlan && showWorkspace && (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="absolute right-3 top-3 z-20 hidden h-8 gap-1.5 bg-background/95 px-2 shadow-sm backdrop-blur lg:flex"
+      onClick={() =>
+        setShowWorkspacePanel((visible) => {
+          if (visible) chat.setVisibleArtifactId(null);
+          if (visible) chat.setSelectedArtifactRowKey(null);
+          return !visible;
+        })
+      }
+      title={showWorkspacePanel ? "Hide workspace" : "Show plan"}
+    >
+      {showWorkspacePanel ? (
+        <PanelRightClose className="size-4" />
+      ) : (
+        <PanelRightOpen className="size-4" />
+      )}
+      <span className="text-xs">
+        {showWorkspacePanel ? "Hide" : "Show plan"}
+      </span>
+    </Button>
+  );
+
   if (!showWorkspace) {
     return (
-      <div className="flex h-full min-h-[calc(100vh-2.5rem)] flex-col bg-gray-50 dark:bg-black">
+      <div className="relative flex h-full min-h-[calc(100vh-2.5rem)] flex-col bg-gray-50 dark:bg-black">
+        {chatControls}
         <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-8">
           <div className="w-full max-w-3xl">
             <div className="mb-8 text-center">
@@ -207,34 +299,8 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
 
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-gray-50 dark:bg-black">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="absolute left-3 top-3 z-10 h-8 gap-1.5 px-2"
-        onClick={startNewRun}
-        title="Start a new chat"
-      >
-        <MessageSquarePlus className="size-4" />
-        <span className="text-xs">New chat</span>
-      </Button>
-      {hasResearchPlan && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="absolute right-3 top-3 z-10 hidden h-8 gap-1.5 px-2 lg:flex"
-          onClick={() => setShowWorkspacePanel((v) => !v)}
-          title={showWorkspacePanel ? "Hide plan" : "Show plan"}
-        >
-          {showWorkspacePanel ? (
-            <PanelRightClose className="size-4" />
-          ) : (
-            <PanelRightOpen className="size-4" />
-          )}
-          <span className="text-xs">{showWorkspacePanel ? "Hide" : "Show plan"}</span>
-        </Button>
-      )}
+      {chatControls}
+      {workspaceControl}
 
       <div className="hidden min-h-0 flex-1 lg:flex">
         {showWorkspacePanel ? (
@@ -271,7 +337,11 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
         </div>
         <AgentBottomToolbar
           activePanel={activePanel}
-          onPanelChange={setActivePanel}
+          onPanelChange={(panel) => {
+            setActivePanel(panel);
+            if (panel === "chat") chat.setVisibleArtifactId(null);
+            if (panel === "chat") chat.setSelectedArtifactRowKey(null);
+          }}
           hasWorkspace={hasWorkspace}
           resultCount={resultCount}
           workspaceLabel={workspaceLabel}
