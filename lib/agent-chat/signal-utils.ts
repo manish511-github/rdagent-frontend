@@ -65,11 +65,19 @@ export function resultDisplayCount(data?: AgentRunResponse | null) {
 }
 
 export function formatPlatformLabel(platform?: string, tool?: string) {
-  const value = platform || tool || "";
+  const rawValue = platform || tool || "";
+  const value = rawValue
+    .toLowerCase()
+    .replace(/_(fetch|search|discovery)$/, "");
+  const compactValue = value.replace(/[\s_/-]+/g, "");
   const labels: Record<string, string> = {
     x: "X / Twitter",
+    twitter: "X / Twitter",
+    xtwitter: "X / Twitter",
     reddit: "Reddit",
     hackernews: "Hacker News",
+    hackernew: "Hacker News",
+    hn: "Hacker News",
     youtube: "YouTube",
     github: "GitHub",
     linkedin: "LinkedIn",
@@ -78,5 +86,8 @@ export function formatPlatformLabel(platform?: string, tool?: string) {
     indiehackers: "Indie Hackers",
     newsletter: "Newsletters",
   };
-  return labels[value.toLowerCase()] || value.replaceAll("_", " ") || "platform";
+  const existingLabel = Object.values(labels).find(
+    (label) => label.toLowerCase() === value
+  );
+  return labels[value] || labels[compactValue] || existingLabel || rawValue || "Source";
 }

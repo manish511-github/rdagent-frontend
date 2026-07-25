@@ -1,9 +1,47 @@
 import { formatPlatformLabel } from "./signal-utils";
 import type {
+  AgentRunTraceItem,
   AgentSignal,
   AgentStreamEvent,
   AgentWorkspaceEvent,
 } from "./types";
+
+/** Convert a durable backend trace into the same shape used by live SSE UI. */
+export function activityTraceToWorkspaceEvents(
+  trace: AgentRunTraceItem[] | undefined
+): AgentWorkspaceEvent[] {
+  if (!Array.isArray(trace)) return [];
+
+  return trace.map((item) => {
+    const createdAt = Date.parse(item.created_at);
+    const base = {
+      id: `trace-${item.sequence}`,
+      label: item.message,
+      platform: item.source || undefined,
+      query: item.query || undefined,
+      count: item.count ?? undefined,
+      phase: item.phase || undefined,
+      operationId: item.operation_id || undefined,
+      durationMs: item.duration_ms ?? undefined,
+      failed: item.failed || undefined,
+      createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
+    };
+
+    if (item.kind === "tool_call") {
+      return { ...base, type: "tool_started" as const };
+    }
+    if (item.kind === "tool_result") {
+      return { ...base, type: "tool_completed" as const };
+    }
+    if (item.kind === "complete") {
+      return { ...base, type: "completed" as const };
+    }
+    if (item.kind === "error") {
+      return { ...base, type: "error" as const };
+    }
+    return { ...base, type: "progress" as const };
+  });
+}
 
 export function parseSseChunk(chunk: string): AgentStreamEvent | null {
   const line = chunk.split("\n").find((item) => item.startsWith("data: "));
@@ -87,7 +125,7 @@ export function normalizeStreamEvent(
   }
 
   // ---------------------------------------------------------------
-  // Status-based events from the Origami-style agent loop.
+  // Status-based events from the agent loop.
   // The backend emits { status, message, data } instead of { type, ... }.
   // ---------------------------------------------------------------
 
@@ -95,12 +133,16 @@ export function normalizeStreamEvent(
   if (event.status === "tool_call") {
     const data = event.data as Record<string, unknown> | undefined;
     const tool = (data?.tool as string) || "";
+    const args = data?.args as Record<string, unknown> | undefined;
     const platform = formatPlatformLabel(undefined, tool);
     return {
       type: "tool_started",
       label: event.message || `Searching ${platform}...`,
-      detail: tool,
-      platform: tool,
+      platform,
+      query: typeof args?.query === "string" ? args.query : undefined,
+      phase: "search",
+      operationId:
+        typeof data?.operation_id === "string" ? data.operation_id : undefined,
     };
   }
 
@@ -113,9 +155,12 @@ export function normalizeStreamEvent(
     return {
       type: "tool_completed",
       label: event.message || `${platform} complete`,
-      detail: tool,
-      platform: tool,
+      platform,
+      phase: "search",
+      operationId:
+        typeof data?.operation_id === "string" ? data.operation_id : undefined,
       count,
+      failed: Boolean(data?.error),
     };
   }
 
@@ -125,9 +170,13 @@ export function normalizeStreamEvent(
     event.status === "running"
   ) {
     if (event.message) {
+      if (isLoopBookkeepingMessage(event.message)) {
+        return null;
+      }
       return {
         type: "thinking",
         label: event.message,
+        phase: "planning",
       };
     }
   }
@@ -135,10 +184,18 @@ export function normalizeStreamEvent(
   // Quality/repair events are internal orchestration state. Surface a calm
   // progress message instead of exposing evaluator codes to the user.
   if (event.status === "quality") {
-    return { type: "thinking", label: "Checking the result quality..." };
+    return {
+      type: "progress",
+      label: "Reviewing result quality",
+      phase: "evaluation",
+    };
   }
   if (event.status === "repairing") {
-    return { type: "thinking", label: "Trying broader searches for better matches..." };
+    return {
+      type: "progress",
+      label: "Broadening the search for better matches",
+      phase: "repair",
+    };
   }
 
   // Legacy fallback: any event with a message becomes a thinking entry.
@@ -150,6 +207,12 @@ export function normalizeStreamEvent(
   }
 
   return null;
+}
+
+function isLoopBookkeepingMessage(message: string) {
+  return /^Step\s+\d+:\s+(starting the approved plan|checking whether to search again or summarize|asking the model what to do next)/i.test(
+    message.trim()
+  );
 }
 
 export async function readError(response: Response) {

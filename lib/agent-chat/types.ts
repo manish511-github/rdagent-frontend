@@ -66,6 +66,47 @@ export type AgentToolCall = {
   result?: Record<string, unknown>;
 };
 
+export type AgentRunTraceItem = {
+  sequence: number;
+  kind:
+    | "progress"
+    | "tool_call"
+    | "tool_result"
+    | "quality"
+    | "repair"
+    | "complete"
+    | "error";
+  message: string;
+  status?: string;
+  tool?: string | null;
+  source?: string | null;
+  query?: string | null;
+  count?: number | null;
+  step?: number | null;
+  phase?:
+    | "planning"
+    | "search"
+    | "evaluation"
+    | "repair"
+    | "synthesis"
+    | "complete"
+    | null;
+  operation_id?: string | null;
+  duration_ms?: number | null;
+  failed?: boolean;
+  created_at: string;
+};
+
+export type AgentExecutionMemory = {
+  sources_searched: string[];
+  queries_tried: string[];
+  result_count: number;
+  tool_call_count: number;
+  repairs_attempted: number;
+  stop_reason?: string | null;
+  outcome: string;
+};
+
 export type AgentRunResponse = {
   answer: string;
   chat_summary?: string;
@@ -77,6 +118,8 @@ export type AgentRunResponse = {
   artifact_version?: number;
   run_id?: string;
   reasoning?: string;
+  activity_trace?: AgentRunTraceItem[];
+  execution_memory?: AgentExecutionMemory | null;
   steps_taken?: number;
 };
 
@@ -182,6 +225,7 @@ export type AgentArtifactDetail = {
   conversation_id: string;
   plan_id?: string | null;
   run_id?: string | null;
+  activity_trace?: AgentRunTraceItem[];
   version: number;
   title: string;
   artifact_type: string;
@@ -268,6 +312,7 @@ export type ChatMessage =
       researchPlan?: ResearchPlan;
       resultTitle?: string;
       reasoning?: string;
+      activityTrace?: AgentRunTraceItem[];
     };
 
 export type AgentMode = "auto" | "reddit" | "hackernews" | "x" | "mention";
@@ -276,6 +321,7 @@ export type AgentWorkspaceEvent = {
   id: string;
   type:
     | "thinking"
+    | "progress"
     | "tool_started"
     | "mention_found"
     | "tool_completed"
@@ -285,7 +331,12 @@ export type AgentWorkspaceEvent = {
   label: string;
   detail?: string;
   platform?: string;
+  query?: string;
   count?: number;
+  phase?: AgentRunTraceItem["phase"];
+  operationId?: string;
+  durationMs?: number;
+  failed?: boolean;
   signalKey?: string;
   createdAt: number;
 };

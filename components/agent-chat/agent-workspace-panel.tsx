@@ -107,6 +107,7 @@ export type AgentWorkspaceEvent = {
   id: string;
   type:
     | "thinking"
+    | "progress"
     | "tool_started"
     | "mention_found"
     | "tool_completed"
@@ -116,7 +117,19 @@ export type AgentWorkspaceEvent = {
   label: string;
   detail?: string;
   platform?: string;
+  query?: string;
   count?: number;
+  phase?:
+    | "planning"
+    | "search"
+    | "evaluation"
+    | "repair"
+    | "synthesis"
+    | "complete"
+    | null;
+  operationId?: string;
+  durationMs?: number;
+  failed?: boolean;
   signalKey?: string;
   createdAt: number;
 };

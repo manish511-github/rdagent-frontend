@@ -9,6 +9,7 @@ import { Loader } from "@/components/ai-elements/loader";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import { Response } from "@/components/ai-elements/response";
 import type { AgentRunResponse, ChatMessage } from "@/lib/agent-chat/types";
+import { activityTraceToWorkspaceEvents } from "@/lib/agent-chat/stream-utils";
 
 import { AgentKeywordConfirmation } from "./agent-keyword-confirmation";
 import { AgentResultCard } from "./agent-result-card";
@@ -48,6 +49,12 @@ export function AgentChatMessages({
             message.role === "assistant" && message.data
               ? buildChatResultSummary(message.data)
               : message.content;
+          const restoredActivity =
+            message.role === "assistant"
+              ? activityTraceToWorkspaceEvents(
+                  message.data?.activity_trace || message.activityTrace
+                )
+              : [];
 
           return (
             <Message key={message.id} from={message.role}>
@@ -81,6 +88,15 @@ export function AgentChatMessages({
                       title={message.resultTitle}
                       onViewResults={() => onViewResults?.(message.data as AgentRunResponse, message.resultTitle)}
                     />
+                  )}
+                  {restoredActivity.length > 0 && (
+                    <div className="mt-3">
+                      <AgentStreamActivity
+                        events={restoredActivity}
+                        isSearching={false}
+                        streamStatus={null}
+                      />
+                    </div>
                   )}
                   </>
                 )}

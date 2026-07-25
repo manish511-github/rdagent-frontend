@@ -171,6 +171,17 @@ function messagesFromConversation(
       }
     }
 
+    if (event?.type === "turn.failed") {
+      const activityTrace = event.data?.activity_trace;
+      restored.push({
+        id: `server-${item.id}`,
+        role: "assistant",
+        content: item.content || event.message || "Agent turn failed.",
+        activityTrace: Array.isArray(activityTrace) ? activityTrace : undefined,
+      });
+      continue;
+    }
+
     if (item.content) {
       restored.push({
         id: `server-${item.id}`,
@@ -388,24 +399,6 @@ export function useAgentChat({
         last.platform === event.platform
       ) {
         return current;
-      }
-
-      if (event.type === "tool_completed" && event.platform) {
-        const rest = current.filter(
-          (item) =>
-            !(
-              item.type === "tool_started" &&
-              item.platform === event.platform
-            )
-        );
-        return [
-          ...rest,
-          {
-            ...event,
-            id: createClientId(),
-            createdAt: Date.now(),
-          },
-        ].slice(-40);
       }
 
       return [
@@ -700,7 +693,27 @@ export function useAgentChat({
           }
 
           if (event.type === "turn.failed") {
-            throw new Error(event.message || "Agent turn failed");
+            const activityTrace = event.data?.activity_trace;
+            const failureMessage = event.message || "Agent turn failed.";
+            pushWorkspaceEvent({
+              type: "error",
+              label: failureMessage,
+            });
+            setMessages((current) => [
+              ...current,
+              {
+                id: createClientId(),
+                role: "assistant",
+                content: failureMessage,
+                activityTrace: Array.isArray(activityTrace)
+                  ? activityTrace
+                  : undefined,
+              },
+            ]);
+            toast.error("Agent turn failed", { description: failureMessage });
+            setStreamStatus(null);
+            setRuntimeMode("chat");
+            continue;
           }
 
           handleAgentStreamEvent(turnEventToStreamEvent(event));
