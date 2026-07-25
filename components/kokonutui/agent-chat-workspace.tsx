@@ -158,6 +158,7 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
         onStopSearch={chat.stopSearch}
         canSearch={chat.canSearch}
         isSearching={chat.isSearching}
+        tokenUsage={chat.tokenUsage}
       />
     </div>
   );

@@ -97,6 +97,21 @@ export type AgentRunTraceItem = {
   created_at: string;
 };
 
+export type AgentTokenUsage = {
+  input_tokens: number;
+  output_tokens: number;
+  reasoning_tokens: number;
+  cached_input_tokens: number;
+  total_tokens: number;
+  /** Tokens occupying the window on the most recent model call. */
+  context_tokens: number;
+  context_window: number;
+  model_id: string;
+  /** Empty when the active model has no entry in the pricing catalog. */
+  pricing_model_id: string;
+  llm_calls: number;
+};
+
 export type AgentExecutionMemory = {
   sources_searched: string[];
   queries_tried: string[];
@@ -116,10 +131,15 @@ export type AgentRunResponse = {
   artifact_rows?: AgentArtifactRow[];
   artifact_id?: string;
   artifact_version?: number;
+  artifact_schema?: {
+    columns?: ResearchPlanColumn[];
+    [key: string]: unknown;
+  } | null;
   run_id?: string;
   reasoning?: string;
   activity_trace?: AgentRunTraceItem[];
   execution_memory?: AgentExecutionMemory | null;
+  token_usage?: AgentTokenUsage | null;
   steps_taken?: number;
 };
 
@@ -147,11 +167,15 @@ export type AgentTurnEvent = {
     | "plan.rejected"
     | "run.started"
     | "run.status"
+    | "run.usage"
     | "tool.called"
     | "tool.completed"
     | "quality.checked"
     | "repair.started"
     | "answer.completed"
+    | "artifact.update_started"
+    | "artifact.updated"
+    | "artifact.conflict"
     | "clarification.requested"
     | "turn.failed";
   mode?: AgentRuntimeMode;
@@ -313,6 +337,7 @@ export type ChatMessage =
       resultTitle?: string;
       reasoning?: string;
       activityTrace?: AgentRunTraceItem[];
+      artifactId?: string;
     };
 
 export type AgentMode = "auto" | "reddit" | "hackernews" | "x" | "mention";

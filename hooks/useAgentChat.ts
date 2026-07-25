@@ -15,9 +15,11 @@ import { resultDisplayCount } from "@/lib/agent-chat/signal-utils";
 import {
   type AgentMode,
   type AgentRuntimeMode,
+  type AgentArtifactDetail,
   type AgentConversationDetail,
   type AgentRunResponse,
   type AgentStreamEvent,
+  type AgentTokenUsage,
   type AgentTurnEvent,
   type AgentTurnRequest,
   type ChatMessage,
@@ -171,6 +173,27 @@ function messagesFromConversation(
       }
     }
 
+    if (event?.type === "artifact.updated") {
+      const activityTrace = event.data?.activity_trace;
+      restored.push({
+        id: `server-${item.id}`,
+        role: "assistant",
+        content: item.content || event.message || "Results updated.",
+        resultTitle:
+          typeof event.data?.artifact_title === "string"
+            ? event.data.artifact_title
+            : conversation.title,
+        artifactId:
+          typeof event.data?.artifact_id === "string"
+            ? event.data.artifact_id
+            : undefined,
+        activityTrace: Array.isArray(activityTrace)
+          ? activityTrace
+          : undefined,
+      });
+      continue;
+    }
+
     if (event?.type === "turn.failed") {
       const activityTrace = event.data?.activity_trace;
       restored.push({
@@ -194,6 +217,89 @@ function messagesFromConversation(
     return [welcomeMessage];
   }
   return restored;
+}
+
+function runResponseFromArtifact(
+  artifact: AgentArtifactDetail,
+  previous?: AgentRunResponse,
+  skill = "social-research"
+): AgentRunResponse {
+  const artifactSignals = artifact.rows
+    .map((row) => row.raw_signal)
+    .filter((signal): signal is NonNullable<typeof signal> => Boolean(signal));
+
+  return {
+    answer: previous?.answer || artifact.summary || "",
+    chat_summary: previous?.chat_summary || artifact.summary || "",
+    skill_used: previous?.skill_used || skill,
+    tool_calls: previous?.tool_calls || [],
+    signals: artifactSignals.length ? artifactSignals : previous?.signals || [],
+    artifact_rows: artifact.rows.map((row) => ({
+      item_id: row.row_key,
+      fields: row.fields,
+    })),
+    artifact_id: artifact.artifact_id,
+    artifact_version: artifact.version,
+    artifact_schema: artifact.schema || null,
+    run_id: artifact.run_id || previous?.run_id,
+    activity_trace: artifact.activity_trace || previous?.activity_trace,
+    execution_memory: previous?.execution_memory,
+    steps_taken: previous?.steps_taken,
+  };
+}
+
+function replaceArtifactData(
+  messages: ChatMessage[],
+  artifact: AgentArtifactDetail,
+  skill?: string
+): ChatMessage[] {
+  const targetIndex = [...messages]
+    .map((message, index) => ({ message, index }))
+    .reverse()
+    .find(
+      ({ message }) =>
+        message.role === "assistant" &&
+        Boolean(message.data) &&
+        (!message.data?.artifact_id || message.data.artifact_id === artifact.artifact_id)
+    )?.index;
+
+  if (targetIndex === undefined) return messages;
+  return messages.map((message, index) => {
+    if (index !== targetIndex || message.role !== "assistant") return message;
+    return {
+      ...message,
+      data: runResponseFromArtifact(artifact, message.data, skill),
+    };
+  });
+}
+
+function attachArtifactDataToUpdateMessage(
+  messages: ChatMessage[],
+  artifact: AgentArtifactDetail,
+  skill?: string
+): ChatMessage[] {
+  const targetIndex = [...messages]
+    .map((message, index) => ({ message, index }))
+    .reverse()
+    .find(
+      ({ message }) =>
+        message.role === "assistant" &&
+        message.artifactId === artifact.artifact_id
+    )?.index;
+
+  if (targetIndex === undefined) return messages;
+  return messages.map((message, index) => {
+    if (index !== targetIndex || message.role !== "assistant") return message;
+    const refreshed = runResponseFromArtifact(artifact, undefined, skill);
+    return {
+      ...message,
+      data: {
+        ...refreshed,
+        chat_summary: message.content,
+      },
+      resultTitle: message.resultTitle || artifact.title,
+    };
+  });
 }
 
 export function useAgentChat({
@@ -247,6 +353,7 @@ export function useAgentChat({
     AgentRunResponse["signals"]
   >(() => persistedSession?.liveAgentSignals || []);
   const [liveReasoning, setLiveReasoning] = useState<string>("");
+  const [tokenUsage, setTokenUsage] = useState<AgentTokenUsage | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
     persistedSession?.messages ||
     (includeWelcomeMessage ? [welcomeMessage] : [])
@@ -289,10 +396,28 @@ export function useAgentChat({
         }
         const conversation = (await response.json()) as AgentConversationDetail;
         if (cancelled) return;
-        const restoredMessages = messagesFromConversation(
+        let restoredMessages = messagesFromConversation(
           conversation,
           includeWelcomeMessage
         );
+        const latestArtifactId = [...(conversation.messages || [])]
+          .reverse()
+          .map((item) => item.payload)
+          .find((event) => event?.type === "artifact.updated")?.data?.artifact_id;
+        if (typeof latestArtifactId === "string") {
+          const artifactResponse = await fetch(
+            getApiUrl(`agent-runtime/artifacts/${latestArtifactId}`),
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (artifactResponse.ok) {
+            const artifact = (await artifactResponse.json()) as AgentArtifactDetail;
+            restoredMessages = replaceArtifactData(restoredMessages, artifact);
+            restoredMessages = attachArtifactDataToUpdateMessage(
+              restoredMessages,
+              artifact
+            );
+          }
+        }
         setMessages(restoredMessages);
         setSessionTitle(conversation.title);
         setInitialPrompt(
@@ -313,6 +438,7 @@ export function useAgentChat({
         );
         setResearchPlan(latestPlanMessage?.researchPlan || null);
         setLiveAgentSignals(latestResultMessage?.data?.signals || []);
+        setTokenUsage(latestResultMessage?.data?.token_usage || null);
         setWorkspaceEvents([]);
         setLiveReasoning("");
       } catch (error) {
@@ -367,6 +493,7 @@ export function useAgentChat({
       setWorkspaceEvents([]);
       setLiveAgentSignals([]);
       setLiveReasoning("");
+      setTokenUsage(null);
       setResearchPlan(null);
       setRuntimeMode("chat");
       setMessages(includeWelcomeMessage ? [welcomeMessage] : []);
@@ -616,6 +743,15 @@ export function useAgentChat({
           if (eventConversationId) {
             setConversationId(eventConversationId);
           }
+          // Usage events only refresh the meter. They are emitted between the
+          // events that actually drive the turn, so letting them set the mode
+          // would knock the UI out of planning or executing state.
+          if (event.type === "run.usage") {
+            const usage = event.data?.token_usage as AgentTokenUsage | undefined;
+            if (usage) setTokenUsage(usage);
+            continue;
+          }
+
           if (event.mode) setRuntimeMode(event.mode);
 
           if (event.type === "plan.created") {
@@ -664,6 +800,7 @@ export function useAgentChat({
             const data = event.data?.response as AgentRunResponse | undefined;
             if (!data) continue;
             setLiveAgentSignals(data.signals);
+            if (data.token_usage) setTokenUsage(data.token_usage);
             if (approvedPlan) {
               setMessagePlanStatus(approvedPlan.plan_id, "complete");
               setResearchPlan({ ...approvedPlan, status: "complete" });
@@ -686,6 +823,60 @@ export function useAgentChat({
                 visibleResultCount === 1 ? "" : "s"
               }`,
               count: visibleResultCount,
+            });
+            setStreamStatus(null);
+            setRuntimeMode("chat");
+            continue;
+          }
+
+          if (event.type === "artifact.updated") {
+            const artifactId = event.data?.artifact_id;
+            if (typeof artifactId !== "string") continue;
+            const artifactResponse = await fetch(
+              getApiUrl(`agent-runtime/artifacts/${artifactId}`),
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (!artifactResponse.ok) {
+              throw new Error("The updated artifact could not be reloaded.");
+            }
+            const artifact = (await artifactResponse.json()) as AgentArtifactDetail;
+            const route = event.data?.route as { skill?: string } | undefined;
+            const refreshed = runResponseFromArtifact(
+              artifact,
+              undefined,
+              route?.skill
+            );
+            const chatSummary =
+              typeof event.data?.chat_summary === "string"
+                ? event.data.chat_summary
+                : event.message || "Results updated.";
+            const activityTrace = event.data?.activity_trace;
+            const updatedMessageData: AgentRunResponse = {
+              ...refreshed,
+              chat_summary: chatSummary,
+              activity_trace: Array.isArray(activityTrace)
+                ? activityTrace
+                : refreshed.activity_trace,
+            };
+            setMessages((current) =>
+              [
+                ...replaceArtifactData(current, artifact, route?.skill),
+                {
+                  id: createClientId(),
+                  role: "assistant",
+                  content: chatSummary,
+                  data: updatedMessageData,
+                  resultTitle: artifact.title,
+                  artifactId: artifact.artifact_id,
+                },
+              ]
+            );
+            setLiveAgentSignals(refreshed.signals);
+            setVisibleArtifactId(artifact.artifact_id);
+            pushWorkspaceEvent({
+              type: "completed",
+              label: event.message || "Artifact updated",
+              count: artifact.row_count,
             });
             setStreamStatus(null);
             setRuntimeMode("chat");
@@ -1030,6 +1221,7 @@ export function useAgentChat({
     setWorkspaceEvents([]);
     setLiveAgentSignals([]);
     setLiveReasoning("");
+    setTokenUsage(null);
     setResearchPlan(null);
     setRuntimeMode("chat");
     setMessages(includeWelcomeMessage ? [welcomeMessage] : []);
@@ -1080,6 +1272,7 @@ export function useAgentChat({
     workspaceData,
     liveAgentSignals,
     liveReasoning,
+    tokenUsage,
     researchPlan,
   };
 }

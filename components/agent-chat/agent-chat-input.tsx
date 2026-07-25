@@ -7,6 +7,8 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
+import { AgentContextUsage } from "@/components/agent-chat/agent-context-usage";
+import type { AgentTokenUsage } from "@/lib/agent-chat/types";
 
 type AgentChatInputProps = {
   prompt: string;
@@ -15,6 +17,7 @@ type AgentChatInputProps = {
   onStopSearch: () => void;
   canSearch: boolean;
   isSearching: boolean;
+  tokenUsage?: AgentTokenUsage | null;
 };
 
 export function AgentChatInput({
@@ -24,6 +27,7 @@ export function AgentChatInput({
   onStopSearch,
   canSearch,
   isSearching,
+  tokenUsage,
 }: AgentChatInputProps) {
   return (
     <div className="border-t bg-background px-4 py-4">
@@ -46,7 +50,9 @@ export function AgentChatInput({
             }}
           />
           <PromptInputFooter>
-            <PromptInputTools />
+            <PromptInputTools>
+              <AgentContextUsage usage={tokenUsage} />
+            </PromptInputTools>
             <PromptInputSubmit
               disabled={!isSearching && !canSearch}
               onStop={onStopSearch}

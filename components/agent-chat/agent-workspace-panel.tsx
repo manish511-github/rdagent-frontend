@@ -144,6 +144,10 @@ type AgentWorkspaceData = {
   }>;
   signals: AgentSignal[];
   artifact_rows?: AgentArtifactRow[];
+  artifact_schema?: {
+    columns?: ResearchPlanColumn[];
+    [key: string]: unknown;
+  } | null;
 };
 
 type StatusFilter = "all" | "actionable" | "comments" | "news" | "promo" | "low_relevance";
@@ -223,10 +227,13 @@ export function AgentWorkspacePanel({
     });
   }, [data?.artifact_rows, signals]);
 
-  const artifactColumns = useMemo(
-    () => researchPlan?.output?.columns || [],
-    [researchPlan?.output?.columns]
-  );
+  const artifactColumns = useMemo(() => {
+    const columns = [...(researchPlan?.output?.columns || [])];
+    for (const column of data?.artifact_schema?.columns || []) {
+      if (!columns.some((item) => item.key === column.key)) columns.push(column);
+    }
+    return columns;
+  }, [data?.artifact_schema?.columns, researchPlan?.output?.columns]);
 
   const filteredRecords = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
