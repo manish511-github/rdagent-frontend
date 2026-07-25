@@ -66,6 +66,15 @@ export function AgentChatMessages({
                     <Response className="min-w-0 max-w-full break-words [&_pre]:max-w-full [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_table]:w-full [&_table]:table-fixed [&_td]:break-words [&_th]:break-words">
                       {assistantContent}
                     </Response>
+                  {restoredActivity.length > 0 && (
+                    <div className="mt-3">
+                      <AgentStreamActivity
+                        events={restoredActivity}
+                        isSearching={false}
+                        streamStatus={null}
+                      />
+                    </div>
+                  )}
                   {message.keywordPlan && (
                     <AgentKeywordConfirmation
                       plan={message.keywordPlan}
@@ -88,15 +97,6 @@ export function AgentChatMessages({
                       title={message.resultTitle}
                       onViewResults={() => onViewResults?.(message.data as AgentRunResponse, message.resultTitle)}
                     />
-                  )}
-                  {restoredActivity.length > 0 && (
-                    <div className="mt-3">
-                      <AgentStreamActivity
-                        events={restoredActivity}
-                        isSearching={false}
-                        streamStatus={null}
-                      />
-                    </div>
                   )}
                   </>
                 )}
