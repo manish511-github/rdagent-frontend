@@ -140,11 +140,15 @@ export function HackerNewsIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 512 512"
-      fill="currentColor"
+      viewBox="0 0 24 24"
+      fill="none"
       {...props}
     >
-      <path d="M140 120h28l84 146 84-146h28l-98 168v104h-28V288z" fill="#fff" />
+      <rect width="24" height="24" rx="4" fill="#FF6600" />
+      <path
+        d="M6.6 5.5h1.7l4 7 4-7h1.7l-4.9 8.4V18.5h-1.6v-4.6z"
+        fill="#fff"
+      />
     </svg>
   );
 }

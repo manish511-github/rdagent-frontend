@@ -60,6 +60,30 @@ export type AgentArtifactRow = {
   fields: Record<string, unknown>;
 };
 
+export type AgentWorkspaceRow = {
+  row_key: string;
+  source?: string | null;
+  fields: Record<string, unknown>;
+  raw_signal?: AgentSignal | null;
+};
+
+export type AgentWorkspaceArtifact = {
+  artifact_id?: string;
+  version?: number;
+  title?: string;
+  artifact_type?: string;
+  summary?: string;
+  schema?: {
+    columns?: ResearchPlanColumn[];
+    [key: string]: unknown;
+  } | null;
+  columns?: ResearchPlanColumn[];
+  rows?: AgentWorkspaceRow[];
+  source_coverage?: Record<string, unknown> | null;
+  query_history?: Record<string, unknown>[] | null;
+  view_state?: Record<string, unknown> | null;
+};
+
 export type AgentToolCall = {
   name: string;
   args: Record<string, unknown>;
@@ -128,13 +152,9 @@ export type AgentRunResponse = {
   skill_used: string;
   tool_calls: AgentToolCall[];
   signals: AgentSignal[];
-  artifact_rows?: AgentArtifactRow[];
   artifact_id?: string;
   artifact_version?: number;
-  artifact_schema?: {
-    columns?: ResearchPlanColumn[];
-    [key: string]: unknown;
-  } | null;
+  workspace?: AgentWorkspaceArtifact | null;
   run_id?: string;
   reasoning?: string;
   activity_trace?: AgentRunTraceItem[];
@@ -160,7 +180,10 @@ export type AgentStreamEvent = {
 export type AgentTurnEvent = {
   type?:
     | "conversation.ready"
+    | "conversation.compaction.started"
     | "turn.routed"
+    | "context.answer.started"
+    | "context.answer.completed"
     | "plan.started"
     | "plan.created"
     | "plan.approved"
@@ -254,10 +277,12 @@ export type AgentArtifactDetail = {
   title: string;
   artifact_type: string;
   schema?: Record<string, unknown> | null;
+  workspace?: AgentWorkspaceArtifact | null;
   summary: string;
   source_coverage?: Record<string, unknown> | null;
   query_history?: Record<string, unknown>[] | null;
   operation?: Record<string, unknown> | null;
+  view_state?: Record<string, unknown> | null;
   row_count: number;
   created_at: string;
   updated_at?: string | null;
@@ -313,6 +338,7 @@ export type ResearchPlan = {
   scout_findings: ResearchPlanScoutFinding[];
   generation_mode: "llm";
   warnings: string[];
+  requested_count?: number | null;
 };
 
 export type AgentKeywordPlan = {

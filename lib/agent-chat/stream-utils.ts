@@ -44,11 +44,13 @@ export function activityTraceToWorkspaceEvents(
 }
 
 export function parseSseChunk(chunk: string): AgentStreamEvent | null {
-  const line = chunk.split("\n").find((item) => item.startsWith("data: "));
+  const line = chunk
+    .split(/\r?\n/)
+    .find((item) => item.trimStart().startsWith("data:"));
   if (!line) return null;
 
   try {
-    return JSON.parse(line.slice(6)) as AgentStreamEvent;
+    return JSON.parse(line.replace(/^\s*data:\s?/, "")) as AgentStreamEvent;
   } catch {
     return null;
   }
@@ -81,6 +83,15 @@ export function agentSignalKey(signal: AgentSignal) {
 export function normalizeStreamEvent(
   event: AgentStreamEvent
 ): Omit<AgentWorkspaceEvent, "id" | "createdAt"> | null {
+  if (event.type === "conversation.compaction.started") {
+    return {
+      type: "progress",
+      label: event.message || "Optimizing earlier conversation context",
+      detail: "Keeping recent messages available while compressing older history.",
+      phase: "synthesis",
+    };
+  }
+
   if (event.type === "mention_found" && event.mention) {
     return {
       type: "mention_found",

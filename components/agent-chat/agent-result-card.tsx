@@ -1,10 +1,11 @@
 "use client";
 
-import { ChevronRight, FileText } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { PlatformIcon } from "@/components/kokonutui/platform-icons";
 import type { AgentRunResponse } from "@/lib/agent-chat/types";
-import { summarizeRun } from "@/lib/agent-chat/signal-utils";
+import { platformIconKey, summarizeRun } from "@/lib/agent-chat/signal-utils";
 
 type AgentResultCardProps = {
   data: AgentRunResponse;
@@ -28,8 +29,11 @@ export function AgentResultCard({
       className="mt-4 block w-full overflow-hidden rounded-xl border bg-background text-left shadow-sm transition-colors hover:bg-muted/40"
     >
       <div className="flex items-center gap-3 px-4 py-4">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-          <FileText className="size-4" />
+        <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
+          <PlatformIcon
+            platform={platformIconKey(platform || data.skill_used)}
+            className="size-5"
+          />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium">

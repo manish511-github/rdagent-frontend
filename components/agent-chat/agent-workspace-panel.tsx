@@ -35,13 +35,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type {
   AgentArtifactRow,
+  AgentWorkspaceArtifact,
   ResearchPlan,
   ResearchPlanColumn,
 } from "@/lib/agent-chat/types";
 import {
   formatPlatformLabel,
+  platformIconKey,
   signalPlatform,
+  topPlatform,
 } from "@/lib/agent-chat/signal-utils";
+import { PlatformIcon } from "@/components/kokonutui/platform-icons";
 import { cn } from "@/lib/utils";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -143,11 +147,7 @@ type AgentWorkspaceData = {
     result?: Record<string, unknown>;
   }>;
   signals: AgentSignal[];
-  artifact_rows?: AgentArtifactRow[];
-  artifact_schema?: {
-    columns?: ResearchPlanColumn[];
-    [key: string]: unknown;
-  } | null;
+  workspace?: AgentWorkspaceArtifact | null;
 };
 
 type StatusFilter = "all" | "actionable" | "comments" | "news" | "promo" | "low_relevance";
@@ -199,16 +199,30 @@ export function AgentWorkspacePanel({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [presentationMode, setPresentationMode] = useState<ResultPresentationMode>("list");
+  const workspace = data?.workspace || null;
 
   const signals = useMemo(() => {
     const finalSignals = data?.signals || [];
+    const workspaceSignals = workspace?.rows
+      ?.map((row) => row.raw_signal)
+      .filter((signal): signal is AgentSignal => Boolean(signal)) || [];
     // Reddit can surface the same post through multiple expanded queries.
     // Keep every distinct post, but render each canonical URL only once.
-    return dedupeSignals(finalSignals.length ? finalSignals : liveSignals);
-  }, [data?.signals, liveSignals]);
+    return dedupeSignals(
+      finalSignals.length ? finalSignals : workspaceSignals.length ? workspaceSignals : liveSignals
+    );
+  }, [data?.signals, liveSignals, workspace?.rows]);
 
   const displayRecords = useMemo<AgentDisplayRecord[]>(() => {
-    const rows = data?.artifact_rows || [];
+    const rows =
+      workspace?.rows?.map((row) => ({
+        item_id: row.row_key,
+        fields: {
+          ...(row.fields || {}),
+          source: row.fields?.source || row.source,
+          platform: row.fields?.platform || row.source,
+        },
+      })) || [];
     if (!rows.length) {
       return signals.map((signal, index) => ({
         id: `${signalId(signal)}-${index}`,
@@ -225,15 +239,22 @@ export function AgentWorkspacePanel({
         artifactRow: row,
       };
     });
-  }, [data?.artifact_rows, signals]);
+  }, [signals, workspace?.rows]);
 
   const artifactColumns = useMemo(() => {
     const columns = [...(researchPlan?.output?.columns || [])];
-    for (const column of data?.artifact_schema?.columns || []) {
+    for (const column of workspace?.columns || []) {
+      if (!columns.some((item) => item.key === column.key)) columns.push(column);
+    }
+    for (const column of workspace?.schema?.columns || []) {
       if (!columns.some((item) => item.key === column.key)) columns.push(column);
     }
     return columns;
-  }, [data?.artifact_schema?.columns, researchPlan?.output?.columns]);
+  }, [
+    researchPlan?.output?.columns,
+    workspace?.columns,
+    workspace?.schema?.columns,
+  ]);
 
   const filteredRecords = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -308,7 +329,11 @@ export function AgentWorkspacePanel({
   const workspaceTitle =
     viewMode === "plan"
       ? researchPlan?.title || sessionTitle || trackerPrompt || "Research plan"
-      : sessionTitle || researchPlan?.title || trackerPrompt || "Research results";
+      : workspace?.title || sessionTitle || researchPlan?.title || trackerPrompt || "Research results";
+  const panelPlatformKey = platformIconKey(
+    topPlatform(displayRecords.map((record) => record.signal)) ||
+      researchPlan?.sources?.[0]?.source
+  );
   const shouldShowPlanReview =
     Boolean(researchPlan && onExecutePlan) &&
     viewMode === "plan" &&
@@ -394,8 +419,8 @@ export function AgentWorkspacePanel({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <Radio className="size-4" />
+              <div className="flex size-8 items-center justify-center overflow-hidden rounded-md bg-muted">
+                <PlatformIcon platform={panelPlatformKey} className="size-5" />
               </div>
               <div className="min-w-0">
                 <h2 className="truncate text-base font-semibold">{workspaceTitle}</h2>
@@ -1108,10 +1133,9 @@ function MentionDetails({
 }
 
 function PlatformMark({ platform }: { platform: string }) {
-  const label = platform === "Hacker News" ? "HN" : platform.charAt(0).toUpperCase();
   return (
-    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-foreground">
-      {label}
+    <span className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-full">
+      <PlatformIcon platform={platformIconKey(platform)} className="size-5" />
     </span>
   );
 }

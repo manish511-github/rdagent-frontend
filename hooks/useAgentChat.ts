@@ -94,6 +94,9 @@ function turnEventToStreamEvent(event: AgentTurnEvent): AgentStreamEvent {
     "plan.started": "planning",
     "plan.approved": "running",
     "plan.rejected": "rejected",
+    "conversation.compaction.started": "compacting",
+    "context.answer.started": "running",
+    "context.answer.completed": "complete",
     "run.started": "running",
     "run.status": event.status || "running",
     "tool.called": "tool_call",
@@ -194,6 +197,15 @@ function messagesFromConversation(
       continue;
     }
 
+    if (event?.type === "context.answer.completed") {
+      restored.push({
+        id: `server-${item.id}`,
+        role: "assistant",
+        content: item.content || event.message || "I answered from the current results.",
+      });
+      continue;
+    }
+
     if (event?.type === "turn.failed") {
       const activityTrace = event.data?.activity_trace;
       restored.push({
@@ -234,13 +246,9 @@ function runResponseFromArtifact(
     skill_used: previous?.skill_used || skill,
     tool_calls: previous?.tool_calls || [],
     signals: artifactSignals.length ? artifactSignals : previous?.signals || [],
-    artifact_rows: artifact.rows.map((row) => ({
-      item_id: row.row_key,
-      fields: row.fields,
-    })),
     artifact_id: artifact.artifact_id,
     artifact_version: artifact.version,
-    artifact_schema: artifact.schema || null,
+    workspace: artifact.workspace,
     run_id: artifact.run_id || previous?.run_id,
     activity_trace: artifact.activity_trace || previous?.activity_trace,
     execution_memory: previous?.execution_memory,
@@ -722,13 +730,25 @@ export function useAgentChat({
       let done = false;
       let buffer = "";
 
-      while (!done) {
-        const { value, done: readerDone } = await reader.read();
-        done = readerDone;
-        if (!value) continue;
+      while (!done || buffer.trim()) {
+        if (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+          if (value) {
+            buffer += decoder.decode(value, { stream: true });
+          }
+          if (readerDone) {
+            buffer += decoder.decode();
+          }
+          if (!value && !readerDone) continue;
+        } else {
+          // Some proxies close the response after the final data line without
+          // giving the browser a separate delimiter-sized read. Parse that
+          // leftover terminal event before marking the UI idle.
+          buffer = `${buffer}\n\n`;
+        }
 
-        buffer += decoder.decode(value, { stream: true });
-        const chunks = buffer.split("\n\n");
+        const chunks = buffer.split(/\r?\n\r?\n/);
         buffer = chunks.pop() || "";
 
         for (const chunk of chunks) {
@@ -878,6 +898,51 @@ export function useAgentChat({
               label: event.message || "Artifact updated",
               count: artifact.row_count,
             });
+            setStreamStatus(null);
+            setRuntimeMode("chat");
+            continue;
+          }
+
+          if (event.type === "context.answer.completed") {
+            const answer = event.message || "I answered from the current results.";
+            pushWorkspaceEvent({
+              type: "completed",
+              label: "Answered from the current results",
+            });
+            setMessages((current) => [
+              ...current,
+              {
+                id: createClientId(),
+                role: "assistant",
+                content: answer,
+              },
+            ]);
+            setStreamStatus(null);
+            setRuntimeMode("chat");
+            continue;
+          }
+
+          if (
+            event.type === "clarification.requested" ||
+            event.type === "artifact.conflict"
+          ) {
+            const messageText =
+              event.message ||
+              (event.type === "artifact.conflict"
+                ? "This result changed before I could update it. Please try again."
+                : "I need one more detail before I can continue.");
+            pushWorkspaceEvent({
+              type: event.type === "artifact.conflict" ? "error" : "progress",
+              label: messageText,
+            });
+            setMessages((current) => [
+              ...current,
+              {
+                id: createClientId(),
+                role: "assistant",
+                content: messageText,
+              },
+            ]);
             setStreamStatus(null);
             setRuntimeMode("chat");
             continue;

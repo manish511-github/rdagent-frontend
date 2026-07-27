@@ -61,7 +61,7 @@ export function summarizeRun(data: AgentRunResponse) {
 
 export function resultDisplayCount(data?: AgentRunResponse | null) {
   if (!data) return 0;
-  return data.artifact_rows?.length || data.signals.length;
+  return data.workspace?.rows?.length || data.signals.length;
 }
 
 export function formatPlatformLabel(platform?: string, tool?: string) {
@@ -90,4 +90,30 @@ export function formatPlatformLabel(platform?: string, tool?: string) {
     (label) => label.toLowerCase() === value
   );
   return labels[value] || labels[compactValue] || existingLabel || rawValue || "Source";
+}
+
+/** Map display labels / source keys to `PlatformIcon` ids. */
+export function platformIconKey(platform?: string, tool?: string) {
+  const rawValue = platform || tool || "";
+  const value = rawValue
+    .toLowerCase()
+    .replace(/_(fetch|search|discovery)$/, "")
+    .replace(/[\s_/-]+/g, "");
+  const keys: Record<string, string> = {
+    x: "twitter",
+    twitter: "twitter",
+    xtwitter: "twitter",
+    reddit: "reddit",
+    hackernews: "hackernews",
+    hackernew: "hackernews",
+    hn: "hackernews",
+    youtube: "youtube",
+    linkedin: "linkedin",
+    discord: "discord",
+    slack: "slack",
+    tiktok: "tiktok",
+    instagram: "instagram",
+    email: "email",
+  };
+  return keys[value] || value || "hackernews";
 }

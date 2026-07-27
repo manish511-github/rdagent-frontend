@@ -74,6 +74,23 @@ function AgentChatRun({ onNewRun }: { onNewRun: () => void }) {
   }, [chat.hasSessionActivity]);
 
   useEffect(() => {
+    if (!selectedResultData || !chat.workspaceData?.artifact_id) return;
+    if (selectedResultData.artifact_id !== chat.workspaceData.artifact_id) return;
+
+    const selectedVersion = selectedResultData.artifact_version || 0;
+    const liveVersion = chat.workspaceData.artifact_version || 0;
+    if (liveVersion >= selectedVersion) {
+      setSelectedResultData(chat.workspaceData);
+      setSelectedResultTitle(chat.sessionTitle || selectedResultTitle);
+    }
+  }, [
+    chat.sessionTitle,
+    chat.workspaceData,
+    selectedResultData,
+    selectedResultTitle,
+  ]);
+
+  useEffect(() => {
     if (
       showWorkspacePanel &&
       workspaceViewMode === "results" &&

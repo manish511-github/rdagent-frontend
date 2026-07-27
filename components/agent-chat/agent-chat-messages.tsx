@@ -91,7 +91,7 @@ export function AgentChatMessages({
                       onView={onViewResearchPlan}
                     />
                   )}
-                  {message.data && (message.data.artifact_rows?.length || message.data.signals.length) > 0 && (
+                  {message.data && (message.data.workspace?.rows?.length || message.data.signals.length) > 0 && (
                     <AgentResultCard
                       data={message.data}
                       title={message.resultTitle}
