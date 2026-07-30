@@ -1,1349 +1,512 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Cookies from "js-cookie";
-import { toast } from "sonner";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { getApiUrl } from "@/lib/config";
 import {
-  mergeAgentSignal,
-  normalizeStreamEvent,
-  parseSseChunk,
-  readError,
-} from "@/lib/agent-chat/stream-utils";
-import { resultDisplayCount } from "@/lib/agent-chat/signal-utils";
-import {
-  type AgentMode,
-  type AgentRuntimeMode,
-  type AgentArtifactDetail,
-  type AgentConversationDetail,
-  type AgentRunResponse,
-  type AgentStreamEvent,
-  type AgentTokenUsage,
-  type AgentTurnEvent,
-  type AgentTurnRequest,
-  type ChatMessage,
-  type AgentWorkspaceEvent,
-  type ResearchPlan,
+  cancelAgentExecution,
+  getAgentConversation,
+  streamAgentTurn,
+} from "@/lib/agent-chat/api";
+import type {
+  AgentTurnEvent,
+  AgentUIContextPayload,
+  ChatBlock,
 } from "@/lib/agent-chat/types";
 
-type UseAgentChatOptions = {
-  includeWelcomeMessage?: boolean;
-  persistKey?: string;
-};
+const STORAGE_KEY = "zooptics.agentChat.conversationId";
 
-const welcomeMessage: ChatMessage = {
-  id: "welcome",
-  role: "assistant",
-  content:
-    "Tell me what brand, product, competitor, or keyword you want to track. I can monitor mentions across Reddit, X/Twitter, Hacker News, YouTube, GitHub, LinkedIn, and newsletters.",
-};
+function newId(prefix: string): string {
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
-type PersistedAgentChatSession = {
-  version: 2 | 3 | 4;
-  sessionId: string;
-  conversationId?: string | null;
-  visibleArtifactId?: string | null;
-  sessionTitle: string;
-  initialPrompt: string;
-  agentMode: AgentMode;
-  runtimeMode: AgentRuntimeMode;
-  aiExpandKeywords: boolean;
-  productName: string;
-  competitors: string;
-  messages: ChatMessage[];
-  workspaceEvents: AgentWorkspaceEvent[];
-  liveAgentSignals: AgentRunResponse["signals"];
-  researchPlan?: ResearchPlan | null;
-  updatedAt: number;
-};
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
 
-function createClientId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function formatExecutionLog(data: Record<string, unknown>): string {
+  const log = data.log;
+  if (log && typeof log === "object") {
+    const record = log as Record<string, unknown>;
+    const args = record.args;
+    if (Array.isArray(args) && args.length > 0) {
+      return args
+        .map((arg) =>
+          typeof arg === "string" ? arg : JSON.stringify(arg, null, 2)
+        )
+        .join(" ");
+    }
+    if (typeof record.message === "string" && record.message) {
+      return record.message;
+    }
   }
-  return `session-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function titleFromPrompt(prompt: string) {
-  const compact = prompt.replace(/\s+/g, " ").trim();
-  if (!compact) return "New agent chat";
-  return compact.length > 72 ? `${compact.slice(0, 69)}...` : compact;
-}
-
-function normalizeTurnEvent(event: AgentTurnEvent): AgentTurnEvent {
-  if (event.type) return event;
-  const statusToType: Record<string, AgentTurnEvent["type"]> = {
-    planning: "run.status",
-    running: "run.status",
-    tool_call: "tool.called",
-    tool_result: "tool.completed",
-    quality: "quality.checked",
-    repairing: "repair.started",
-    complete: "answer.completed",
-    error: "turn.failed",
-  };
-  return {
-    ...event,
-    type: event.status ? statusToType[event.status] : undefined,
-  };
-}
-
-function turnEventToStreamEvent(event: AgentTurnEvent): AgentStreamEvent {
-  const statusByType: Record<string, string> = {
-    "plan.started": "planning",
-    "plan.approved": "running",
-    "plan.rejected": "rejected",
-    "conversation.compaction.started": "compacting",
-    "context.answer.started": "running",
-    "context.answer.completed": "complete",
-    "run.started": "running",
-    "run.status": event.status || "running",
-    "tool.called": "tool_call",
-    "tool.completed": "tool_result",
-    "quality.checked": "quality",
-    "repair.started": "repairing",
-    "answer.completed": "complete",
-    "turn.failed": "error",
-    "clarification.requested": "error",
-  };
-  const type = event.type || "";
-  return {
-    status: event.status || statusByType[type],
-    message: event.message,
-    data: event.data,
-    type: event.type,
-  };
-}
-
-function readPersistedSession(
-  persistKey?: string
-): PersistedAgentChatSession | null {
-  if (!persistKey || typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(persistKey);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as PersistedAgentChatSession;
-    return parsed.version === 2 || parsed.version === 3 || parsed.version === 4
-      ? parsed
-      : null;
-  } catch {
-    return null;
+  if (Array.isArray(data.args) && data.args.length > 0) {
+    return data.args
+      .map((arg) =>
+        typeof arg === "string" ? arg : JSON.stringify(arg, null, 2)
+      )
+      .join(" ");
   }
+  return "";
 }
 
-function messagesFromConversation(
-  conversation: AgentConversationDetail,
-  includeWelcomeMessage: boolean
-): ChatMessage[] {
-  const restored: ChatMessage[] = [];
-  for (const item of conversation.messages || []) {
-    if (item.role === "user") {
-      restored.push({
-        id: `server-${item.id}`,
-        role: "user",
-        content: item.content,
+function blocksFromRestoredMessages(
+  messages: Array<{
+    role: string;
+    content: string;
+    event_type?: string | null;
+    payload?: Record<string, unknown> | null;
+  }>
+): ChatBlock[] {
+  const blocks: ChatBlock[] = [];
+  for (const message of messages) {
+    if (message.role === "user") {
+      blocks.push({
+        id: newId("user"),
+        kind: "user",
+        text: message.content || "",
       });
       continue;
     }
-
-    const event = item.payload;
-    if (event?.type === "plan.created") {
-      const plan = event.data?.plan as ResearchPlan | undefined;
-      if (plan) {
-        restored.push({
-          id: `server-${item.id}`,
-          role: "assistant",
-          content: `Here is my research plan for: "${plan.message || conversation.title}"`,
-          researchPlan: plan,
-        });
-        continue;
+    if (message.event_type === "answer.completed" || message.role === "assistant") {
+      const text =
+        asString(message.payload?.text) || message.content || "";
+      if (text) {
+        blocks.push({ id: newId("text"), kind: "text", text });
       }
     }
-
-    if (event?.type === "answer.completed") {
-      const data = event.data?.response as AgentRunResponse | undefined;
-      if (data) {
-        restored.push({
-          id: `server-${item.id}`,
-          role: "assistant",
-          content: buildExecutionSummary(data),
-          data,
-          resultTitle: conversation.title,
-          reasoning: data.reasoning || undefined,
-        });
-        continue;
-      }
-    }
-
-    if (event?.type === "artifact.updated") {
-      const activityTrace = event.data?.activity_trace;
-      restored.push({
-        id: `server-${item.id}`,
-        role: "assistant",
-        content: item.content || event.message || "Results updated.",
-        resultTitle:
-          typeof event.data?.artifact_title === "string"
-            ? event.data.artifact_title
-            : conversation.title,
-        artifactId:
-          typeof event.data?.artifact_id === "string"
-            ? event.data.artifact_id
-            : undefined,
-        activityTrace: Array.isArray(activityTrace)
-          ? activityTrace
-          : undefined,
-      });
-      continue;
-    }
-
-    if (event?.type === "context.answer.completed") {
-      restored.push({
-        id: `server-${item.id}`,
-        role: "assistant",
-        content: item.content || event.message || "I answered from the current results.",
-      });
-      continue;
-    }
-
-    if (event?.type === "turn.failed") {
-      const activityTrace = event.data?.activity_trace;
-      restored.push({
-        id: `server-${item.id}`,
-        role: "assistant",
-        content: item.content || event.message || "Agent turn failed.",
-        activityTrace: Array.isArray(activityTrace) ? activityTrace : undefined,
-      });
-      continue;
-    }
-
-    if (item.content) {
-      restored.push({
-        id: `server-${item.id}`,
-        role: "assistant",
-        content: item.content,
-      });
-    }
   }
-  if (!restored.length && includeWelcomeMessage) {
-    return [welcomeMessage];
-  }
-  return restored;
+  return blocks;
 }
 
-function runResponseFromArtifact(
-  artifact: AgentArtifactDetail,
-  previous?: AgentRunResponse,
-  skill = "social-research"
-): AgentRunResponse {
-  const artifactSignals = artifact.rows
-    .map((row) => row.raw_signal)
-    .filter((signal): signal is NonNullable<typeof signal> => Boolean(signal));
+function applyTurnEvent(
+  blocks: ChatBlock[],
+  event: AgentTurnEvent
+): ChatBlock[] {
+  const data = event.data || {};
+  const next = [...blocks];
 
-  return {
-    answer: previous?.answer || artifact.summary || "",
-    chat_summary: previous?.chat_summary || artifact.summary || "",
-    skill_used: previous?.skill_used || skill,
-    tool_calls: previous?.tool_calls || [],
-    signals: artifactSignals.length ? artifactSignals : previous?.signals || [],
-    artifact_id: artifact.artifact_id,
-    artifact_version: artifact.version,
-    workspace: artifact.workspace,
-    run_id: artifact.run_id || previous?.run_id,
-    activity_trace: artifact.activity_trace || previous?.activity_trace,
-    execution_memory: previous?.execution_memory,
-    steps_taken: previous?.steps_taken,
+  const appendOrExtend = (
+    kind: "thought" | "text",
+    delta: string
+  ): ChatBlock[] => {
+    if (!delta) return next;
+    const last = next[next.length - 1];
+    if (last && last.kind === kind && last.streaming) {
+      const updated = {
+        ...last,
+        text: `${last.text}${delta}`,
+      } as ChatBlock;
+      return [...next.slice(0, -1), updated];
+    }
+    return [
+      ...next,
+      { id: newId(kind), kind, text: delta, streaming: true } as ChatBlock,
+    ];
   };
+
+  const finalizeStreaming = (): ChatBlock[] =>
+    next.map((block) =>
+      block.kind === "thought" || block.kind === "text"
+        ? { ...block, streaming: false }
+        : block
+    );
+
+  switch (event.type) {
+    case "thought":
+      return appendOrExtend(
+        "thought",
+        asString(data.text) || event.message || ""
+      );
+    case "text":
+      return appendOrExtend("text", asString(data.text) || event.message || "");
+    case "plan": {
+      const finalized = finalizeStreaming();
+      return [
+        ...finalized,
+        {
+          id: newId("plan"),
+          kind: "plan",
+          title: asString(data.title, "Plan"),
+          summary: asString(data.summary),
+          steps: asStringArray(data.steps),
+          parameters:
+            data.parameters && typeof data.parameters === "object"
+              ? (data.parameters as Record<string, unknown>)
+              : undefined,
+        },
+      ];
+    }
+    case "summary": {
+      const finalized = finalizeStreaming();
+      return [
+        ...finalized,
+        {
+          id: newId("summary"),
+          kind: "summary",
+          title: asString(data.title, "Summary"),
+          summary: asString(data.summary),
+          highlights: asStringArray(data.highlights),
+          metrics:
+            data.metrics && typeof data.metrics === "object"
+              ? (data.metrics as Record<string, unknown>)
+              : undefined,
+        },
+      ];
+    }
+    case "ask_questions": {
+      const finalized = finalizeStreaming();
+      const questions = Array.isArray(data.questions)
+        ? data.questions
+            .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+            .map((item) => ({
+              id: asString(item.id, newId("q")),
+              prompt: asString(item.prompt, "Question"),
+              allow_free_text:
+                typeof item.allow_free_text === "boolean"
+                  ? item.allow_free_text
+                  : true,
+              options: asStringArray(item.options),
+            }))
+        : [];
+      return [
+        ...finalized,
+        {
+          id: newId("questions"),
+          kind: "questions",
+          title: asString(data.title, "Quick questions"),
+          questions,
+        },
+      ];
+    }
+    case "next_actions": {
+      const finalized = finalizeStreaming();
+      return [
+        ...finalized,
+        {
+          id: newId("actions"),
+          kind: "next_actions",
+          actions: asStringArray(data.actions),
+        },
+      ];
+    }
+    case "tool_start":
+      return [
+        ...finalizeStreaming(),
+        {
+          id: newId("tool"),
+          kind: "tool",
+          tool: asString(data.tool, "tool"),
+          phase: "start",
+        },
+      ];
+    case "tool_result":
+      return [
+        ...next,
+        {
+          id: newId("tool"),
+          kind: "tool",
+          tool: asString(data.tool, "tool"),
+          phase: "result",
+          detail: asString(
+            (data.result as { message?: string } | undefined)?.message
+          ),
+        },
+      ];
+    case "context.compressed":
+    case "compaction.scheduled":
+    case "turn.started":
+      return [
+        ...next,
+        {
+          id: newId("status"),
+          kind: "status",
+          text: event.message || event.type,
+        },
+      ];
+    case "error":
+      return [
+        ...finalizeStreaming(),
+        {
+          id: newId("error"),
+          kind: "error",
+          text:
+            asString((data.error as { message?: string } | undefined)?.message) ||
+            event.message ||
+            "The agent turn failed.",
+        },
+      ];
+    case "done":
+      return finalizeStreaming();
+    default:
+      if (event.type.startsWith("execution.")) {
+        const executionId = asString(data.execution_id);
+        if (!executionId) {
+          return [
+            ...next,
+            {
+              id: newId("status"),
+              kind: "status",
+              text: event.message || event.type.replace("execution.", "Execution "),
+            },
+          ];
+        }
+        const phase = event.type.replace("execution.", "");
+        const statusMap: Record<
+          string,
+          Extract<ChatBlock, { kind: "execution" }>["status"]
+        > = {
+          queued: "queued",
+          validating: "validating",
+          started: "running",
+          log: "running",
+          service_called: "running",
+          service_completed: "running",
+          workspace_updated: "running",
+          completed: "completed",
+          failed: "failed",
+          cancelled: "cancelled",
+          partial: "partial",
+        };
+        const status = statusMap[phase] || "running";
+        const existingIndex = next.findIndex(
+          (block) =>
+            block.kind === "execution" && block.executionId === executionId
+        );
+        const logLine =
+          phase === "log"
+            ? formatExecutionLog(data) ||
+              asString(data.message) ||
+              asString((data.log as { message?: string } | undefined)?.message)
+            : "";
+        const serviceLine =
+          phase === "service_called" || phase === "service_completed"
+            ? asString(data.method) || asString(data.service) || event.message || phase
+            : "";
+        const returnValue =
+          phase === "completed" && "return_value" in data
+            ? data.return_value
+            : undefined;
+        const code =
+          typeof data.code === "string" && data.code ? data.code : undefined;
+        const errorObj =
+          data.error && typeof data.error === "object"
+            ? (data.error as { code?: unknown; message?: unknown })
+            : null;
+        const errorCode =
+          typeof errorObj?.code === "string" ? errorObj.code : undefined;
+        const errorMessage =
+          typeof errorObj?.message === "string"
+            ? errorObj.message
+            : phase === "failed"
+              ? event.message || "Code execution failed"
+              : undefined;
+        const issues = Array.isArray(data.issues) ? data.issues : undefined;
+
+        if (existingIndex >= 0) {
+          const existing = next[existingIndex] as Extract<
+            ChatBlock,
+            { kind: "execution" }
+          >;
+          const updated: ChatBlock = {
+            ...existing,
+            status,
+            message: event.message || existing.message,
+            logs: logLine ? [...existing.logs, logLine].slice(-40) : existing.logs,
+            serviceCalls: serviceLine
+              ? [...existing.serviceCalls, serviceLine].slice(-20)
+              : existing.serviceCalls,
+            returnValue:
+              returnValue !== undefined ? returnValue : existing.returnValue,
+            code: code ?? existing.code,
+            errorCode: errorCode ?? existing.errorCode,
+            errorMessage: errorMessage ?? existing.errorMessage,
+            issues: issues ?? existing.issues,
+          };
+          return [
+            ...next.slice(0, existingIndex),
+            updated,
+            ...next.slice(existingIndex + 1),
+          ];
+        }
+        return [
+          ...next,
+          {
+            id: newId("execution"),
+            kind: "execution",
+            executionId,
+            status,
+            message: event.message || `Execution ${phase}`,
+            logs: logLine ? [logLine] : [],
+            serviceCalls: serviceLine ? [serviceLine] : [],
+            returnValue,
+            code,
+            errorCode,
+            errorMessage,
+            issues,
+          },
+        ];
+      }
+      return next;
+  }
 }
 
-function replaceArtifactData(
-  messages: ChatMessage[],
-  artifact: AgentArtifactDetail,
-  skill?: string
-): ChatMessage[] {
-  const targetIndex = [...messages]
-    .map((message, index) => ({ message, index }))
-    .reverse()
-    .find(
-      ({ message }) =>
-        message.role === "assistant" &&
-        Boolean(message.data) &&
-        (!message.data?.artifact_id || message.data.artifact_id === artifact.artifact_id)
-    )?.index;
-
-  if (targetIndex === undefined) return messages;
-  return messages.map((message, index) => {
-    if (index !== targetIndex || message.role !== "assistant") return message;
-    return {
-      ...message,
-      data: runResponseFromArtifact(artifact, message.data, skill),
-    };
-  });
-}
-
-function attachArtifactDataToUpdateMessage(
-  messages: ChatMessage[],
-  artifact: AgentArtifactDetail,
-  skill?: string
-): ChatMessage[] {
-  const targetIndex = [...messages]
-    .map((message, index) => ({ message, index }))
-    .reverse()
-    .find(
-      ({ message }) =>
-        message.role === "assistant" &&
-        message.artifactId === artifact.artifact_id
-    )?.index;
-
-  if (targetIndex === undefined) return messages;
-  return messages.map((message, index) => {
-    if (index !== targetIndex || message.role !== "assistant") return message;
-    const refreshed = runResponseFromArtifact(artifact, undefined, skill);
-    return {
-      ...message,
-      data: {
-        ...refreshed,
-        chat_summary: message.content,
-      },
-      resultTitle: message.resultTitle || artifact.title,
-    };
-  });
-}
-
-export function useAgentChat({
-  includeWelcomeMessage = true,
-  persistKey,
-}: UseAgentChatOptions = {}) {
-  const persistedSession = useMemo(
-    () => readPersistedSession(persistKey),
-    [persistKey]
-  );
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const [sessionId, setSessionId] = useState(
-    () => persistedSession?.sessionId || createClientId()
-  );
-  const [conversationId, setConversationId] = useState<string | null>(
-    () => persistedSession?.conversationId || null
-  );
-  const [visibleArtifactId, setVisibleArtifactId] = useState<string | null>(
-    () => persistedSession?.visibleArtifactId || null
-  );
-  const [selectedArtifactRowKey, setSelectedArtifactRowKey] = useState<string | null>(null);
-  const [sessionTitle, setSessionTitle] = useState(
-    () => persistedSession?.sessionTitle || ""
-  );
-  const [initialPrompt, setInitialPrompt] = useState(
-    () => persistedSession?.initialPrompt || ""
-  );
-  const [prompt, setPrompt] = useState("");
-  const [agentMode, setAgentMode] = useState<AgentMode>(
-    () => persistedSession?.agentMode || "auto"
-  );
-  const [runtimeMode, setRuntimeMode] = useState<AgentRuntimeMode>(
-    () => persistedSession?.runtimeMode || "chat"
-  );
-  const [aiExpandKeywords, setAiExpandKeywords] = useState(
-    () => persistedSession?.aiExpandKeywords ?? true
-  );
-  const [productName, setProductName] = useState(
-    () => persistedSession?.productName || ""
-  );
-  const [competitors, setCompetitors] = useState(
-    () => persistedSession?.competitors || ""
-  );
-  const [showSettings, setShowSettings] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [streamStatus, setStreamStatus] = useState<string | null>(null);
-  const [workspaceEvents, setWorkspaceEvents] = useState<
-    AgentWorkspaceEvent[]
-  >(() => persistedSession?.workspaceEvents || []);
-  const [liveAgentSignals, setLiveAgentSignals] = useState<
-    AgentRunResponse["signals"]
-  >(() => persistedSession?.liveAgentSignals || []);
-  const [liveReasoning, setLiveReasoning] = useState<string>("");
-  const [tokenUsage, setTokenUsage] = useState<AgentTokenUsage | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>(() =>
-    persistedSession?.messages ||
-    (includeWelcomeMessage ? [welcomeMessage] : [])
-  );
-  const [researchPlan, setResearchPlan] = useState<ResearchPlan | null>(
-    () => persistedSession?.researchPlan || null
-  );
-  const [hasRestoredConversation, setHasRestoredConversation] = useState(
-    () => !persistedSession?.conversationId
-  );
-  const [isRestoringConversation, setIsRestoringConversation] = useState(false);
-
-  const canSubmitPrompt = (value: string) =>
-    value.trim().length >= 8 && !isSearching;
-
-  const canSearch = canSubmitPrompt(prompt);
+export function useAgentChat(options?: {
+  uiContext?: AgentUIContextPayload | null;
+}) {
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [blocks, setBlocks] = useState<ChatBlock[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activeExecutionId, setActiveExecutionId] = useState<string | null>(null);
+  const [isCancellingExecution, setIsCancellingExecution] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const conversationRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!conversationId || hasRestoredConversation) return;
-    const token = Cookies.get("access_token");
-    if (!token) {
-      setHasRestoredConversation(true);
-      return;
+    conversationRef.current = conversationId;
+    if (conversationId) {
+      window.localStorage.setItem(STORAGE_KEY, conversationId);
     }
+  }, [conversationId]);
 
+  useEffect(() => {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (!stored) return;
     let cancelled = false;
-    const restoreConversation = async () => {
-      setIsRestoringConversation(true);
+    (async () => {
       try {
-        const response = await fetch(
-          getApiUrl(`agent-runtime/conversations/${conversationId}`),
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        if (!response.ok) {
-          throw new Error("The selected conversation could not be loaded.");
-        }
-        const conversation = (await response.json()) as AgentConversationDetail;
+        const detail = await getAgentConversation(stored);
         if (cancelled) return;
-        let restoredMessages = messagesFromConversation(
-          conversation,
-          includeWelcomeMessage
-        );
-        const latestArtifactId = [...(conversation.messages || [])]
-          .reverse()
-          .map((item) => item.payload)
-          .find((event) => event?.type === "artifact.updated")?.data?.artifact_id;
-        if (typeof latestArtifactId === "string") {
-          const artifactResponse = await fetch(
-            getApiUrl(`agent-runtime/artifacts/${latestArtifactId}`),
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          if (artifactResponse.ok) {
-            const artifact = (await artifactResponse.json()) as AgentArtifactDetail;
-            restoredMessages = replaceArtifactData(restoredMessages, artifact);
-            restoredMessages = attachArtifactDataToUpdateMessage(
-              restoredMessages,
-              artifact
-            );
-          }
-        }
-        setMessages(restoredMessages);
-        setSessionTitle(conversation.title);
-        setInitialPrompt(
-          restoredMessages.find((message) => message.role === "user")?.content ||
-            conversation.title
-        );
-
-        // Plans and completed results are separate persisted assistant events.
-        // Find each independently so switching to an older completed chat
-        // restores both its Plan card and its Result card.
-        const latestPlanMessage = [...restoredMessages].reverse().find(
-          (message): message is Extract<ChatMessage, { role: "assistant" }> =>
-            message.role === "assistant" && Boolean(message.researchPlan)
-        );
-        const latestResultMessage = [...restoredMessages].reverse().find(
-          (message): message is Extract<ChatMessage, { role: "assistant" }> =>
-            message.role === "assistant" && Boolean(message.data)
-        );
-        setResearchPlan(latestPlanMessage?.researchPlan || null);
-        setLiveAgentSignals(latestResultMessage?.data?.signals || []);
-        setTokenUsage(latestResultMessage?.data?.token_usage || null);
-        setWorkspaceEvents([]);
-        setLiveReasoning("");
-      } catch (error) {
-        if (!cancelled) {
-          toast.error("Could not open chat", {
-            description:
-              error instanceof Error ? error.message : "Please try again.",
-          });
-        }
-      } finally {
-        if (!cancelled) {
-          setHasRestoredConversation(true);
-          setIsRestoringConversation(false);
-        }
+        setConversationId(detail.conversation_id);
+        setBlocks(blocksFromRestoredMessages(detail.messages));
+      } catch {
+        window.localStorage.removeItem(STORAGE_KEY);
       }
-    };
-
-    void restoreConversation();
+    })();
     return () => {
       cancelled = true;
     };
-  }, [conversationId, hasRestoredConversation, includeWelcomeMessage]);
+  }, []);
 
-  /**
-   * Switch the active chat using the backend-owned conversation id.
-   *
-   * We intentionally clear the previous transcript before changing the id.
-   * Otherwise the UI can briefly show Hacker News rows while a selected Reddit
-   * conversation is loading. The restore effect above then rebuilds rich plan
-   * and result cards from the persisted event payloads.
-   */
-  const selectConversation = useCallback(
-    (nextConversationId: string) => {
-      if (
-        !nextConversationId ||
-        nextConversationId === conversationId ||
-        isSearching
-      ) {
-        return;
+  const sendMessage = useCallback(
+    async (message: string) => {
+      const trimmed = message.trim();
+      if (!trimmed || isStreaming) return;
+
+      setError(null);
+      setIsStreaming(true);
+      setBlocks((prev) => [
+        ...prev,
+        { id: newId("user"), kind: "user", text: trimmed },
+      ]);
+
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      try {
+        const stream = await streamAgentTurn(
+          {
+            message: trimmed,
+            conversation_id: conversationRef.current,
+            ui_context: options?.uiContext ?? null,
+          },
+          { signal: controller.signal }
+        );
+
+        for await (const event of stream) {
+          if (event.conversation_id) {
+            setConversationId(event.conversation_id);
+          }
+          if (
+            event.type.startsWith("execution.") &&
+            typeof event.data?.execution_id === "string"
+          ) {
+            const executionId = event.data.execution_id;
+            if (
+              event.type === "execution.completed" ||
+              event.type === "execution.failed" ||
+              event.type === "execution.cancelled" ||
+              event.type === "execution.partial"
+            ) {
+              setActiveExecutionId((current) =>
+                current === executionId ? null : current
+              );
+            } else {
+              setActiveExecutionId(executionId);
+            }
+          }
+          setBlocks((prev) => applyTurnEvent(prev, event));
+          if (event.type === "error") {
+            setError(event.message || "Turn failed");
+          }
+        }
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+        const messageText =
+          err instanceof Error ? err.message : "Failed to run agent turn";
+        setError(messageText);
+        setBlocks((prev) => [
+          ...prev,
+          { id: newId("error"), kind: "error", text: messageText },
+        ]);
+      } finally {
+        setIsStreaming(false);
+        abortRef.current = null;
       }
-
-      abortControllerRef.current?.abort();
-      abortControllerRef.current = null;
-      setConversationId(nextConversationId);
-      setVisibleArtifactId(null);
-      setSelectedArtifactRowKey(null);
-      setHasRestoredConversation(false);
-      setSessionId(createClientId());
-      setSessionTitle("");
-      setInitialPrompt("");
-      setPrompt("");
-      setWorkspaceEvents([]);
-      setLiveAgentSignals([]);
-      setLiveReasoning("");
-      setTokenUsage(null);
-      setResearchPlan(null);
-      setRuntimeMode("chat");
-      setMessages(includeWelcomeMessage ? [welcomeMessage] : []);
-      setStreamStatus(null);
     },
-    [conversationId, includeWelcomeMessage, isSearching]
+    [isStreaming, options?.uiContext]
   );
 
-  const pushWorkspaceEvent = useCallback((
-    event: Omit<AgentWorkspaceEvent, "id" | "createdAt">
-  ) => {
-    setWorkspaceEvents((current) => {
-      if (event.type === "thinking") {
-        const rest = current.filter((item) => item.type !== "thinking");
-        return [
-          ...rest,
-          {
-            ...event,
-            id: createClientId(),
-            createdAt: Date.now(),
-          },
-        ].slice(-40);
-      }
-
-      const last = current[current.length - 1];
-      if (
-        last &&
-        last.type === event.type &&
-        last.label === event.label &&
-        last.platform === event.platform
-      ) {
-        return current;
-      }
-
-      return [
-        ...current,
-        {
-          ...event,
-          id: createClientId(),
-          createdAt: Date.now(),
-        },
-      ].slice(-40);
-    });
+  const stop = useCallback(() => {
+    abortRef.current?.abort();
+    setIsStreaming(false);
   }, []);
 
-  const handleAgentStreamEvent = useCallback((event: AgentStreamEvent) => {
-    if (event.type === "mention_found" && event.mention) {
-      setLiveAgentSignals((current) =>
-        mergeAgentSignal(current, event.mention as AgentRunResponse["signals"][number])
-      );
-    }
-
-    const normalized = normalizeStreamEvent(event);
-    if (normalized) {
-      pushWorkspaceEvent(normalized);
-    }
-  }, [pushWorkspaceEvent]);
-
-  const stopSearch = useCallback(() => {
-    const controller = abortControllerRef.current;
-    if (!controller || controller.signal.aborted) return;
-    controller.abort();
-    setStreamStatus("Stopping run...");
-    pushWorkspaceEvent({
-      type: "cancelled",
-      label: "Run stopped",
-      detail: "The current search was cancelled from the chat input.",
-    });
-  }, [pushWorkspaceEvent]);
-
-  const setMessagePlanStatus = useCallback((
-    planId: string,
-    status: ResearchPlan["status"]
-  ) => {
-    setMessages((current) =>
-      current.map((message) => {
-        if (
-          message.role !== "assistant" ||
-          message.researchPlan?.plan_id !== planId
-        ) {
-          return message;
-        }
-        return {
-          ...message,
-          researchPlan: { ...message.researchPlan, status },
-        };
-      })
-    );
-  }, []);
-
-  const sendTurn = async ({
-    message,
-    token,
-    approvedPlan,
-    planDecision = "approve",
-    approvedKeywords,
-    addUserMessage,
-  }: {
-    message: string;
-    token: string;
-    approvedPlan?: ResearchPlan;
-    planDecision?: "approve" | "reject";
-    approvedKeywords?: string[];
-    addUserMessage: boolean;
-  }) => {
-    if (addUserMessage) {
-      setMessages((current) => [
-        ...current,
-        {
-          id: createClientId(),
-          role: "user",
-          content: message,
-        },
-      ]);
-    }
-
-    const isPlanRejection = Boolean(
-      approvedPlan && planDecision === "reject"
-    );
-    const isExecution = Boolean(
-      (approvedPlan && !isPlanRejection) || approvedKeywords?.length
-    );
-
-    setIsSearching(true);
-    setRuntimeMode(isExecution ? "executing" : isPlanRejection ? "chat" : "planning");
-    setStreamStatus(
-      approvedKeywords?.length
-        ? "Preparing mention tracking..."
-        : isPlanRejection
-          ? "Rejecting research plan..."
-          : approvedPlan
-            ? "Preparing approved research..."
-            : "Planning research..."
-    );
-    setLiveReasoning("");
-    setLiveAgentSignals([]);
-    if (!approvedPlan) {
-      setResearchPlan(null);
-    }
-    setWorkspaceEvents([
-      {
-        id: createClientId(),
-        type: "thinking",
-        label: isPlanRejection
-          ? "Rejecting research plan"
-          : approvedKeywords?.length
-            ? "Preparing mention tracking"
-            : approvedPlan
-              ? "Preparing approved research"
-              : "Planning research strategy",
-        detail: isPlanRejection
-          ? "Cancelling the draft without executing search tools."
-          : approvedKeywords?.length
-            ? "Searching the keywords you approved."
-            : approvedPlan
-              ? "Executing the plan you approved."
-              : "Deciding which sources and queries to use.",
-        createdAt: Date.now(),
-      },
-    ]);
-
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    try {
-      const body: AgentTurnRequest = {
-        message,
-        ...(conversationId ? { conversation_id: conversationId } : {}),
-        ...(visibleArtifactId
-          ? {
-              ui_context: {
-                visible_panel: "results" as const,
-                visible_artifact_id: visibleArtifactId,
-                ...(selectedArtifactRowKey
-                  ? { selected_row_key: selectedArtifactRowKey }
-                  : {}),
-              },
-            }
-          : {}),
-        ...(approvedPlan
-          ? {
-              plan_approval: {
-                plan_id: approvedPlan.plan_id,
-                version: approvedPlan.version,
-                decision: planDecision,
-                plan: approvedPlan,
-              },
-            }
-          : {}),
-        ...(approvedKeywords?.length ? { approved_keywords: approvedKeywords } : {}),
-        tool_options: {
-          mention_tracking: {
-            ai_expand_keywords: false,
-            ...(approvedKeywords?.length ? { keywords: approvedKeywords } : {}),
-            ...(productName ? { product_name: productName.trim() } : {}),
-            ...(competitors
-              ? {
-                  competitors: competitors
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                }
-              : {}),
-          },
-        },
-      };
-      const response = await fetch(getApiUrl("agent-runtime/turn"), {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const error = await readError(response);
-        throw new Error(error || "Agent turn failed");
+  const cancelExecution = useCallback(
+    async (executionId?: string) => {
+      const target = executionId || activeExecutionId;
+      if (!target || isCancellingExecution) return;
+      setIsCancellingExecution(true);
+      try {
+        await cancelAgentExecution(target);
+      } catch (err) {
+        const messageText =
+          err instanceof Error ? err.message : "Failed to cancel execution";
+        setError(messageText);
+      } finally {
+        setIsCancellingExecution(false);
       }
+    },
+    [activeExecutionId, isCancellingExecution]
+  );
 
-      if (!response.body) throw new Error("No response body");
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let done = false;
-      let buffer = "";
-
-      while (!done || buffer.trim()) {
-        if (!done) {
-          const { value, done: readerDone } = await reader.read();
-          done = readerDone;
-          if (value) {
-            buffer += decoder.decode(value, { stream: true });
-          }
-          if (readerDone) {
-            buffer += decoder.decode();
-          }
-          if (!value && !readerDone) continue;
-        } else {
-          // Some proxies close the response after the final data line without
-          // giving the browser a separate delimiter-sized read. Parse that
-          // leftover terminal event before marking the UI idle.
-          buffer = `${buffer}\n\n`;
-        }
-
-        const chunks = buffer.split(/\r?\n\r?\n/);
-        buffer = chunks.pop() || "";
-
-        for (const chunk of chunks) {
-          const parsed = parseSseChunk(chunk) as AgentTurnEvent | null;
-          if (!parsed) continue;
-          const event = normalizeTurnEvent(parsed);
-          const eventConversationId =
-            event.conversation_id ||
-            (typeof event.data?.conversation_id === "string"
-              ? event.data.conversation_id
-              : null);
-          if (eventConversationId) {
-            setConversationId(eventConversationId);
-          }
-          // Usage events only refresh the meter. They are emitted between the
-          // events that actually drive the turn, so letting them set the mode
-          // would knock the UI out of planning or executing state.
-          if (event.type === "run.usage") {
-            const usage = event.data?.token_usage as AgentTokenUsage | undefined;
-            if (usage) setTokenUsage(usage);
-            continue;
-          }
-
-          if (event.mode) setRuntimeMode(event.mode);
-
-          if (event.type === "plan.created") {
-            const plan = event.data?.plan as ResearchPlan | undefined;
-            if (!plan) continue;
-            setResearchPlan(plan);
-            pushWorkspaceEvent({
-              type: "tool_completed",
-              label: `Plan ready: ${plan.sources.length} source(s)`,
-              detail: plan.sources.map((s) => `${s.source}: "${s.query}"`).join(", "),
-              count: plan.sources.length,
-            });
-            setMessages((current) => [
-              ...current,
-              {
-                id: createClientId(),
-                role: "assistant",
-                content: `Here is my research plan for: "${message}"`,
-                researchPlan: plan,
-              },
-            ]);
-            setStreamStatus(null);
-            setRuntimeMode("awaiting_approval");
-            continue;
-          }
-
-          if (event.type === "plan.rejected") {
-            setResearchPlan(null);
-            if (approvedPlan) {
-              setMessagePlanStatus(approvedPlan.plan_id, "rejected");
-            }
-            setRuntimeMode("chat");
-            setMessages((current) => [
-              ...current,
-              {
-                id: createClientId(),
-                role: "assistant",
-                content: "Plan cancelled. No search tools were executed.",
-              },
-            ]);
-            setStreamStatus(null);
-            continue;
-          }
-
-          if (event.type === "answer.completed") {
-            const data = event.data?.response as AgentRunResponse | undefined;
-            if (!data) continue;
-            setLiveAgentSignals(data.signals);
-            if (data.token_usage) setTokenUsage(data.token_usage);
-            if (approvedPlan) {
-              setMessagePlanStatus(approvedPlan.plan_id, "complete");
-              setResearchPlan({ ...approvedPlan, status: "complete" });
-            }
-            setMessages((current) => [
-              ...current,
-              {
-                id: createClientId(),
-                role: "assistant",
-                content: buildExecutionSummary(data),
-                data,
-                resultTitle: approvedPlan?.title || titleFromPrompt(initialPrompt || message),
-                reasoning: data.reasoning || undefined,
-              },
-            ]);
-            const visibleResultCount = resultDisplayCount(data);
-            pushWorkspaceEvent({
-              type: "completed",
-              label: `Run completed with ${visibleResultCount} result${
-                visibleResultCount === 1 ? "" : "s"
-              }`,
-              count: visibleResultCount,
-            });
-            setStreamStatus(null);
-            setRuntimeMode("chat");
-            continue;
-          }
-
-          if (event.type === "artifact.updated") {
-            const artifactId = event.data?.artifact_id;
-            if (typeof artifactId !== "string") continue;
-            const artifactResponse = await fetch(
-              getApiUrl(`agent-runtime/artifacts/${artifactId}`),
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            if (!artifactResponse.ok) {
-              throw new Error("The updated artifact could not be reloaded.");
-            }
-            const artifact = (await artifactResponse.json()) as AgentArtifactDetail;
-            const route = event.data?.route as { skill?: string } | undefined;
-            const refreshed = runResponseFromArtifact(
-              artifact,
-              undefined,
-              route?.skill
-            );
-            const chatSummary =
-              typeof event.data?.chat_summary === "string"
-                ? event.data.chat_summary
-                : event.message || "Results updated.";
-            const activityTrace = event.data?.activity_trace;
-            const updatedMessageData: AgentRunResponse = {
-              ...refreshed,
-              chat_summary: chatSummary,
-              activity_trace: Array.isArray(activityTrace)
-                ? activityTrace
-                : refreshed.activity_trace,
-            };
-            setMessages((current) =>
-              [
-                ...replaceArtifactData(current, artifact, route?.skill),
-                {
-                  id: createClientId(),
-                  role: "assistant",
-                  content: chatSummary,
-                  data: updatedMessageData,
-                  resultTitle: artifact.title,
-                  artifactId: artifact.artifact_id,
-                },
-              ]
-            );
-            setLiveAgentSignals(refreshed.signals);
-            setVisibleArtifactId(artifact.artifact_id);
-            pushWorkspaceEvent({
-              type: "completed",
-              label: event.message || "Artifact updated",
-              count: artifact.row_count,
-            });
-            setStreamStatus(null);
-            setRuntimeMode("chat");
-            continue;
-          }
-
-          if (event.type === "context.answer.completed") {
-            const answer = event.message || "I answered from the current results.";
-            pushWorkspaceEvent({
-              type: "completed",
-              label: "Answered from the current results",
-            });
-            setMessages((current) => [
-              ...current,
-              {
-                id: createClientId(),
-                role: "assistant",
-                content: answer,
-              },
-            ]);
-            setStreamStatus(null);
-            setRuntimeMode("chat");
-            continue;
-          }
-
-          if (
-            event.type === "clarification.requested" ||
-            event.type === "artifact.conflict"
-          ) {
-            const messageText =
-              event.message ||
-              (event.type === "artifact.conflict"
-                ? "This result changed before I could update it. Please try again."
-                : "I need one more detail before I can continue.");
-            pushWorkspaceEvent({
-              type: event.type === "artifact.conflict" ? "error" : "progress",
-              label: messageText,
-            });
-            setMessages((current) => [
-              ...current,
-              {
-                id: createClientId(),
-                role: "assistant",
-                content: messageText,
-              },
-            ]);
-            setStreamStatus(null);
-            setRuntimeMode("chat");
-            continue;
-          }
-
-          if (event.type === "turn.failed") {
-            const activityTrace = event.data?.activity_trace;
-            const failureMessage = event.message || "Agent turn failed.";
-            pushWorkspaceEvent({
-              type: "error",
-              label: failureMessage,
-            });
-            setMessages((current) => [
-              ...current,
-              {
-                id: createClientId(),
-                role: "assistant",
-                content: failureMessage,
-                activityTrace: Array.isArray(activityTrace)
-                  ? activityTrace
-                  : undefined,
-              },
-            ]);
-            toast.error("Agent turn failed", { description: failureMessage });
-            setStreamStatus(null);
-            setRuntimeMode("chat");
-            continue;
-          }
-
-          handleAgentStreamEvent(turnEventToStreamEvent(event));
-        }
-      }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        if (approvedPlan) setResearchPlan({ ...approvedPlan, status: "draft" });
-        if (approvedPlan) setMessagePlanStatus(approvedPlan.plan_id, "draft");
-        setRuntimeMode(approvedPlan ? "awaiting_approval" : "chat");
-        setMessages((current) => [
-          ...current,
-          {
-            id: createClientId(),
-            role: "assistant",
-            content:
-              "I stopped the current research turn. You can adjust the prompt or sources and run it again.",
-          },
-        ]);
-        return;
-      }
-
-      const messageText =
-        error instanceof Error ? error.message : "Something went wrong";
-      if (approvedPlan) setResearchPlan({ ...approvedPlan, status: "draft" });
-      if (approvedPlan) setMessagePlanStatus(approvedPlan.plan_id, "draft");
-      setRuntimeMode(approvedPlan ? "awaiting_approval" : "chat");
-      toast.error("Agent turn failed", { description: messageText });
-      pushWorkspaceEvent({
-        type: "error",
-        label: messageText,
-      });
-      setMessages((current) => [
-        ...current,
-        {
-          id: createClientId(),
-          role: "assistant",
-          content: `I could not complete that turn. ${messageText}`,
-        },
-      ]);
-    } finally {
-      if (abortControllerRef.current === controller) {
-        abortControllerRef.current = null;
-      }
-      setIsSearching(false);
-      setStreamStatus(null);
-      if (approvedPlan || approvedKeywords?.length) {
-        setResearchPlan(null);
-      }
-    }
-  };
-
-  const previewMentionKeywords = async (message: string, token: string) => {
-    setIsSearching(true);
-    setStreamStatus("Planning mention keywords...");
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    pushWorkspaceEvent({
-      type: "thinking",
-      label: "Planning mention keywords",
-      detail: "Extracting exact keywords and optional related terms.",
-    });
-
-    try {
-      const response = await fetch(getApiUrl("agent-runtime/mention-keywords/plan"), {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message,
-          suggest_keywords: aiExpandKeywords,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await readError(response);
-        throw new Error(error || "Keyword planning failed");
-      }
-
-      const keywordPlan = await response.json();
-      pushWorkspaceEvent({
-        type: "tool_completed",
-        label: "Keyword plan ready",
-        detail: `${keywordPlan.extracted_keywords?.length || 0} extracted and ${
-          keywordPlan.suggested_keywords?.length || 0
-        } suggested keywords.`,
-      });
-      setMessages((current) => [
-        ...current,
-        {
-          id: createClientId(),
-          role: "assistant",
-          content:
-            "Confirm the mention keywords before I start tracking. I selected the exact keywords from your prompt and added optional suggestions for you to approve.",
-          keywordPlan,
-        },
-      ]);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        setMessages((current) => [
-          ...current,
-          {
-            id: createClientId(),
-            role: "assistant",
-            content:
-              "I stopped the keyword planning step. You can adjust the prompt or sources and try again.",
-          },
-        ]);
-        return;
-      }
-
-      const messageText =
-        error instanceof Error ? error.message : "Something went wrong";
-      toast.error("Keyword planning failed", { description: messageText });
-      setMessages((current) => [
-        ...current,
-        {
-          id: createClientId(),
-          role: "assistant",
-          content: `I could not plan mention keywords. ${messageText}`,
-        },
-      ]);
-    } finally {
-      if (abortControllerRef.current === controller) {
-        abortControllerRef.current = null;
-      }
-      setIsSearching(false);
-      setStreamStatus(null);
-    }
-  };
-
-  const submitPrompt = async (value: string, event?: FormEvent) => {
-    event?.preventDefault();
-    const trimmedPrompt = value.trim();
-    if (!trimmedPrompt || !canSubmitPrompt(trimmedPrompt)) return false;
-
-    const token = Cookies.get("access_token");
-    if (!token) {
-      toast.error("Please sign in first", {
-        description: "A login token is required to run the agent.",
-      });
-      return false;
-    }
-
-    if (!initialPrompt) {
-      setInitialPrompt(trimmedPrompt);
-      setSessionTitle(titleFromPrompt(trimmedPrompt));
-    }
-    setPrompt("");
-
-    await sendTurn({
-      message: trimmedPrompt,
-      token,
-      addUserMessage: true,
-    });
-    return true;
-  };
-
-  const confirmResearchPlan = async (message: string, plan: ResearchPlan) => {
-    const token = Cookies.get("access_token");
-    if (!token) {
-      toast.error("Please sign in first");
-      return;
-    }
-
-    setResearchPlan({ ...plan, status: "running" });
-    setMessagePlanStatus(plan.plan_id, "running");
-
-    await sendTurn({
-      message,
-      token,
-      approvedPlan: plan,
-      addUserMessage: false,
-    });
-  };
-
-  const rejectResearchPlan = async (message: string, plan: ResearchPlan) => {
-    const token = Cookies.get("access_token");
-    if (!token) {
-      toast.error("Please sign in first");
-      return;
-    }
-
-    await sendTurn({
-      message,
-      token,
-      approvedPlan: plan,
-      planDecision: "reject",
-      addUserMessage: false,
-    });
-  };
-
-  const openResearchPlan = useCallback((plan: ResearchPlan) => {
-    setResearchPlan(plan);
-  }, []);
-
-  const submitSearch = async (event?: FormEvent) => {
-    return submitPrompt(prompt, event);
-  };
-
-  const confirmMentionKeywords = async (
-    message: string,
-    keywords: string[]
-  ) => {
-    const token = Cookies.get("access_token");
-    if (!token) {
-      toast.error("Please sign in first", {
-        description: "A login token is required to run mention tracking.",
-      });
-      return;
-    }
-    if (!keywords.length) {
-      toast.error("Select at least one keyword");
-      return;
-    }
-    await sendTurn({
-      message,
-      token,
-      approvedKeywords: keywords,
-      addUserMessage: false,
-    });
-  };
-
-  const latestData = useMemo(() => {
-    return [...messages]
-      .reverse()
-      .find(
-        (message): message is Extract<ChatMessage, { role: "assistant" }> & {
-          data: AgentRunResponse;
-        } => message.role === "assistant" && Boolean(message.data)
-      )?.data;
-  }, [messages]);
-
-  const workspaceData = useMemo(() => {
-    if (latestData) return latestData;
-    if (liveAgentSignals.length) {
-      return {
-        answer: "",
-        skill_used: "mention-tracking",
-        tool_calls: [],
-        signals: liveAgentSignals,
-      };
-    }
-    return undefined;
-  }, [latestData, liveAgentSignals]);
-
-  const hasSessionActivity = useMemo(() => {
-    return (
-      messages.some((message) => message.id !== "welcome") ||
-      workspaceEvents.length > 0 ||
-      liveAgentSignals.length > 0
-    );
-  }, [liveAgentSignals.length, messages, workspaceEvents.length]);
-
-  useEffect(() => {
-    if (!persistKey || typeof window === "undefined") return;
-    if (!hasSessionActivity) return;
-
-    const payload: PersistedAgentChatSession = {
-      version: 4,
-      sessionId,
-      conversationId,
-      visibleArtifactId,
-      sessionTitle: sessionTitle || titleFromPrompt(initialPrompt),
-      initialPrompt,
-      agentMode,
-      runtimeMode,
-      aiExpandKeywords,
-      productName,
-      competitors,
-      messages,
-      workspaceEvents,
-      liveAgentSignals,
-      researchPlan,
-      updatedAt: Date.now(),
-    };
-
-    window.localStorage.setItem(persistKey, JSON.stringify(payload));
-  }, [
-    agentMode,
-    conversationId,
-    visibleArtifactId,
-    runtimeMode,
-    aiExpandKeywords,
-    competitors,
-    hasSessionActivity,
-    initialPrompt,
-    liveAgentSignals,
-    messages,
-    persistKey,
-    productName,
-    researchPlan,
-    sessionId,
-    sessionTitle,
-    workspaceEvents,
-  ]);
-
-  const resetSession = useCallback(() => {
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = null;
-    if (persistKey && typeof window !== "undefined") {
-      window.localStorage.removeItem(persistKey);
-    }
-    setSessionId(createClientId());
+  const reset = useCallback(() => {
+    abortRef.current?.abort();
     setConversationId(null);
-    setVisibleArtifactId(null);
-    setSelectedArtifactRowKey(null);
-    setSessionTitle("");
-    setInitialPrompt("");
-    setPrompt("");
-    setWorkspaceEvents([]);
-    setLiveAgentSignals([]);
-    setLiveReasoning("");
-    setTokenUsage(null);
-    setResearchPlan(null);
-    setRuntimeMode("chat");
-    setMessages(includeWelcomeMessage ? [welcomeMessage] : []);
-    setIsSearching(false);
-    setStreamStatus(null);
-    setIsRestoringConversation(false);
-    setHasRestoredConversation(true);
-  }, [includeWelcomeMessage, persistKey]);
+    conversationRef.current = null;
+    window.localStorage.removeItem(STORAGE_KEY);
+    setBlocks([]);
+    setError(null);
+    setIsStreaming(false);
+    setActiveExecutionId(null);
+  }, []);
 
   return {
-    sessionId,
     conversationId,
-    visibleArtifactId,
-    setVisibleArtifactId,
-    selectedArtifactRowKey,
-    setSelectedArtifactRowKey,
-    sessionTitle,
-    initialPrompt,
-    prompt,
-    setPrompt,
-    agentMode,
-    setAgentMode,
-    runtimeMode,
-    aiExpandKeywords,
-    setAiExpandKeywords,
-    productName,
-    setProductName,
-    competitors,
-    setCompetitors,
-    showSettings,
-    setShowSettings,
-    isSearching,
-    isRestoringConversation,
-    streamStatus,
-    workspaceEvents,
-    messages,
-    canSearch,
-    hasSessionActivity,
-    submitPrompt,
-    submitSearch,
-    stopSearch,
-    resetSession,
-    selectConversation,
-    confirmMentionKeywords,
-    confirmResearchPlan,
-    rejectResearchPlan,
-    openResearchPlan,
-    workspaceData,
-    liveAgentSignals,
-    liveReasoning,
-    tokenUsage,
-    researchPlan,
+    blocks,
+    isStreaming,
+    error,
+    activeExecutionId,
+    isCancellingExecution,
+    sendMessage,
+    stop,
+    cancelExecution,
+    reset,
   };
 }
-
-function buildExecutionSummary(data: AgentRunResponse) {
-  return data.chat_summary || "";
-}
-
-export type AgentChatState = ReturnType<typeof useAgentChat>;

@@ -1,10 +1,13 @@
 import type { SVGProps } from "react";
 import {
+  Building2,
+  Globe,
   Twitter,
   Linkedin,
   Instagram,
   Mail,
   MessageSquare,
+  Users,
 } from "lucide-react";
 
 export function RedditIcon(props: SVGProps<SVGSVGElement>) {
@@ -200,6 +203,15 @@ export function PlatformIcon({
       return <HackerNewsIcon className={className} />;
     case "youtube":
       return <YoutubeIcon className={className} />;
+    case "company":
+      return <Building2 className={className} />;
+    case "people":
+    case "person":
+      return <Users className={className} />;
+    case "web":
+      return <Globe className={className} />;
+    case "source":
+      return <MessageSquare className={className} />;
     default:
       return <MessageSquare className={className} />;
   }
