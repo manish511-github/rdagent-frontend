@@ -3,6 +3,12 @@
 import { useMemo, useState } from "react";
 
 import {
+  ChainOfThought,
+  ChainOfThoughtContent,
+  ChainOfThoughtHeader,
+  ChainOfThoughtStep,
+} from "@/components/ai-elements/chain-of-thought";
+import {
   Conversation,
   ConversationContent,
   ConversationEmptyState,
@@ -295,12 +301,45 @@ function ChatBlockView({
       );
     case "tool":
       return (
-        <p className="text-xs text-muted-foreground">
-          {block.phase === "start" ? "Calling" : "Finished"}{" "}
-          <span className="font-medium text-foreground">{block.tool}</span>
-          {block.detail ? ` — ${block.detail}` : null}
-        </p>
+        <ChainOfThought defaultOpen={block.phase === "start"}>
+          <ChainOfThoughtHeader>
+            {block.phase === "start" ? "Working..." : "Activity"}
+          </ChainOfThoughtHeader>
+          <ChainOfThoughtContent>
+            <ChainOfThoughtStep
+              label={
+                block.phase === "start"
+                  ? `Calling ${block.tool}`
+                  : `Finished ${block.tool}`
+              }
+              description={block.detail}
+              status={block.phase === "start" ? "active" : "complete"}
+            />
+          </ChainOfThoughtContent>
+        </ChainOfThought>
       );
+    case "activity": {
+      const active = block.steps.some((step) => step.phase === "start");
+      return (
+        <ChainOfThought defaultOpen={active}>
+          <ChainOfThoughtHeader>
+            {active ? "Working..." : "Activity"}
+          </ChainOfThoughtHeader>
+          <ChainOfThoughtContent>
+            {block.steps.map((step) => (
+              <ChainOfThoughtStep
+                key={step.id}
+                label={`${step.phase === "start" ? "Running" : "Finished"} ${step.tool
+                  .replaceAll("_", " ")
+                  .replace(/\b\w/g, (character) => character.toUpperCase())}`}
+                description={step.detail}
+                status={step.phase === "start" ? "active" : "complete"}
+              />
+            ))}
+          </ChainOfThoughtContent>
+        </ChainOfThought>
+      );
+    }
     case "status":
       return <p className="text-xs text-muted-foreground">{block.text}</p>;
     case "execution":

@@ -88,6 +88,16 @@ export type ChatBlock =
       phase: "start" | "result";
       detail?: string;
     }
+  | {
+      id: string;
+      kind: "activity";
+      steps: Array<{
+        id: string;
+        tool: string;
+        phase: "start" | "result";
+        detail?: string;
+      }>;
+    }
   | { id: string; kind: "status"; text: string }
   | { id: string; kind: "error"; text: string }
   | {

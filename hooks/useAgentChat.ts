@@ -194,32 +194,99 @@ function applyTurnEvent(
         },
       ];
     }
-    case "tool_start":
+    case "tool_start": {
+      const finalized = finalizeStreaming();
+      const step = {
+        id: newId("tool-step"),
+        tool: asString(data.tool, "tool"),
+        phase: "start" as const,
+      };
+      const last = finalized[finalized.length - 1];
+      if (last?.kind === "activity") {
+        return [
+          ...finalized.slice(0, -1),
+          { ...last, steps: [...last.steps, step] },
+        ];
+      }
       return [
-        ...finalizeStreaming(),
-        {
-          id: newId("tool"),
-          kind: "tool",
-          tool: asString(data.tool, "tool"),
-          phase: "start",
-        },
+        ...finalized,
+        { id: newId("activity"), kind: "activity", steps: [step] },
       ];
+    }
     case "tool_result":
+      {
+        // Complete the matching in-progress tool step instead of adding a
+        // second "Finished ..." row. This gives ChainOfThought one stable
+        // step whose status changes from active to complete.
+        let pendingIndex = -1;
+        const toolName = asString(data.tool, "tool");
+        for (let index = next.length - 1; index >= 0; index -= 1) {
+          const candidate = next[index];
+          if (candidate.kind === "activity") {
+            const stepIndex = candidate.steps.findLastIndex(
+              (step) => step.tool === toolName && step.phase === "start"
+            );
+            if (stepIndex >= 0) {
+              const steps = [...candidate.steps];
+              steps[stepIndex] = {
+                ...steps[stepIndex],
+                phase: "result",
+                detail: asString(
+                  (data.result as { message?: string } | undefined)?.message
+                ),
+              };
+              return [
+                ...next.slice(0, index),
+                { ...candidate, steps },
+                ...next.slice(index + 1),
+              ];
+            }
+          } else if (
+            candidate.kind === "tool" &&
+            candidate.tool === toolName &&
+            candidate.phase === "start"
+          ) {
+            pendingIndex = index;
+            break;
+          }
+        }
+        if (pendingIndex >= 0) {
+          const pending = next[pendingIndex] as Extract<
+            ChatBlock,
+            { kind: "tool" }
+          >;
+          return [
+            ...next.slice(0, pendingIndex),
+            {
+              ...pending,
+              phase: "result",
+              detail: asString(
+                (data.result as { message?: string } | undefined)?.message
+              ),
+            },
+            ...next.slice(pendingIndex + 1),
+          ];
+        }
+      }
       return [
         ...next,
         {
-          id: newId("tool"),
-          kind: "tool",
-          tool: asString(data.tool, "tool"),
-          phase: "result",
-          detail: asString(
-            (data.result as { message?: string } | undefined)?.message
-          ),
+          id: newId("activity"),
+          kind: "activity",
+          steps: [
+            {
+              id: newId("tool-step"),
+              tool: asString(data.tool, "tool"),
+              phase: "result",
+              detail: asString(
+                (data.result as { message?: string } | undefined)?.message
+              ),
+            },
+          ],
         },
       ];
     case "context.compressed":
     case "compaction.scheduled":
-    case "turn.started":
       return [
         ...next,
         {
@@ -228,6 +295,8 @@ function applyTurnEvent(
           text: event.message || event.type,
         },
       ];
+    case "turn.started":
+      return next;
     case "error":
       return [
         ...finalizeStreaming(),
