@@ -36,15 +36,42 @@ import {
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { ChatBlock } from "@/lib/agent-chat/types";
-import { Loader2, RotateCcw, Sparkles } from "lucide-react";
+import type { AgentConversationSummary, ChatBlock } from "@/lib/agent-chat/types";
+import {
+  Check,
+  CircleHelp,
+  History,
+  Loader2,
+  RotateCcw,
+  Sparkles,
+} from "lucide-react";
 
 function cellText(value: unknown): string {
   if (value == null) return "";
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     return String(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => cellText(item)).filter(Boolean).join(", ");
+  }
+  if (typeof value === "object") {
+    // Tool-result tables do not carry the workspace column schema. Render
+    // object cells as readable key/value pairs instead of leaking JSON into
+    // the chat UI; the canonical workspace table still uses main_field.
+    return Object.entries(value as Record<string, unknown>)
+      .filter(([, item]) => item != null && item !== "")
+      .map(([key, item]) => `${key.replace(/[-_]+/g, " ")}: ${cellText(item)}`)
+      .join(" · ");
   }
   try {
     return JSON.stringify(value);
@@ -137,6 +164,9 @@ function QuestionsCard({
   onSubmit: (answerText: string) => void;
 }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [customAnswers, setCustomAnswers] = useState<Record<string, boolean>>(
+    {}
+  );
 
   const canSubmit = block.questions.every((question) => {
     const value = (answers[question.id] || "").trim();
@@ -144,14 +174,24 @@ function QuestionsCard({
   });
 
   return (
-    <Card className="border-dashed shadow-none">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">{block.title}</CardTitle>
+    <Card
+      aria-live="polite"
+      className="flex max-h-[min(22rem,45vh)] flex-col overflow-hidden border-blue-200 bg-blue-50/95 shadow-xl shadow-blue-950/10 backdrop-blur dark:border-blue-900/70 dark:bg-blue-950/95"
+    >
+      <CardHeader className="shrink-0 border-b border-blue-100 px-3 py-2.5 dark:border-blue-900/60">
+        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <span className="flex size-6 items-center justify-center rounded-full bg-blue-600 text-white">
+            <CircleHelp className="size-3.5" />
+          </span>
+          {block.title}
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
         {block.questions.map((question) => (
           <div key={question.id} className="space-y-2">
-            <p className="text-sm text-foreground">{question.prompt}</p>
+            <p className="text-sm font-medium leading-5 text-foreground">
+              {question.prompt}
+            </p>
             {question.options && question.options.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {question.options.map((option) => (
@@ -159,22 +199,69 @@ function QuestionsCard({
                     key={option}
                     type="button"
                     size="sm"
-                    variant={answers[question.id] === option ? "default" : "outline"}
-                    disabled={disabled}
-                    onClick={() =>
-                      setAnswers((prev) => ({ ...prev, [question.id]: option }))
+                    variant={
+                      answers[question.id] === option &&
+                      !customAnswers[question.id]
+                        ? "default"
+                        : "outline"
                     }
+                    className={
+                      answers[question.id] === option &&
+                      !customAnswers[question.id]
+                        ? "border-blue-600 bg-blue-600 hover:bg-blue-700"
+                        : "bg-background hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                    }
+                    disabled={disabled}
+                    onClick={() => {
+                      const isCustomOption = /^(other|something else)/i.test(
+                        option.trim()
+                      );
+                      setCustomAnswers((prev) => ({
+                        ...prev,
+                        [question.id]: isCustomOption,
+                      }));
+                      setAnswers((prev) => ({
+                        ...prev,
+                        [question.id]: isCustomOption ? "" : option,
+                      }));
+                    }}
                   >
                     {option}
                   </Button>
                 ))}
+                {question.allow_free_text !== false &&
+                !question.options.some((option) =>
+                  /^(other|something else)/i.test(option.trim())
+                ) ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={customAnswers[question.id] ? "default" : "outline"}
+                    className={
+                      customAnswers[question.id]
+                        ? "border-blue-600 bg-blue-600 hover:bg-blue-700"
+                        : "bg-background hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                    }
+                    disabled={disabled}
+                    onClick={() => {
+                      setCustomAnswers((prev) => ({
+                        ...prev,
+                        [question.id]: true,
+                      }));
+                      setAnswers((prev) => ({ ...prev, [question.id]: "" }));
+                    }}
+                  >
+                    Other
+                  </Button>
+                ) : null}
               </div>
             ) : null}
-            {(question.allow_free_text !== false || !question.options?.length) && (
+            {(!question.options?.length || customAnswers[question.id]) && (
               <Input
                 value={answers[question.id] || ""}
                 disabled={disabled}
-                placeholder="Your answer"
+                placeholder="Type another answer…"
+                className="bg-background"
                 onChange={(event) =>
                   setAnswers((prev) => ({
                     ...prev,
@@ -185,8 +272,12 @@ function QuestionsCard({
             )}
           </div>
         ))}
+      </CardContent>
+      <div className="flex shrink-0 justify-end border-t border-blue-100 px-3 py-2 dark:border-blue-900/60">
         <Button
           type="button"
+          size="sm"
+          className="bg-blue-600 hover:bg-blue-700"
           disabled={disabled || !canSubmit}
           onClick={() => {
             const lines = block.questions.map((question) => {
@@ -196,11 +287,51 @@ function QuestionsCard({
             onSubmit(lines.join("\n\n"));
           }}
         >
-          Send answers
+          Continue
         </Button>
-      </CardContent>
+      </div>
     </Card>
   );
+}
+
+type ActivityStep = Extract<ChatBlock, { kind: "activity" }>["steps"][number];
+
+function groupedActivitySteps(steps: ActivityStep[]) {
+  const groups = new Map<
+    string,
+    {
+      tool: string;
+      total: number;
+      completed: number;
+      detail?: string;
+    }
+  >();
+
+  for (const step of steps) {
+    const current = groups.get(step.tool) || {
+      tool: step.tool,
+      total: 0,
+      completed: 0,
+      detail: undefined,
+    };
+    current.total += 1;
+    if (step.phase === "result") current.completed += 1;
+    if (step.detail) current.detail = step.detail;
+    groups.set(step.tool, current);
+  }
+
+  return [...groups.values()];
+}
+
+function activityLabel(tool: string, total: number, completed: number): string {
+  const readable = tool
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+  const count = total > 1 ? ` ×${total}` : "";
+  if (completed < total) {
+    return `${readable}${count} · ${completed}/${total} complete`;
+  }
+  return `${readable}${count}`;
 }
 
 function ChatBlockView({
@@ -283,9 +414,9 @@ function ChatBlockView({
         </Card>
       );
     case "questions":
-      return (
-        <QuestionsCard block={block} disabled={disabled} onSubmit={onSend} />
-      );
+      // The latest unanswered question is anchored above the composer instead
+      // of appearing inside the scrolling transcript.
+      return null;
     case "next_actions":
       return (
         <Suggestions>
@@ -320,20 +451,23 @@ function ChatBlockView({
       );
     case "activity": {
       const active = block.steps.some((step) => step.phase === "start");
+      const groupedSteps = groupedActivitySteps(block.steps);
       return (
         <ChainOfThought defaultOpen={active}>
           <ChainOfThoughtHeader>
             {active ? "Working..." : "Activity"}
           </ChainOfThoughtHeader>
           <ChainOfThoughtContent>
-            {block.steps.map((step) => (
+            {groupedSteps.map((step) => (
               <ChainOfThoughtStep
-                key={step.id}
-                label={`${step.phase === "start" ? "Running" : "Finished"} ${step.tool
-                  .replaceAll("_", " ")
-                  .replace(/\b\w/g, (character) => character.toUpperCase())}`}
+                key={step.tool}
+                label={activityLabel(
+                  step.tool,
+                  step.total,
+                  step.completed
+                )}
                 description={step.detail}
-                status={step.phase === "start" ? "active" : "complete"}
+                status={step.completed < step.total ? "active" : "complete"}
               />
             ))}
           </ChainOfThoughtContent>
@@ -431,9 +565,15 @@ export function AgentChatPanel({
   error,
   activeExecutionId,
   isCancellingExecution,
+  conversationId,
+  conversationTitle,
+  recentConversations,
+  isLoadingConversations,
   onSend,
   onStop,
   onCancelExecution,
+  onOpenConversation,
+  onRefreshConversations,
   onReset,
 }: {
   blocks: ChatBlock[];
@@ -441,41 +581,107 @@ export function AgentChatPanel({
   error: string | null;
   activeExecutionId?: string | null;
   isCancellingExecution?: boolean;
+  conversationId?: string | null;
+  conversationTitle: string;
+  recentConversations: AgentConversationSummary[];
+  isLoadingConversations?: boolean;
   onSend: (message: string) => void;
   onStop: () => void;
   onCancelExecution?: (executionId?: string) => void;
+  onOpenConversation: (conversationId: string) => void;
+  onRefreshConversations: () => void;
   onReset: () => void;
 }) {
   const [draft, setDraft] = useState("");
+  const pendingQuestions = useMemo(() => {
+    for (let index = blocks.length - 1; index >= 0; index -= 1) {
+      const block = blocks[index];
+      if (block.kind === "user") return null;
+      if (block.kind === "questions") return block;
+    }
+    return null;
+  }, [blocks]);
   const canSend = useMemo(
-    () => draft.trim().length > 0 && !isStreaming,
-    [draft, isStreaming]
+    () => draft.trim().length > 0 && !isStreaming && !pendingQuestions,
+    [draft, isStreaming, pendingQuestions]
   );
 
   return (
-    <div className="flex h-[calc(100vh-2.5rem)] min-h-0 flex-col bg-gray-50 dark:bg-black">
-      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-[#1F1F23] dark:bg-black">
-        <div className="flex items-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
+    <div className="flex h-full min-h-0 flex-col border-r border-gray-200 bg-gray-50 dark:border-[#1F1F23] dark:bg-black">
+      <div className="flex items-center justify-between gap-2 border-b border-gray-200 bg-white px-4 py-3 dark:border-[#1F1F23] dark:bg-black">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
             <Sparkles className="size-4" />
           </div>
-          <div>
-            <p className="text-sm font-medium">Agent Chat</p>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{conversationTitle}</p>
             <p className="text-xs text-muted-foreground">
-              Explore → plan → execute → summarize
+              {conversationId ? "Conversation workspace" : "Start a new research chat"}
             </p>
           </div>
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onReset}
-          disabled={isStreaming}
-        >
-          <RotateCcw className="mr-1.5 size-3.5" />
-          New chat
-        </Button>
+        <div className="flex shrink-0 items-center gap-1">
+          <DropdownMenu
+            onOpenChange={(open) => {
+              if (open) onRefreshConversations();
+            }}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="ghost" size="sm" disabled={isStreaming}>
+                {isLoadingConversations ? (
+                  <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                ) : (
+                  <History className="mr-1.5 size-3.5" />
+                )}
+                Recent
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80">
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                Recent chats
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {recentConversations.length > 0 ? (
+                recentConversations.map((conversation) => (
+                  <DropdownMenuItem
+                    key={conversation.conversation_id}
+                    className="items-start py-2"
+                    onSelect={() => onOpenConversation(conversation.conversation_id)}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{conversation.title}</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        {new Date(conversation.last_message_at).toLocaleString([], {
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    {conversation.conversation_id === conversationId ? (
+                      <Check className="mt-0.5 size-4 text-blue-600" />
+                    ) : null}
+                  </DropdownMenuItem>
+                ))
+              ) : (
+                <p className="px-2 py-4 text-center text-xs text-muted-foreground">
+                  No previous chats yet
+                </p>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onReset}
+            disabled={isStreaming}
+          >
+            <RotateCcw className="mr-1.5 size-3.5" />
+            New chat
+          </Button>
+        </div>
       </div>
 
       <Conversation className="min-h-0 flex-1">
@@ -524,7 +730,17 @@ export function AgentChatPanel({
         <ConversationScrollButton />
       </Conversation>
 
-      <div className="border-t border-gray-200 bg-white px-4 py-3 dark:border-[#1F1F23] dark:bg-black">
+      <div className="relative border-t border-gray-200 bg-white px-4 py-3 dark:border-[#1F1F23] dark:bg-black">
+        {pendingQuestions ? (
+          <div className="absolute bottom-full left-4 right-4 z-30 mx-auto mb-2 w-auto max-w-3xl">
+            <QuestionsCard
+              key={pendingQuestions.id}
+              block={pendingQuestions}
+              disabled={isStreaming || !!isCancellingExecution}
+              onSubmit={onSend}
+            />
+          </div>
+        ) : null}
         <form
           className="mx-auto flex w-full max-w-3xl gap-2"
           onSubmit={(event) => {
@@ -538,9 +754,13 @@ export function AgentChatPanel({
           <Textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="Ask the agent to find leads, build a table, or continue…"
+            placeholder={
+              pendingQuestions
+                ? "Answer the questions above to continue"
+                : "Ask the agent to find leads, build a table, or continue…"
+            }
             className="min-h-[52px] max-h-40 resize-y"
-            disabled={isStreaming}
+            disabled={isStreaming || !!pendingQuestions}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
