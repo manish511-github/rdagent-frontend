@@ -10,6 +10,8 @@ import type {
   AgentConversationSummary,
   AgentTurnEvent,
   AgentTurnRequestPayload,
+  AgentWorkspaceTablePage,
+  AgentWorkspaceTableSummary,
 } from "./types";
 
 function authHeaders(extra?: HeadersInit): HeadersInit {
@@ -86,6 +88,40 @@ export async function getAgentConversation(
   );
   if (!response.ok) {
     throw new Error("Failed to load conversation");
+  }
+  return response.json();
+}
+
+export async function listAgentWorkspaceTables(
+  workspaceId: string
+): Promise<AgentWorkspaceTableSummary[]> {
+  const response = await fetch(
+    getApiUrl(`agent-runtime/workspaces/${encodeURIComponent(workspaceId)}/tables`),
+    { headers: authHeaders() }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load workspace tables");
+  }
+  return response.json();
+}
+
+export async function getAgentWorkspaceTable(
+  workspaceId: string,
+  tableSlug: string,
+  options?: { limit?: number; offset?: number }
+): Promise<AgentWorkspaceTablePage> {
+  const params = new URLSearchParams({
+    limit: String(options?.limit ?? 100),
+    offset: String(options?.offset ?? 0),
+  });
+  const response = await fetch(
+    getApiUrl(
+      `agent-runtime/workspaces/${encodeURIComponent(workspaceId)}/tables/${encodeURIComponent(tableSlug)}?${params}`
+    ),
+    { headers: authHeaders() }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load workspace table");
   }
   return response.json();
 }

@@ -20,6 +20,12 @@ export type AgentTurnEventType =
   | "execution.completed"
   | "execution.failed"
   | "execution.cancelled"
+  | "column.run.started"
+  | "column.cell.started"
+  | "column.cell.completed"
+  | "column.cell.failed"
+  | "column.run.progress"
+  | "column.run.completed"
   | "context.compressed"
   | "compaction.scheduled"
   | "done"
@@ -94,6 +100,7 @@ export type ChatBlock =
       steps: Array<{
         id: string;
         tool: string;
+        callId?: string;
         phase: "start" | "result";
         detail?: string;
       }>;
@@ -144,4 +151,70 @@ export interface AgentConversationMessage {
 
 export interface AgentConversationDetail extends AgentConversationSummary {
   messages: AgentConversationMessage[];
+}
+
+export interface AgentWorkspaceTableState {
+  id: number;
+  public_id: string;
+  workspace_id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  is_active: boolean;
+  column_order: string[];
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface AgentWorkspaceTableSummary {
+  table: AgentWorkspaceTableState;
+  row_count: number;
+}
+
+export interface AgentWorkspaceColumn {
+  id: number;
+  slug: string;
+  name: string;
+  column_type: string;
+  output_schema?: Record<string, unknown> | null;
+  main_field?: string | null;
+  required: boolean;
+  position: number;
+  config: Record<string, unknown>;
+}
+
+export interface AgentWorkspaceRow {
+  id: number;
+  source_key: string;
+  qualification_status: string;
+  values: Record<string, unknown>;
+  cells: Record<string, AgentWorkspaceCellState>;
+}
+
+export interface AgentWorkspaceCellState {
+  status: "pending" | "running" | "succeeded" | "failed" | "skipped" | "stale";
+  attempts: number;
+  error?: Record<string, unknown> | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+}
+
+export interface AgentColumnRunProgress {
+  tableSlug: string;
+  columns: string[];
+  processedCells: number;
+  totalCells: number;
+  cellsCompleted: number;
+  cellsFailed: number;
+  cellsSkipped: number;
+  status: "running" | "completed";
+}
+
+export interface AgentWorkspaceTablePage {
+  table: AgentWorkspaceTableState;
+  columns: AgentWorkspaceColumn[];
+  rows: AgentWorkspaceRow[];
+  total: number;
+  limit: number;
+  offset: number;
 }
