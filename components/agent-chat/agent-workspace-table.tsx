@@ -85,6 +85,58 @@ function isDisplayableScalar(value: unknown): boolean {
 }
 
 /**
+ * Map an object value's resolution status to an explicit UI label.
+ *
+ * A calculated contact object may carry ``record_status`` (or ``status``)
+ * holding the resolver's outcome. When the configured display value is empty,
+ * the grid shows the explicit state instead of a blank "No match" — matching
+ * the resolver contract: ``matched`` shows the name, ``uncertain`` →
+ * "Possible match", ``no_match`` → "No supported match", ``failed`` →
+ * "Research failed".
+ */
+const RESOLUTION_STATUS_LABELS: Record<string, string> = {
+  matched: "",
+  uncertain: "Possible match",
+  no_match: "No supported match",
+  failed: "Research failed",
+};
+
+function resolutionStatusLabel(
+  value: unknown,
+  column: AgentWorkspaceColumn
+): string | null {
+  if (!isRecord(value)) return null;
+  const status = value["record_status"] ?? value["status"];
+  if (typeof status !== "string") return null;
+  const companyStatus = value["company_status"];
+  const parentCompany = value["parent_company"];
+  if (
+    status === "no_match" &&
+    typeof companyStatus === "string" &&
+    ["acquired", "merged", "inactive"].includes(companyStatus)
+  ) {
+    const lifecycleLabel =
+      companyStatus === "acquired"
+        ? "Acquired"
+        : companyStatus === "merged"
+          ? "Merged"
+          : "Inactive";
+    return typeof parentCompany === "string" && parentCompany.trim()
+      ? `${lifecycleLabel} · ${parentCompany.trim()}`
+      : lifecycleLabel;
+  }
+  const label = RESOLUTION_STATUS_LABELS[status];
+  // "matched" is rendered by the display name itself; only the non-empty
+  // explicit states need a label.
+  return label || null;
+}
+
+function isReturnedResolutionFailure(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return (value["record_status"] ?? value["status"]) === "failed";
+}
+
+/**
  * Resolve the concise value shown in a grid cell.
  *
  * Object columns declare their preferred label through ``main_field``. For
@@ -240,7 +292,53 @@ function DynamicCell({
       </span>
     );
   }
-  if (cell?.status === "succeeded" && compactColumnValue(value, column) == null) {
+  const compactValue = compactColumnValue(value, column);
+  if (
+    cell?.status === "succeeded" &&
+    isRecord(value) &&
+    (value["record_status"] ?? value["status"]) === "uncertain" &&
+    compactValue != null
+  ) {
+    const relatedTitle = isDisplayableScalar(value["title"])
+      ? String(value["title"]).trim()
+      : null;
+    const possibleDisplay = relatedTitle
+      ? `${displayScalar(compactValue)} — ${relatedTitle}`
+      : displayScalar(compactValue);
+    return (
+      <span className="inline-flex max-w-full items-center gap-1.5">
+        <span className="shrink-0 text-[10px] font-medium uppercase tracking-normal text-amber-700">
+          Possible
+        </span>
+        <span className="truncate">{possibleDisplay}</span>
+      </span>
+    );
+  }
+  if (cell?.status === "succeeded" && compactValue == null) {
+    const statusLabel = resolutionStatusLabel(value, column);
+    if (statusLabel) {
+      return (
+        <span className="inline-flex max-w-full items-center gap-2">
+          <span className="truncate text-muted-foreground">{statusLabel}</span>
+          {isReturnedResolutionFailure(value) ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 shrink-0 gap-1 px-1.5 text-[10px]"
+              disabled={disabled}
+              onClick={(event) => {
+                event.stopPropagation();
+                onRetry(row, column);
+              }}
+            >
+              <RotateCcw className="size-3" />
+              Retry
+            </Button>
+          ) : null}
+        </span>
+      );
+    }
     return <span className="text-muted-foreground">No match</span>;
   }
   return <ColumnValue value={value} column={column} expanded={expanded} />;
