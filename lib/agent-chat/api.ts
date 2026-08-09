@@ -8,6 +8,8 @@ import { iterateSseJson } from "./sse";
 import type {
   AgentConversationDetail,
   AgentConversationSummary,
+  AgentColumnBatchEventPage,
+  AgentColumnBatchStatus,
   AgentTurnEvent,
   AgentTurnRequestPayload,
   AgentWorkspaceTablePage,
@@ -122,6 +124,85 @@ export async function getAgentWorkspaceTable(
   );
   if (!response.ok) {
     throw new Error("Failed to load workspace table");
+  }
+  return response.json();
+}
+
+export async function listAgentWorkspaceColumnBatches(
+  workspaceId: string,
+  options?: { activeOnly?: boolean; limit?: number }
+): Promise<AgentColumnBatchStatus[]> {
+  const params = new URLSearchParams({
+    active_only: String(options?.activeOnly ?? true),
+    limit: String(options?.limit ?? 50),
+  });
+  const response = await fetch(
+    getApiUrl(
+      `agent-runtime/workspaces/${encodeURIComponent(workspaceId)}/column-batches?${params}`
+    ),
+    { headers: authHeaders() }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load calculated-column batches");
+  }
+  return response.json();
+}
+
+export async function getAgentColumnBatch(
+  batchId: string
+): Promise<AgentColumnBatchStatus> {
+  const response = await fetch(
+    getApiUrl(`agent-runtime/column-batches/${encodeURIComponent(batchId)}`),
+    { headers: authHeaders() }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load calculated-column progress");
+  }
+  return response.json();
+}
+
+export async function cancelAgentColumnBatch(
+  batchId: string
+): Promise<AgentColumnBatchStatus> {
+  const response = await fetch(
+    getApiUrl(`agent-runtime/column-batches/${encodeURIComponent(batchId)}/cancel`),
+    { method: "POST", headers: authHeaders() }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to cancel calculated-column work");
+  }
+  return response.json();
+}
+
+export async function retryFailedAgentColumnBatch(
+  batchId: string
+): Promise<AgentColumnBatchStatus> {
+  const response = await fetch(
+    getApiUrl(
+      `agent-runtime/column-batches/${encodeURIComponent(batchId)}/retry-failed`
+    ),
+    { method: "POST", headers: authHeaders() }
+  );
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.detail || "Failed to retry failed cells");
+  }
+  return response.json();
+}
+
+export async function getAgentColumnBatchEvents(
+  batchId: string,
+  after = 0
+): Promise<AgentColumnBatchEventPage> {
+  const params = new URLSearchParams({ after: String(after), limit: "200" });
+  const response = await fetch(
+    getApiUrl(
+      `agent-runtime/column-batches/${encodeURIComponent(batchId)}/events?${params}`
+    ),
+    { headers: authHeaders() }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to replay calculated-column progress");
   }
   return response.json();
 }

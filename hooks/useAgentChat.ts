@@ -3,11 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  cancelAgentColumnBatch,
   cancelAgentExecution,
+  getAgentColumnBatch,
+  getAgentColumnBatchEvents,
   getAgentConversation,
   getAgentWorkspaceTable,
   listAgentConversations,
   listAgentWorkspaceTables,
+  listAgentWorkspaceColumnBatches,
+  retryFailedAgentColumnBatch,
   streamAgentTurn,
 } from "@/lib/agent-chat/api";
 import type {
@@ -15,6 +20,7 @@ import type {
   AgentUIContextPayload,
   AgentConversationSummary,
   AgentColumnRunProgress,
+  AgentColumnBatchStatus,
   AgentWorkspaceCellState,
   AgentWorkspaceTablePage,
   AgentWorkspaceTableSummary,
@@ -136,6 +142,32 @@ function blocksFromRestoredMessages(
 
 function asNumber(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function isTerminalColumnBatch(status: AgentColumnBatchStatus["status"]): boolean {
+  return ["complete", "partial", "failed", "cancelled"].includes(status);
+}
+
+function columnProgressFromBatch(
+  batch: AgentColumnBatchStatus
+): AgentColumnRunProgress {
+  return {
+    batchId: batch.batch_id,
+    batchStatus: batch.status,
+    tableSlug: batch.table_slug,
+    columns: batch.requested_columns,
+    processedCells:
+      batch.cells_completed +
+      batch.cells_failed +
+      batch.cells_cancelled +
+      batch.cells_skipped,
+    totalCells: batch.cells_total + batch.cells_skipped,
+    cellsCompleted: batch.cells_completed,
+    cellsFailed: batch.cells_failed,
+    cellsCancelled: batch.cells_cancelled,
+    cellsSkipped: batch.cells_skipped,
+    status: isTerminalColumnBatch(batch.status) ? "completed" : "running",
+  };
 }
 
 function patchWorkspaceCell(
@@ -532,11 +564,16 @@ export function useAgentChat(options?: {
   const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(false);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [columnRunProgress, setColumnRunProgress] = useState<Record<string, AgentColumnRunProgress>>({});
+  const [activeColumnBatches, setActiveColumnBatches] = useState<
+    Record<string, AgentColumnBatchStatus>
+  >({});
+  const [activeColumnBatchAction, setActiveColumnBatchAction] = useState<string | null>(null);
   const [recentConversations, setRecentConversations] = useState<AgentConversationSummary[]>([]);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const conversationRef = useRef<string | null>(null);
   const activeTableSlugRef = useRef<string | null>(null);
+  const columnBatchCursorRef = useRef<Record<string, number>>({});
 
   const loadWorkspaceTable = useCallback(
     async (slug: string, targetConversationId?: string | null) => {
@@ -572,11 +609,31 @@ export function useAgentChat(options?: {
         setActiveTableSlug(null);
         activeTableSlugRef.current = null;
         setActiveTable(null);
+        setActiveColumnBatches({});
+        columnBatchCursorRef.current = {};
         return;
       }
       try {
-        const tables = await listAgentWorkspaceTables(workspaceId);
+        // Fetch independent workspace metadata together. Batch restoration is
+        // additive, so a temporarily unavailable progress endpoint must not
+        // hide otherwise-readable tables.
+        const [tables, batches] = await Promise.all([
+          listAgentWorkspaceTables(workspaceId),
+          listAgentWorkspaceColumnBatches(workspaceId).catch(() => []),
+        ]);
         setWorkspaceTables(tables);
+        setActiveColumnBatches(
+          Object.fromEntries(batches.map((batch) => [batch.batch_id, batch]))
+        );
+        setColumnRunProgress((current) => ({
+          ...current,
+          ...Object.fromEntries(
+            batches.map((batch) => [
+              batch.table_slug,
+              columnProgressFromBatch(batch),
+            ])
+          ),
+        }));
         if (tables.length === 0) {
           setActiveTableSlug(null);
           activeTableSlugRef.current = null;
@@ -666,6 +723,79 @@ export function useAgentChat(options?: {
     };
   }, [refreshRecentConversations, refreshWorkspace]);
 
+  useEffect(() => {
+    const batches = Object.values(activeColumnBatches).filter(
+      (batch) => !isTerminalColumnBatch(batch.status)
+    );
+    if (batches.length === 0) return;
+
+    let cancelled = false;
+    let timer: number | undefined;
+    const poll = async () => {
+      const updates = await Promise.allSettled(
+        batches.map(async (knownBatch) => {
+          const after = columnBatchCursorRef.current[knownBatch.batch_id] || 0;
+          const [status, eventPage] = await Promise.all([
+            getAgentColumnBatch(knownBatch.batch_id),
+            getAgentColumnBatchEvents(knownBatch.batch_id, after),
+          ]);
+          return { status, eventPage };
+        })
+      );
+      if (cancelled) return;
+
+      const successful = updates.flatMap((update) =>
+        update.status === "fulfilled" ? [update.value] : []
+      );
+      if (successful.length > 0) {
+        for (const { status, eventPage } of successful) {
+          columnBatchCursorRef.current[status.batch_id] = eventPage.next_after;
+          setColumnRunProgress((current) => ({
+            ...current,
+            [status.table_slug]: columnProgressFromBatch(status),
+          }));
+          for (const durableEvent of eventPage.events) {
+            const event: AgentTurnEvent = {
+              type: durableEvent.type,
+              data: durableEvent.data,
+              conversation_id: status.workspace_id,
+            };
+            if (event.type.startsWith("column.cell.")) {
+              setActiveTable((current) => patchWorkspaceCell(current, event));
+            }
+          }
+          // A final table read is a safety net if event persistence was briefly
+          // unavailable while the cell value itself committed successfully.
+          if (
+            isTerminalColumnBatch(status.status) &&
+            activeTableSlugRef.current === status.table_slug
+          ) {
+            void loadWorkspaceTable(status.table_slug, status.workspace_id);
+          }
+        }
+
+        setActiveColumnBatches((current) => {
+          const next = { ...current };
+          for (const { status } of successful) {
+            if (isTerminalColumnBatch(status.status)) {
+              delete next[status.batch_id];
+            } else {
+              next[status.batch_id] = status;
+            }
+          }
+          return next;
+        });
+      }
+      if (!cancelled) timer = window.setTimeout(poll, 1_000);
+    };
+    timer = window.setTimeout(poll, 1_000);
+
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [activeColumnBatches, loadWorkspaceTable]);
+
   const sendMessage = useCallback(
     async (message: string) => {
       const trimmed = message.trim();
@@ -734,6 +864,8 @@ export function useAgentChat(options?: {
                 const previous = current[tableSlug];
                 const isStarted = event.type === "column.run.started";
                 const nextProgress: AgentColumnRunProgress = {
+                  batchId: previous?.batchId,
+                  batchStatus: previous?.batchStatus,
                   tableSlug,
                   columns: asStringArray(data.columns).length
                     ? asStringArray(data.columns)
@@ -749,6 +881,10 @@ export function useAgentChat(options?: {
                   totalCells: asNumber(data.total_cells, previous?.totalCells || 0),
                   cellsCompleted: asNumber(data.cells_completed ?? data.cellsCompleted, isStarted ? 0 : previous?.cellsCompleted || 0),
                   cellsFailed: asNumber(data.cells_failed ?? data.cellsFailed, isStarted ? 0 : previous?.cellsFailed || 0),
+                  cellsCancelled: asNumber(
+                    data.cells_cancelled ?? data.cellsCancelled,
+                    isStarted ? 0 : previous?.cellsCancelled || 0
+                  ),
                   cellsSkipped: asNumber(data.cells_skipped ?? data.cellsSkipped, isStarted ? 0 : previous?.cellsSkipped || 0),
                   status: event.type === "column.run.completed" ? "completed" : "running",
                 };
@@ -835,7 +971,64 @@ export function useAgentChat(options?: {
     setActiveTable(null);
     setWorkspaceError(null);
     setColumnRunProgress({});
+    setActiveColumnBatches({});
+    setActiveColumnBatchAction(null);
+    columnBatchCursorRef.current = {};
   }, []);
+
+  const cancelColumnBatch = useCallback(
+    async (batchId: string) => {
+      if (activeColumnBatchAction) return;
+      setActiveColumnBatchAction(batchId);
+      setWorkspaceError(null);
+      try {
+        const status = await cancelAgentColumnBatch(batchId);
+        setColumnRunProgress((current) => ({
+          ...current,
+          [status.table_slug]: columnProgressFromBatch(status),
+        }));
+        setActiveColumnBatches((current) => {
+          const next = { ...current };
+          delete next[batchId];
+          return next;
+        });
+        await loadWorkspaceTable(status.table_slug, status.workspace_id);
+      } catch (err) {
+        setWorkspaceError(
+          err instanceof Error ? err.message : "Failed to cancel column work"
+        );
+      } finally {
+        setActiveColumnBatchAction(null);
+      }
+    },
+    [activeColumnBatchAction, loadWorkspaceTable]
+  );
+
+  const retryFailedColumnBatch = useCallback(
+    async (batchId: string) => {
+      if (activeColumnBatchAction) return;
+      setActiveColumnBatchAction(batchId);
+      setWorkspaceError(null);
+      try {
+        const status = await retryFailedAgentColumnBatch(batchId);
+        setActiveColumnBatches((current) => ({
+          ...current,
+          [status.batch_id]: status,
+        }));
+        setColumnRunProgress((current) => ({
+          ...current,
+          [status.table_slug]: columnProgressFromBatch(status),
+        }));
+      } catch (err) {
+        setWorkspaceError(
+          err instanceof Error ? err.message : "Failed to retry failed cells"
+        );
+      } finally {
+        setActiveColumnBatchAction(null);
+      }
+    },
+    [activeColumnBatchAction]
+  );
 
   return {
     conversationId,
@@ -850,6 +1043,7 @@ export function useAgentChat(options?: {
     isWorkspaceLoading,
     workspaceError,
     columnRunProgress,
+    activeColumnBatchAction,
     recentConversations,
     isLoadingConversations,
     currentConversationTitle:
@@ -862,6 +1056,8 @@ export function useAgentChat(options?: {
     sendMessage,
     stop,
     cancelExecution,
+    cancelColumnBatch,
+    retryFailedColumnBatch,
     reset,
   };
 }

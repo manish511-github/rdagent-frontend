@@ -29,6 +29,7 @@ export default function AgentChatPage() {
     isWorkspaceLoading,
     workspaceError,
     columnRunProgress,
+    activeColumnBatchAction,
     recentConversations,
     isLoadingConversations,
     currentConversationTitle,
@@ -38,6 +39,8 @@ export default function AgentChatPage() {
     sendMessage,
     stop,
     cancelExecution,
+    cancelColumnBatch,
+    retryFailedColumnBatch,
     reset,
   } = useAgentChat();
 
@@ -97,6 +100,9 @@ export default function AgentChatPage() {
             activeTableSlug ? columnRunProgress[activeTableSlug] : undefined
           }
           error={workspaceError}
+          isBatchActionPending={Boolean(activeColumnBatchAction)}
+          onCancelBatch={cancelColumnBatch}
+          onRetryFailedBatch={retryFailedColumnBatch}
           onSelectTable={selectWorkspaceTable}
           onRetryCell={({ tableName, row, column }) => {
             void sendMessage(

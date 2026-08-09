@@ -13,6 +13,7 @@ import {
   Search,
   SlidersHorizontal,
   Table2,
+  Square,
   X,
 } from "lucide-react";
 
@@ -292,19 +293,38 @@ function DynamicCell({
       </span>
     );
   }
+  if (cell?.status === "cancelled") {
+    return <span className="text-muted-foreground">Cancelled</span>;
+  }
   const compactValue = compactColumnValue(value, column);
-  if (
-    cell?.status === "succeeded" &&
-    isRecord(value) &&
-    (value["record_status"] ?? value["status"]) === "uncertain" &&
-    compactValue != null
-  ) {
+  const isUncertain =
+    isRecord(value) && (value["record_status"] ?? value["status"]) === "uncertain";
+  if (cell?.status === "succeeded" && isUncertain && compactValue != null) {
     const relatedTitle = isDisplayableScalar(value["title"])
       ? String(value["title"]).trim()
       : null;
     const possibleDisplay = relatedTitle
       ? `${displayScalar(compactValue)} — ${relatedTitle}`
       : displayScalar(compactValue);
+    if (expanded) {
+      // Detail panel: show the full field list (reasoning, confidence,
+      // evidence URLs, LinkedIn URL, etc.) with a "Possible" header so the
+      // user sees WHY this is only a possible match, matching Origami's
+      // cell-popover behavior for object columns.
+      return (
+        <div className="space-y-1.5">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="shrink-0 text-[10px] font-medium uppercase tracking-normal text-amber-700">
+              Possible
+            </span>
+            <span className="truncate text-xs text-foreground">
+              {possibleDisplay}
+            </span>
+          </span>
+          <ColumnValue value={value} column={column} expanded={expanded} />
+        </div>
+      );
+    }
     return (
       <span className="inline-flex max-w-full items-center gap-1.5">
         <span className="shrink-0 text-[10px] font-medium uppercase tracking-normal text-amber-700">
@@ -365,6 +385,9 @@ export function AgentWorkspaceTable({
   runProgress,
   error,
   onSelectTable,
+  isBatchActionPending,
+  onCancelBatch,
+  onRetryFailedBatch,
   onRetryCell,
 }: {
   tables: AgentWorkspaceTableSummary[];
@@ -375,6 +398,9 @@ export function AgentWorkspaceTable({
   runProgress?: AgentColumnRunProgress;
   error: string | null;
   onSelectTable: (slug: string) => void;
+  isBatchActionPending: boolean;
+  onCancelBatch: (batchId: string) => void;
+  onRetryFailedBatch: (batchId: string) => void;
   onRetryCell: (input: {
     tableSlug: string;
     tableName: string;
@@ -491,6 +517,43 @@ export function AgentWorkspaceTable({
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
+          {runProgress?.batchId &&
+          ["queued", "running"].includes(runProgress.batchStatus || "") ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5"
+              disabled={isBatchActionPending}
+              onClick={() => onCancelBatch(runProgress.batchId!)}
+            >
+              {isBatchActionPending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Square className="size-3.5" />
+              )}
+              Cancel
+            </Button>
+          ) : null}
+          {runProgress?.batchId &&
+          ["partial", "failed"].includes(runProgress.batchStatus || "") &&
+          runProgress.cellsFailed > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5"
+              disabled={isBatchActionPending}
+              onClick={() => onRetryFailedBatch(runProgress.batchId!)}
+            >
+              {isBatchActionPending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <RotateCcw className="size-3.5" />
+              )}
+              Retry failed
+            </Button>
+          ) : null}
           <div className="flex rounded-md border border-border p-0.5">
             <Button
               type="button"

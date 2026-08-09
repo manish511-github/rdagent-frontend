@@ -192,7 +192,7 @@ export interface AgentWorkspaceRow {
 }
 
 export interface AgentWorkspaceCellState {
-  status: "pending" | "running" | "succeeded" | "failed" | "skipped" | "stale";
+  status: "pending" | "running" | "succeeded" | "failed" | "cancelled" | "skipped" | "stale";
   attempts: number;
   error?: Record<string, unknown> | null;
   started_at?: string | null;
@@ -200,14 +200,61 @@ export interface AgentWorkspaceCellState {
 }
 
 export interface AgentColumnRunProgress {
+  batchId?: string;
+  batchStatus?: AgentColumnBatchStatusValue;
   tableSlug: string;
   columns: string[];
   processedCells: number;
   totalCells: number;
   cellsCompleted: number;
   cellsFailed: number;
+  cellsCancelled: number;
   cellsSkipped: number;
   status: "running" | "completed";
+}
+
+export type AgentColumnBatchStatusValue =
+  | "queued"
+  | "running"
+  | "complete"
+  | "partial"
+  | "failed"
+  | "cancelled";
+
+export interface AgentColumnBatchStatus {
+  batch_id: string;
+  execution_id: string;
+  workspace_id: string;
+  table_id: string;
+  table_slug: string;
+  status: AgentColumnBatchStatusValue;
+  requested_columns: string[];
+  cells_total: number;
+  cells_completed: number;
+  cells_failed: number;
+  cells_cancelled: number;
+  cells_skipped: number;
+  still_running: number;
+  latest_event_id: number;
+  run_result: Record<string, unknown>;
+  queued_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  updated_at: string;
+}
+
+export interface AgentColumnBatchEvent {
+  id: number;
+  batch_id: string;
+  type: AgentTurnEventType;
+  data: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AgentColumnBatchEventPage {
+  events: AgentColumnBatchEvent[];
+  next_after: number;
+  terminal: boolean;
 }
 
 export interface AgentWorkspaceTablePage {
