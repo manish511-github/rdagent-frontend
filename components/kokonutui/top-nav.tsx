@@ -31,6 +31,7 @@ export default function TopNav() {
   const isPostGeneratorPage = pathname.startsWith("/post-generator");
   const isAgentChatPage =
     pathname.startsWith("/agent-chat");
+  const isAutomationsPage = pathname.startsWith("/automations");
 
   const companySlug = searchParams.get("company") || "";
   const companyDisplay = companySlug
@@ -62,6 +63,8 @@ export default function TopNav() {
     }
   } else if (isAgentChatPage) {
     breadcrumbs.push({ label: "Agent Chat" });
+  } else if (isAutomationsPage) {
+    breadcrumbs.push({ label: "Automations" });
   } else {
     breadcrumbs.push({ label: "Dashboard" });
   }

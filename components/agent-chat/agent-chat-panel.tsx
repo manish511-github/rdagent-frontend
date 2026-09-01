@@ -34,6 +34,11 @@ import {
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
+import {
+  AutomationConfirmationCard,
+  AutomationDraftCard,
+  type AutomationCardActions,
+} from "@/components/agent-chat/automation-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -339,11 +344,13 @@ function ChatBlockView({
   disabled,
   onSend,
   onCancelExecution,
+  automationActions,
 }: {
   block: ChatBlock;
   disabled?: boolean;
   onSend: (text: string) => void;
   onCancelExecution?: (executionId: string) => void;
+  automationActions: AutomationCardActions;
 }) {
   switch (block.kind) {
     case "user":
@@ -429,6 +436,22 @@ function ChatBlockView({
             />
           ))}
         </Suggestions>
+      );
+    case "automation_draft":
+      return (
+        <AutomationDraftCard
+          block={block}
+          disabled={disabled}
+          actions={automationActions}
+        />
+      );
+    case "automation_confirmation":
+      return (
+        <AutomationConfirmationCard
+          block={block}
+          disabled={disabled}
+          actions={automationActions}
+        />
       );
     case "tool":
       return (
@@ -572,6 +595,7 @@ export function AgentChatPanel({
   onSend,
   onStop,
   onCancelExecution,
+  automationActions,
   onOpenConversation,
   onRefreshConversations,
   onReset,
@@ -588,6 +612,7 @@ export function AgentChatPanel({
   onSend: (message: string) => void;
   onStop: () => void;
   onCancelExecution?: (executionId?: string) => void;
+  automationActions: AutomationCardActions;
   onOpenConversation: (conversationId: string) => void;
   onRefreshConversations: () => void;
   onReset: () => void;
@@ -702,6 +727,7 @@ export function AgentChatPanel({
                 onCancelExecution={(executionId) =>
                   onCancelExecution?.(executionId)
                 }
+                automationActions={automationActions}
               />
             ))
           )}

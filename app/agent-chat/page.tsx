@@ -41,6 +41,10 @@ export default function AgentChatPage() {
     cancelExecution,
     cancelColumnBatch,
     retryFailedColumnBatch,
+    refreshAutomation,
+    saveAutomation,
+    pauseAutomation,
+    confirmAutomation,
     reset,
   } = useAgentChat();
 
@@ -85,6 +89,12 @@ export default function AgentChatPage() {
             onSend={sendMessage}
             onStop={stop}
             onCancelExecution={cancelExecution}
+            automationActions={{
+              onRefresh: refreshAutomation,
+              onSave: saveAutomation,
+              onPause: pauseAutomation,
+              onConfirm: confirmAutomation,
+            }}
             onOpenConversation={openConversation}
             onRefreshConversations={refreshRecentConversations}
             onReset={reset}

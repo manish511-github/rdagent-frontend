@@ -10,11 +10,27 @@ import type {
   AgentConversationSummary,
   AgentColumnBatchEventPage,
   AgentColumnBatchStatus,
+  AgentAutomationAction,
+  AgentAutomationActionResult,
+  AgentAutomationLibraryItem,
+  AgentAutomationDetail,
+  AgentAutomationPatch,
+  AgentAutomationTask,
+  AgentAutomationRunDetail,
   AgentTurnEvent,
   AgentTurnRequestPayload,
   AgentWorkspaceTablePage,
   AgentWorkspaceTableSummary,
 } from "./types";
+
+async function responseError(response: Response, fallback: string): Promise<Error> {
+  const body = await response.json().catch(() => null);
+  const detail =
+    body && typeof body === "object" && typeof body.detail === "string"
+      ? body.detail
+      : fallback;
+  return new Error(detail);
+}
 
 function authHeaders(extra?: HeadersInit): HeadersInit {
   const token = Cookies.get("access_token");
@@ -90,6 +106,101 @@ export async function getAgentConversation(
   );
   if (!response.ok) {
     throw new Error("Failed to load conversation");
+  }
+  return response.json();
+}
+
+export async function getAgentAutomation(slug: string): Promise<AgentAutomationTask> {
+  const response = await fetch(
+    getApiUrl(`agent-runtime/automations/${encodeURIComponent(slug)}`),
+    { headers: authHeaders() }
+  );
+  if (!response.ok) {
+    throw await responseError(response, "Failed to load automation");
+  }
+  return response.json();
+}
+
+export async function listAgentAutomations(): Promise<AgentAutomationLibraryItem[]> {
+  const response = await fetch(getApiUrl("agent-runtime/automations?limit=100&offset=0"), {
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    throw await responseError(response, "Failed to load automations");
+  }
+  return response.json();
+}
+
+export async function getAgentAutomationDetail(
+  slug: string
+): Promise<AgentAutomationDetail> {
+  const response = await fetch(
+    getApiUrl(
+      `agent-runtime/automations/${encodeURIComponent(slug)}/detail?limit=100&offset=0`
+    ),
+    { headers: authHeaders() }
+  );
+  if (!response.ok) {
+    throw await responseError(response, "Failed to load automation history");
+  }
+  return response.json();
+}
+
+export async function cancelAgentAutomationRun(
+  slug: string,
+  runId: string
+): Promise<AgentAutomationRunDetail> {
+  const response = await fetch(
+    getApiUrl(
+      `agent-runtime/automations/${encodeURIComponent(slug)}/runs/${encodeURIComponent(runId)}/cancel`
+    ),
+    { method: "POST", headers: authHeaders({ "Content-Type": "application/json" }) }
+  );
+  if (!response.ok) {
+    throw await responseError(response, "Failed to cancel automation run");
+  }
+  return response.json();
+}
+
+export async function updateAgentAutomation(
+  slug: string,
+  input:
+    | { expected_version: number; patch: AgentAutomationPatch }
+    | { expected_version: number; pause: true }
+): Promise<AgentAutomationActionResult> {
+  const response = await fetch(
+    getApiUrl(`agent-runtime/automations/${encodeURIComponent(slug)}`),
+    {
+      method: "PATCH",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(input),
+    }
+  );
+  if (!response.ok) {
+    throw await responseError(response, "Failed to update automation");
+  }
+  return response.json();
+}
+
+export async function confirmAgentAutomation(
+  slug: string,
+  input: {
+    expected_version: number;
+    action: AgentAutomationAction;
+    confirmed: true;
+    patch?: AgentAutomationPatch;
+  }
+): Promise<AgentAutomationActionResult> {
+  const response = await fetch(
+    getApiUrl(`agent-runtime/automations/${encodeURIComponent(slug)}/confirm`),
+    {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(input),
+    }
+  );
+  if (!response.ok) {
+    throw await responseError(response, "Failed to confirm automation action");
   }
   return response.json();
 }

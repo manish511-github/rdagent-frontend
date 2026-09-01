@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   cancelAgentColumnBatch,
   cancelAgentExecution,
+  confirmAgentAutomation,
+  getAgentAutomation,
   getAgentColumnBatch,
   getAgentColumnBatchEvents,
   getAgentConversation,
@@ -14,8 +16,12 @@ import {
   listAgentWorkspaceColumnBatches,
   retryFailedAgentColumnBatch,
   streamAgentTurn,
+  updateAgentAutomation,
 } from "@/lib/agent-chat/api";
 import type {
+  AgentAutomationAction,
+  AgentAutomationPatch,
+  AgentAutomationTask,
   AgentTurnEvent,
   AgentUIContextPayload,
   AgentConversationSummary,
@@ -96,6 +102,77 @@ function questionBlockFromData(
   };
 }
 
+function automationDraftBlockFromData(
+  data: Record<string, unknown>
+): Extract<ChatBlock, { kind: "automation_draft" }> {
+  return {
+    id: newId("automation-draft"),
+    kind: "automation_draft",
+    slug: asString(data.slug),
+    version: asNumber(data.version, 1),
+    name: asString(data.name, "Scheduled automation"),
+    description: asString(data.description),
+    cron: asString(data.cron),
+    timezone: asString(data.timezone, "UTC"),
+    scheduleLabel: asString(data.schedule_label, asString(data.cron)),
+    promptPreview: asString(data.prompt_preview),
+    estimatedCostPerRun:
+      typeof data.estimated_cost_per_run === "number"
+        ? data.estimated_cost_per_run
+        : null,
+    linkedTableSlugs: asStringArray(data.linked_table_slugs),
+    status:
+      data.status === "active" || data.status === "paused" || data.status === "archived"
+        ? data.status
+        : "draft",
+    enabled: data.enabled === true,
+    nextRunAt: asString(data.next_run_at) || null,
+  };
+}
+
+function automationConfirmationBlockFromData(
+  data: Record<string, unknown>
+): Extract<ChatBlock, { kind: "automation_confirmation" }> {
+  const rawAction = asString(data.action);
+  const action: AgentAutomationAction =
+    rawAction === "run_now" || rawAction === "edit_live" || rawAction === "delete_active"
+      ? rawAction
+      : "enable";
+  return {
+    id: newId("automation-confirmation"),
+    kind: "automation_confirmation",
+    slug: asString(data.slug),
+    version: asNumber(data.version, 1),
+    action,
+    name: asString(data.name, "Scheduled automation"),
+    scheduleLabel: asString(data.schedule_label),
+    timezone: asString(data.timezone, "UTC"),
+    estimatedCostPerRun:
+      typeof data.estimated_cost_per_run === "number"
+        ? data.estimated_cost_per_run
+        : null,
+    changes:
+      data.changes && typeof data.changes === "object"
+        ? (data.changes as Record<string, unknown>)
+        : {},
+  };
+}
+
+function uiEventDataFromMessage(
+  message: { payload?: Record<string, unknown> | null }
+): Record<string, unknown> | null {
+  const result = message.payload?.result;
+  const uiEvent =
+    result && typeof result === "object"
+      ? (result as Record<string, unknown>).ui_event
+      : null;
+  const data =
+    uiEvent && typeof uiEvent === "object"
+      ? (uiEvent as Record<string, unknown>).data
+      : null;
+  return data && typeof data === "object" ? (data as Record<string, unknown>) : null;
+}
+
 function blocksFromRestoredMessages(
   messages: Array<{
     role: string;
@@ -115,18 +192,20 @@ function blocksFromRestoredMessages(
       continue;
     }
     if (message.event_type === "tool.ask_questions") {
-      const result = message.payload?.result;
-      const uiEvent =
-        result && typeof result === "object"
-          ? (result as Record<string, unknown>).ui_event
-          : null;
-      const questionData =
-        uiEvent && typeof uiEvent === "object"
-          ? (uiEvent as Record<string, unknown>).data
-          : null;
+      const questionData = uiEventDataFromMessage(message);
       if (questionData && typeof questionData === "object") {
         blocks.push(questionBlockFromData(questionData as Record<string, unknown>));
       }
+      continue;
+    }
+    if (message.event_type === "tool.present_automation_draft") {
+      const data = uiEventDataFromMessage(message);
+      if (data) blocks.push(automationDraftBlockFromData(data));
+      continue;
+    }
+    if (message.event_type === "tool.request_automation_confirmation") {
+      const data = uiEventDataFromMessage(message);
+      if (data) blocks.push(automationConfirmationBlockFromData(data));
       continue;
     }
     if (message.event_type === "answer.completed" || message.role === "assistant") {
@@ -142,6 +221,81 @@ function blocksFromRestoredMessages(
 
 function asNumber(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function syncAutomationTask(
+  blocks: ChatBlock[],
+  task: AgentAutomationTask
+): ChatBlock[] {
+  let foundDraft = false;
+  const synced = blocks.map((block) => {
+    if (block.kind === "automation_draft" && block.slug === task.slug) {
+      foundDraft = true;
+      return {
+        ...block,
+        version: task.version,
+        name: task.name,
+        description: task.description,
+        promptPreview: task.prompt,
+        cron: task.schedule_json.cron_local || task.cron_utc,
+        timezone: task.timezone,
+        scheduleLabel: task.schedule_json.label || task.cron_utc,
+        linkedTableSlugs: task.linked_table_slugs,
+        status: task.status,
+        enabled: task.enabled,
+        nextRunAt: task.next_run_at,
+        busy: false,
+        actionError: null,
+      };
+    }
+    if (block.kind === "automation_confirmation" && block.slug === task.slug) {
+      return {
+        ...block,
+        version: task.version,
+        name: task.name,
+        scheduleLabel: task.schedule_json.label || task.cron_utc,
+        timezone: task.timezone,
+        busy: false,
+        actionError: null,
+      };
+    }
+    return block;
+  });
+  if (foundDraft || task.status === "archived") return synced;
+  return [
+    ...synced,
+    {
+      id: newId("automation-draft"),
+      kind: "automation_draft",
+      slug: task.slug,
+      version: task.version,
+      name: task.name,
+      description: task.description,
+      cron: task.schedule_json.cron_local || task.cron_utc,
+      timezone: task.timezone,
+      scheduleLabel: task.schedule_json.label || task.cron_utc,
+      promptPreview: task.prompt,
+      estimatedCostPerRun: null,
+      linkedTableSlugs: task.linked_table_slugs,
+      status: task.status,
+      enabled: task.enabled,
+      nextRunAt: task.next_run_at,
+    },
+  ];
+}
+
+function setAutomationPending(
+  blocks: ChatBlock[],
+  slug: string,
+  busy: boolean,
+  actionError: string | null = null
+): ChatBlock[] {
+  return blocks.map((block) =>
+    (block.kind === "automation_draft" || block.kind === "automation_confirmation") &&
+    block.slug === slug
+      ? { ...block, busy, actionError }
+      : block
+  );
 }
 
 function isTerminalColumnBatch(status: AgentColumnBatchStatus["status"]): boolean {
@@ -211,6 +365,8 @@ function patchWorkspaceCell(
     };
     return {
       ...row,
+      qualification_status:
+        asString(data.qualification_status) || row.qualification_status,
       values:
         event.type === "column.cell.completed" && "value" in data
           ? { ...row.values, [columnSlug]: data.value }
@@ -314,6 +470,24 @@ function applyTurnEvent(
         },
       ];
     }
+    case "automation_draft": {
+      const finalized = finalizeStreaming();
+      const block = automationDraftBlockFromData(data);
+      const existingIndex = finalized.findIndex(
+        (candidate) => candidate.kind === "automation_draft" && candidate.slug === block.slug
+      );
+      if (existingIndex < 0) return [...finalized, block];
+      return [
+        ...finalized.slice(0, existingIndex),
+        { ...block, id: finalized[existingIndex].id },
+        ...finalized.slice(existingIndex + 1),
+      ];
+    }
+    case "automation_confirmation":
+      return [
+        ...finalizeStreaming(),
+        automationConfirmationBlockFromData(data),
+      ];
     case "tool_start": {
       const finalized = finalizeStreaming();
       const step = {
@@ -551,6 +725,7 @@ function applyTurnEvent(
 
 export function useAgentChat(options?: {
   uiContext?: AgentUIContextPayload | null;
+  initialConversationId?: string | null;
 }) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [blocks, setBlocks] = useState<ChatBlock[]>([]);
@@ -702,7 +877,11 @@ export function useAgentChat(options?: {
   }, [conversationId]);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
+    const linkedConversation = new URLSearchParams(window.location.search).get("conversation");
+    const stored =
+      options?.initialConversationId ||
+      linkedConversation ||
+      window.localStorage.getItem(STORAGE_KEY);
     void refreshRecentConversations();
     if (!stored) return;
     let cancelled = false;
@@ -721,7 +900,7 @@ export function useAgentChat(options?: {
     return () => {
       cancelled = true;
     };
-  }, [refreshRecentConversations, refreshWorkspace]);
+  }, [options?.initialConversationId, refreshRecentConversations, refreshWorkspace]);
 
   useEffect(() => {
     const batches = Object.values(activeColumnBatches).filter(
@@ -956,6 +1135,100 @@ export function useAgentChat(options?: {
     [activeExecutionId, isCancellingExecution]
   );
 
+  const refreshAutomation = useCallback(async (slug: string) => {
+    setBlocks((current) => setAutomationPending(current, slug, true));
+    try {
+      const task = await getAgentAutomation(slug);
+      setBlocks((current) => syncAutomationTask(current, task));
+      return task;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load automation";
+      setBlocks((current) => setAutomationPending(current, slug, false, message));
+      throw err;
+    }
+  }, []);
+
+  const saveAutomation = useCallback(
+    async (input: {
+      slug: string;
+      expectedVersion: number;
+      patch: AgentAutomationPatch;
+      confirmLiveEdit?: boolean;
+    }) => {
+      setBlocks((current) => setAutomationPending(current, input.slug, true));
+      try {
+        const result = input.confirmLiveEdit
+          ? await confirmAgentAutomation(input.slug, {
+              expected_version: input.expectedVersion,
+              action: "edit_live",
+              confirmed: true,
+              patch: input.patch,
+            })
+          : await updateAgentAutomation(input.slug, {
+              expected_version: input.expectedVersion,
+              patch: input.patch,
+            });
+        setBlocks((current) => syncAutomationTask(current, result.task));
+        return result.task;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to save automation";
+        setBlocks((current) => setAutomationPending(current, input.slug, false, message));
+        throw err;
+      }
+    },
+    []
+  );
+
+  const pauseAutomation = useCallback(async (slug: string, expectedVersion: number) => {
+    setBlocks((current) => setAutomationPending(current, slug, true));
+    try {
+      const result = await updateAgentAutomation(slug, {
+        expected_version: expectedVersion,
+        pause: true,
+      });
+      setBlocks((current) => syncAutomationTask(current, result.task));
+      return result.task;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to pause automation";
+      setBlocks((current) => setAutomationPending(current, slug, false, message));
+      throw err;
+    }
+  }, []);
+
+  const confirmAutomation = useCallback(
+    async (input: {
+      slug: string;
+      expectedVersion: number;
+      action: AgentAutomationAction;
+      patch?: AgentAutomationPatch;
+    }) => {
+      setBlocks((current) => setAutomationPending(current, input.slug, true));
+      try {
+        const result = await confirmAgentAutomation(input.slug, {
+          expected_version: input.expectedVersion,
+          action: input.action,
+          confirmed: true,
+          ...(input.patch ? { patch: input.patch } : {}),
+        });
+        setBlocks((current) =>
+          syncAutomationTask(
+            current.filter(
+              (block) =>
+                !(block.kind === "automation_confirmation" && block.slug === input.slug)
+            ),
+            result.task
+          )
+        );
+        return result;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Automation action failed";
+        setBlocks((current) => setAutomationPending(current, input.slug, false, message));
+        throw err;
+      }
+    },
+    []
+  );
+
   const reset = useCallback(() => {
     abortRef.current?.abort();
     setConversationId(null);
@@ -1058,6 +1331,10 @@ export function useAgentChat(options?: {
     cancelExecution,
     cancelColumnBatch,
     retryFailedColumnBatch,
+    refreshAutomation,
+    saveAutomation,
+    pauseAutomation,
+    confirmAutomation,
     reset,
   };
 }

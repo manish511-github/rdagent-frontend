@@ -10,6 +10,8 @@ export type AgentTurnEventType =
   | "plan"
   | "summary"
   | "next_actions"
+  | "automation_draft"
+  | "automation_confirmation"
   | "execution.queued"
   | "execution.validating"
   | "execution.started"
@@ -55,6 +57,107 @@ export interface AgentTurnRequestPayload {
   tool_options?: Record<string, unknown>;
 }
 
+export type AgentAutomationStatus = "draft" | "active" | "paused" | "archived";
+export type AgentAutomationAction =
+  | "enable"
+  | "run_now"
+  | "edit_live"
+  | "delete_active";
+
+export interface AgentAutomationTask {
+  public_id: string;
+  slug: string;
+  user_id: number;
+  origin_conversation_id?: number | null;
+  workspace_id: string;
+  name: string;
+  description: string;
+  prompt: string;
+  status: AgentAutomationStatus;
+  enabled: boolean;
+  timezone: string;
+  schedule_json: { kind?: string; cron_local?: string; label?: string };
+  cron_utc: string;
+  linked_table_slugs: string[];
+  safeguards_json: Record<string, unknown>;
+  notification_json: Record<string, unknown>;
+  checkpoint_json: Record<string, unknown>;
+  max_runtime_seconds: number;
+  next_run_at?: string | null;
+  last_run_at?: string | null;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentAutomationPatch {
+  name?: string;
+  description?: string;
+  prompt?: string;
+  timezone?: string;
+  schedule?: { kind: "cron"; cron_local: string; label: string };
+  cron_utc?: string;
+  linked_table_slugs?: string[];
+  safeguards?: Record<string, unknown>;
+  notifications?: Record<string, unknown>;
+  max_runtime_seconds?: number;
+}
+
+export interface AgentAutomationActionResult {
+  task: AgentAutomationTask;
+  run_id?: string | null;
+  celery_task_id?: string | null;
+}
+
+export type AgentAutomationRunStatus =
+  | "queued"
+  | "running"
+  | "waiting"
+  | "completed"
+  | "partial"
+  | "failed"
+  | "cancelled"
+  | "skipped";
+
+export interface AgentAutomationRun {
+  public_id: string;
+  task_id: number;
+  user_id: number;
+  conversation_id?: number | null;
+  celery_task_id?: string | null;
+  trigger: "scheduled" | "manual";
+  scheduled_for: string;
+  status: AgentAutomationRunStatus;
+  prompt_snapshot: string;
+  task_version: number;
+  attempts: number;
+  summary: string;
+  warning?: string | null;
+  error_json?: Record<string, unknown> | null;
+  metrics_json: Record<string, unknown>;
+  credits_used: number;
+  started_at?: string | null;
+  completed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentAutomationLibraryItem {
+  task: AgentAutomationTask;
+  latest_run?: AgentAutomationRun | null;
+  attention_reason?: string | null;
+}
+
+export interface AgentAutomationRunDetail {
+  run: AgentAutomationRun;
+  conversation_public_id?: string | null;
+}
+
+export interface AgentAutomationDetail {
+  task: AgentAutomationTask;
+  runs: AgentAutomationRunDetail[];
+}
+
 export type ChatBlock =
   | { id: string; kind: "user"; text: string }
   | { id: string; kind: "thought"; text: string; streaming?: boolean }
@@ -87,6 +190,39 @@ export type ChatBlock =
       }>;
     }
   | { id: string; kind: "next_actions"; actions: string[] }
+  | {
+      id: string;
+      kind: "automation_draft";
+      slug: string;
+      version: number;
+      name: string;
+      description: string;
+      cron: string;
+      timezone: string;
+      scheduleLabel: string;
+      promptPreview: string;
+      estimatedCostPerRun?: number | null;
+      linkedTableSlugs: string[];
+      status: AgentAutomationStatus;
+      enabled: boolean;
+      nextRunAt?: string | null;
+      busy?: boolean;
+      actionError?: string | null;
+    }
+  | {
+      id: string;
+      kind: "automation_confirmation";
+      slug: string;
+      version: number;
+      action: AgentAutomationAction;
+      name: string;
+      scheduleLabel: string;
+      timezone: string;
+      estimatedCostPerRun?: number | null;
+      changes: Record<string, unknown>;
+      busy?: boolean;
+      actionError?: string | null;
+    }
   | {
       id: string;
       kind: "tool";
