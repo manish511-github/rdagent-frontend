@@ -877,7 +877,9 @@ export function useAgentChat(options?: {
   }, [conversationId]);
 
   useEffect(() => {
-    const linkedConversation = new URLSearchParams(window.location.search).get("conversation");
+    const searchParams = new URLSearchParams(window.location.search);
+    const linkedConversation = searchParams.get("conversation");
+    const linkedTable = searchParams.get("table");
     const stored =
       options?.initialConversationId ||
       linkedConversation ||
@@ -892,7 +894,10 @@ export function useAgentChat(options?: {
         conversationRef.current = detail.conversation_id;
         setConversationId(detail.conversation_id);
         setBlocks(blocksFromRestoredMessages(detail.messages));
-        await refreshWorkspace({ conversationId: detail.conversation_id });
+        await refreshWorkspace({
+          conversationId: detail.conversation_id,
+          preferredSlug: linkedTable || undefined,
+        });
       } catch {
         window.localStorage.removeItem(STORAGE_KEY);
       }
