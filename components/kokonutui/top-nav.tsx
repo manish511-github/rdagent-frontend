@@ -9,7 +9,7 @@ import { ChevronRight } from "lucide-react";
 import Profile01 from "./profile-01";
 import Link from "next/link";
 import ThemeToggle from "../theme-toggle";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -21,24 +21,13 @@ interface BreadcrumbItem {
 
 export default function TopNav() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const userInfo = useSelector((state: RootState) => state.user.info);
   
   const isSettingsPage = pathname.startsWith("/settings");
-  const isCompanyAnalysisPage = pathname.includes("/company-analysis");
-  const isCompetitorsPage = pathname.includes("/competitors");
   const isAgentsPage = pathname.startsWith("/agents");
-  const isPostGeneratorPage = pathname.startsWith("/post-generator");
   const isAgentChatPage =
     pathname.startsWith("/agent-chat");
   const isAutomationsPage = pathname.startsWith("/automations");
-
-  const companySlug = searchParams.get("company") || "";
-  const companyDisplay = companySlug
-    ? decodeURIComponent(companySlug)
-        .replace(/-/g, " ")
-        .replace(/\b\w/g, (c) => c.toUpperCase())
-    : "Selected Company";
 
   // Define breadcrumbs based on current page
   let breadcrumbs: BreadcrumbItem[] = [];
@@ -50,16 +39,6 @@ export default function TopNav() {
     const segments = pathname.split("/");
     if (segments.length > 2) {
       breadcrumbs.push({ label: "Agent Detail" });
-    }
-  } else if (isCompetitorsPage || isCompanyAnalysisPage) {
-    breadcrumbs.push({ label: "Competitors", href: "/competitors" });
-    if (isCompanyAnalysisPage) {
-      breadcrumbs.push({ label: companyDisplay });
-    }
-  } else if (isPostGeneratorPage) {
-    breadcrumbs.push({ label: "Post Generator", href: "/post-generator" });
-    if (pathname.includes("/reddit")) {
-      breadcrumbs.push({ label: "Reddit" });
     }
   } else if (isAgentChatPage) {
     breadcrumbs.push({ label: "Agent Chat" });

@@ -1,5 +1,4 @@
 import { configureStore } from "@reduxjs/toolkit";
-import competitorAnalysisReducer from "./slices/competitorAnalysisSlice";
 import agentReducer from "./features/agentSlice";
 import agentsReducer from "./slices/agentsSlice";
 import userReducer from "./slices/userSlice";
@@ -9,7 +8,6 @@ export const store = configureStore({
     agent: agentReducer,
     agents: agentsReducer,
     user: userReducer,
-    competitorAnalysis: competitorAnalysisReducer,
   },
 });
 

@@ -36,8 +36,6 @@ export interface UserInfo {
     [key: string]: { used: number; limit: number } | undefined; // Allow additional limit types
   };
   credit_cost?: {
-    competitor_analysis?: number;
-    reddit_post_generation?: number;
     [key: string]: number | undefined;
   };
   plan_id?: string | number | null; // Made flexible
@@ -122,34 +120,6 @@ export const selectCreditsLimitUsed = (state: RootState): number =>
   getLimitValue(state, "credits")?.used ?? 0;
 export const selectCreditsLimitTotal = (state: RootState): number =>
   getLimitValue(state, "credits")?.limit ?? 0;
-
-// Credit cost selectors
-export const selectCompetitorAnalysisCost = (state: RootState): number =>
-  state.user.info?.credit_cost?.competitor_analysis ?? 0;
-
-export const selectRedditPostGenerationCost = (state: RootState): number =>
-  state.user.info?.credit_cost?.reddit_post_generation ?? 0;
-
-// Credit availability checkers
-export const selectHasEnoughCreditsForCompetitorAnalysis = (
-  state: RootState
-): boolean => {
-  const used = selectCreditsLimitUsed(state);
-  const limit = selectCreditsLimitTotal(state);
-  const cost = selectCompetitorAnalysisCost(state);
-  const available = limit - used;
-  return available >= cost;
-};
-
-export const selectHasEnoughCreditsForRedditPostGeneration = (
-  state: RootState
-): boolean => {
-  const used = selectCreditsLimitUsed(state);
-  const limit = selectCreditsLimitTotal(state);
-  const cost = selectRedditPostGenerationCost(state);
-  const available = limit - used;
-  return available >= cost;
-};
 
 // Generic credit checker
 export const selectHasEnoughCredits = (

@@ -1,4 +1,4 @@
-import { BarChart3, Brain, CalendarClock, PenTool, Search, Users } from "lucide-react";
+import { Brain, CalendarClock, Search } from "lucide-react";
 import { NavItem } from "./nav-item";
 import type { FC } from "react";
 
@@ -9,7 +9,6 @@ interface ProjectsNavigationProps {
 }
 
 export const ProjectsNavigation: FC<ProjectsNavigationProps> = ({ isCollapsed, isMounted, pathname }) => {
-  const isPostGenActive = pathname.startsWith("/post-generator");
   const isAgentsActive = pathname.startsWith("/agents");
   const isAgentChatActive = pathname.startsWith("/agent-chat");
   const isAutomationsActive = pathname.startsWith("/automations");
@@ -33,15 +32,6 @@ export const ProjectsNavigation: FC<ProjectsNavigationProps> = ({ isCollapsed, i
             Agents
           </NavItem>
           <NavItem
-            href="/competitors"
-            icon={Users}
-            isActive={pathname === "/competitors"}
-            isCollapsed={isCollapsed}
-            isMounted={isMounted}
-          >
-            Competitors
-          </NavItem>
-          <NavItem
             href="/agent-chat"
             icon={Search}
             isActive={isAgentChatActive}
@@ -58,25 +48,6 @@ export const ProjectsNavigation: FC<ProjectsNavigationProps> = ({ isCollapsed, i
             isMounted={isMounted}
           >
             Automations
-          </NavItem>
-
-          <NavItem
-            href="/post-generator"
-            icon={PenTool}
-            isActive={isPostGenActive}
-            isCollapsed={isCollapsed}
-            isMounted={isMounted}
-          >
-            Post Generator
-          </NavItem>
-          <NavItem
-            href="/company-analysis"
-            icon={BarChart3}
-            isActive={pathname === "/company-analysis"}
-            isCollapsed={isCollapsed}
-            isMounted={isMounted}
-          >
-            Company Analysis
           </NavItem>
         </div>
       </div>
