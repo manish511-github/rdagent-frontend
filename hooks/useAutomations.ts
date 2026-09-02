@@ -11,15 +11,16 @@ import {
 import type {
   AgentAutomationAction,
   AgentAutomationLibraryItem,
+  AgentAutomationPatch,
   AgentAutomationTask,
 } from "@/lib/agent-chat/types";
 
 function replaceTask(
   items: AgentAutomationLibraryItem[],
-  task: AgentAutomationTask
+  task: AgentAutomationTask,
 ): AgentAutomationLibraryItem[] {
   return items.map((item) =>
-    item.task.slug === task.slug ? { ...item, task } : item
+    item.task.slug === task.slug ? { ...item, task } : item,
   );
 }
 
@@ -39,7 +40,9 @@ export function useAutomations({ enabled = true }: { enabled?: boolean } = {}) {
     try {
       setItems(await listAgentAutomations());
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Failed to load automations");
+      setError(
+        caught instanceof Error ? caught.message : "Failed to load automations",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -49,51 +52,97 @@ export function useAutomations({ enabled = true }: { enabled?: boolean } = {}) {
     void refresh();
   }, [refresh]);
 
-  const pause = useCallback(async (slug: string) => {
-    if (actionSlug) return;
-    setActionSlug(slug);
-    setError(null);
-    try {
-      const fresh = await getAgentAutomation(slug);
-      const result = await updateAgentAutomation(slug, {
-        expected_version: fresh.version,
-        pause: true,
-      });
-      setItems((current) => replaceTask(current, result.task));
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Failed to pause automation");
-      throw caught;
-    } finally {
-      setActionSlug(null);
-    }
-  }, [actionSlug]);
-
-  const confirm = useCallback(async (slug: string, action: AgentAutomationAction) => {
-    if (actionSlug) return null;
-    setActionSlug(slug);
-    setError(null);
-    try {
-      const fresh = await getAgentAutomation(slug);
-      const result = await confirmAgentAutomation(slug, {
-        expected_version: fresh.version,
-        action,
-        confirmed: true,
-      });
-      // Run-now creates a new durable occurrence. Reload once so its queued
-      // state and latest-run metadata become visible in this same row.
-      if (action === "run_now") {
-        setItems(await listAgentAutomations());
-      } else {
+  const pause = useCallback(
+    async (slug: string) => {
+      if (actionSlug) return;
+      setActionSlug(slug);
+      setError(null);
+      try {
+        const fresh = await getAgentAutomation(slug);
+        const result = await updateAgentAutomation(slug, {
+          expected_version: fresh.version,
+          pause: true,
+        });
         setItems((current) => replaceTask(current, result.task));
+      } catch (caught) {
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Failed to pause automation",
+        );
+        throw caught;
+      } finally {
+        setActionSlug(null);
       }
-      return result;
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Automation action failed");
-      throw caught;
-    } finally {
-      setActionSlug(null);
-    }
-  }, [actionSlug]);
+    },
+    [actionSlug],
+  );
+
+  const confirm = useCallback(
+    async (slug: string, action: AgentAutomationAction) => {
+      if (actionSlug) return null;
+      setActionSlug(slug);
+      setError(null);
+      try {
+        const fresh = await getAgentAutomation(slug);
+        const result = await confirmAgentAutomation(slug, {
+          expected_version: fresh.version,
+          action,
+          confirmed: true,
+        });
+        // Run-now creates a new durable occurrence. Reload once so its queued
+        // state and latest-run metadata become visible in this same row.
+        if (action === "run_now") {
+          setItems(await listAgentAutomations());
+        } else {
+          setItems((current) => replaceTask(current, result.task));
+        }
+        return result;
+      } catch (caught) {
+        setError(
+          caught instanceof Error ? caught.message : "Automation action failed",
+        );
+        throw caught;
+      } finally {
+        setActionSlug(null);
+      }
+    },
+    [actionSlug],
+  );
+
+  const save = useCallback(
+    async (slug: string, patch: AgentAutomationPatch) => {
+      if (actionSlug) return;
+      setActionSlug(slug);
+      setError(null);
+      try {
+        const fresh = await getAgentAutomation(slug);
+        const result =
+          fresh.status === "active"
+            ? await confirmAgentAutomation(slug, {
+                expected_version: fresh.version,
+                action: "edit_live",
+                confirmed: true,
+                patch,
+              })
+            : await updateAgentAutomation(slug, {
+                expected_version: fresh.version,
+                patch,
+              });
+        setItems((current) => replaceTask(current, result.task));
+      } catch (caught) {
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Failed to update automation",
+        );
+        throw caught;
+      } finally {
+        setActionSlug(null);
+      }
+    },
+    [actionSlug],
+  );
 
   return {
     items,
@@ -103,5 +152,6 @@ export function useAutomations({ enabled = true }: { enabled?: boolean } = {}) {
     refresh,
     pause,
     confirm,
+    save,
   };
 }

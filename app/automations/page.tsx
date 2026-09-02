@@ -8,13 +8,16 @@ import { useAutomations } from "@/hooks/useAutomations";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 
 export default function AutomationsPage() {
-  const { isAuthenticated, isLoading: isAuthLoading, showRedirectMessage } =
-    useAuthGuard({
-      redirectTo: "/login",
-      toastTitle: "Authentication Required",
-      toastDescription: "Please sign in to manage automations.",
-      requireAuth: true,
-    });
+  const {
+    isAuthenticated,
+    isLoading: isAuthLoading,
+    showRedirectMessage,
+  } = useAuthGuard({
+    redirectTo: "/login",
+    toastTitle: "Authentication Required",
+    toastDescription: "Please sign in to manage automations.",
+    requireAuth: true,
+  });
   // Do not contact the owner-scoped API until the auth guard has restored a
   // valid session. This avoids a noisy unauthenticated request during page
   // hydration and keeps the library's first response owner-scoped.
@@ -44,6 +47,7 @@ export default function AutomationsPage() {
         onRefresh={automations.refresh}
         onPause={automations.pause}
         onConfirm={automations.confirm}
+        onSave={automations.save}
       />
     </Layout>
   );
