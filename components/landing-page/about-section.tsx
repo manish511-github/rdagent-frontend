@@ -16,15 +16,15 @@ const storyCards = [
   },
   {
     title: "The Solution We Built",
-    content: `Zooptics AI agents work around the clock to detect trends, analyze competitors, generate leads, and drive social engagement. Our platform continuously monitors your brand and products across platforms like Reddit, Hacker News, Twitter, and YouTube. AI agents automatically engage with your audience in your brand's voice, while you maintain control to step in personally whenever needed. Your marketing stays aligned with every market change, automatically.`,
+    content: `Zooptics turns a natural-language research request into an executable workflow. Agent Chat chooses structured data sources, web research, and enrichment services, then stores the resulting companies, people, evidence, and execution states in a durable workspace table.`,
   },
   {
     title: "Our Vision",
-    content: `We believe every business deserves AI-powered marketing intelligence that adapts to market dynamics. With customizable AI agents, comprehensive competitor analysis, and automated brand engagement, small teams can compete with enterprise budgets. Our platform transforms "post and pray" into strategic, data-driven marketing. From smart brand monitoring to effortless lead generation, Zooptics ensures your brand voice resonates authentically across every platform—Reddit, Hacker News, YouTube, Twitter, and beyond.`,
+    content: `We believe small teams should be able to run trustworthy data research without assembling scripts, spreadsheets, and disconnected enrichment tools. Zooptics combines an agentic planning layer with durable tables, calculated columns, evidence, and scheduled automations.`,
   },
   {
     title: "Our Promise",
-    content: `Your brand is unique, and your marketing should reflect that. Zooptics adapts to your industry, audience, and goals with customizable AI agents that learn your voice. Whether you need competitor analysis, automated engagement, or lead generation, our platform grows with your ambition. Stop guessing what works on social media. Start leading with AI-powered insights that keep your marketing aligned with every market change.`,
+    content: `Research quality depends on knowing where every result came from and what failed along the way. Zooptics keeps plans, service calls, evidence, row states, and automation progress visible so your team can trust and improve each workflow.`,
   },
 ]
 
@@ -101,7 +101,7 @@ export function AboutSection() {
                 Ready to Transform How You Market Forever?
               </h2>
               <p className="text-muted-foreground mb-8 text-lg">
-                Join marketers who rely on Zooptics AI agents to surface emerging trends, decode competitor moves, uncover high-intent leads, and spark meaningful social engagement—so their marketing stays perfectly in sync with every shift in the market.
+                Join teams using Zooptics to turn complex company and people research into qualified, evidence-backed datasets without stitching together scripts and spreadsheets.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
@@ -133,4 +133,3 @@ export function AboutSection() {
     </div>
   )
 }
-

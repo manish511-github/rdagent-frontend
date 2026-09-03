@@ -9,8 +9,6 @@ import { HeroSection } from "@/components/landing-page/hero-section"
 // import { PartnersSection } from "@/components/partners-section"
 import { FeaturesSection } from "@/components/landing-page/features-section"
 import { AdaptiveWorkflowsSection } from "@/components/landing-page/adaptive-workflows-section"
-import { OptimizedSchedulingSection } from "@/components/landing-page/optimized-scheduling-section"
-import { AcceleratePlanningSection } from "@/components/landing-page/accelerate-planning-section"
 // import { TestimonialsSection } from "@/components/testimonials-section"
 import { SimplifiedPricingSection } from "@/components/landing-page/simplified-pricing-section"
 import { FAQSection } from "@/components/landing-page/faq-section" // This import is still here
@@ -19,7 +17,7 @@ import UpgradePlan from "@/components/upgrade_plan/upgrade_plan"
 
 export default function HomePage() {
   const { isAuthenticated, isLoading } = useAuthGuard({
-    redirectTo: "/agents",
+    redirectTo: "/agent-chat",
     requireAuth: false, // Redirect if authenticated
     toastTitle: "Welcome Back!",
     toastDescription: "Redirecting to your dashboard...",
@@ -44,8 +42,6 @@ export default function HomePage() {
           {/* <PartnersSection /> */}
           <FeaturesSection />
           <AdaptiveWorkflowsSection />
-          <OptimizedSchedulingSection />
-          <AcceleratePlanningSection />
           {/* <TestimonialsSection /> */}
           {/* <SimplifiedPricingSection /> */}
         <div className="border-x [&>*:last-child]:pb-20 [&>div>div:first-child]:!pt-20 lg:pt-0 pb-0">

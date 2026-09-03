@@ -24,7 +24,6 @@ export default function TopNav() {
   const userInfo = useSelector((state: RootState) => state.user.info);
   
   const isSettingsPage = pathname.startsWith("/settings");
-  const isAgentsPage = pathname.startsWith("/agents");
   const isAgentChatPage =
     pathname.startsWith("/agent-chat");
   const isAutomationsPage = pathname.startsWith("/automations");
@@ -34,12 +33,6 @@ export default function TopNav() {
 
   if (isSettingsPage) {
     breadcrumbs = [{ label: "Settings" }];
-  } else if (isAgentsPage) {
-    breadcrumbs.push({ label: "Agents", href: "/agents" });
-    const segments = pathname.split("/");
-    if (segments.length > 2) {
-      breadcrumbs.push({ label: "Agent Detail" });
-    }
   } else if (isAgentChatPage) {
     breadcrumbs.push({ label: "Agent Chat" });
   } else if (isAutomationsPage) {

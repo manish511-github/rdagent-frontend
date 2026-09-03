@@ -16,11 +16,6 @@ export default function Layout({ children }: LayoutProps) {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
 
-  // Check if we're on an individual agent page which needs fixed height
-  // New pattern: /agents/[agentId] (length 3, e.g. ["", "agents", "some-uuid"])
-  const isAgentPage =
-    pathname.startsWith("/agents/") && pathname.split("/").length >= 3;
-  // Company analysis page should behave like fixed-height app view
   const isAgentChatPage = pathname.includes("/agent-chat");
 
   useEffect(() => {
@@ -40,7 +35,7 @@ export default function Layout({ children }: LayoutProps) {
         </header>
         <main
           className={`min-h-0 min-w-0 flex-1 ${
-            isAgentPage || isAgentChatPage ? "overflow-hidden" : "overflow-auto"
+            isAgentChatPage ? "overflow-hidden" : "overflow-auto"
           } bg-white dark:bg-black`}
         >
           {mounted ? (

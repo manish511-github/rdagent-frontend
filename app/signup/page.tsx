@@ -9,7 +9,7 @@ import { AuthLoading } from "@/components/auth/auth-loading"
 
 export default function SignupPage() {
   const { isAuthenticated, isLoading } = useAuthGuard({
-    redirectTo: "/agents",
+    redirectTo: "/agent-chat",
     requireAuth: false // Redirect authenticated users away from signup
   })
 

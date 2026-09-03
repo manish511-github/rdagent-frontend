@@ -11,8 +11,8 @@ export default function Features() {
     },
     {
       icon: <Zap className="w-8 h-8" />,
-      title: "Automated Content Creation",
-      description: "Generate high-quality marketing content across multiple platforms with a single click.",
+      title: "Calculated Enrichments",
+      description: "Add evidence-backed company and people fields across an entire workspace table.",
       color: "from-amber-500/20 to-amber-600/20 dark:from-amber-500/10 dark:to-amber-600/10",
       iconColor: "text-amber-600 dark:text-amber-400",
     },

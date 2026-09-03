@@ -4,9 +4,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 const faqs = [
   {
-    question: "How does Market-Agent find posts related to my company and products?",
+    question: "How does Zooptics find companies and people?",
     answer:
-      "Our AI agents use advanced algorithms to scan social media platforms, forums, and online discussions for mentions of your brand, products, and relevant keywords. The system continuously monitors conversations and automatically identifies posts that are relevant to your business.",
+      "Agent Chat converts your request into a search plan, selects available structured or web-research services, and stores the resulting records in a workspace table with source data and execution status.",
   },
   {
     question: "Can I customize what the AI agents look for?",
@@ -19,14 +19,14 @@ const faqs = [
       "Our AI agents analyze online conversations to identify users who are actively discussing topics related to your products or showing interest in your industry. These qualified leads are then delivered to your dashboard for follow-up.",
   },
   {
-    question: "Can I review and approve posts before they go live?",
+    question: "Can I review results before using them?",
     answer:
-      "While our AI agents can automatically engage, you have full control. You can review, edit, or approve any automated responses before they're posted, ensuring your brand voice remains authentic.",
+      "Yes. Results remain visible in the workspace with matched, uncertain, no-match, and failed outcomes so you can review the evidence instead of treating missing data as a valid match.",
   },
   {
-    question: "Which platforms does Market-Agent work with?",
+    question: "Which data sources does Zooptics use?",
     answer:
-      "Market-Agent currently supports Reddit, and Hacker News, with plans to expand to additional platforms. Each platform is optimized for its unique features and audience.",
+      "Zooptics can combine company and people datasets, search providers, public web research, local-business sources, job data, and configured enrichment services. Availability depends on the providers enabled in your workspace.",
   },
   {
     question: "How accurate is the sentiment analysis?",
@@ -34,9 +34,9 @@ const faqs = [
       "Our AI uses advanced natural language processing to accurately assess the tone and sentiment of conversations about your brand. The system continuously learns and improves to provide more precise insights over time.",
   },
   {
-    question: "How do I get started with Market-Agent?",
+    question: "How do I get started with Zooptics?",
     answer:
-      "Simply sign up, connect your social media accounts, and configure your AI agents with your specific keywords and goals. Our intuitive dashboard makes it easy to get up and running in minutes.",
+      "Sign up, open Agent Chat, and describe the companies, people, or signals you want. Zooptics will clarify material criteria, present a plan, and build the first reviewable table sample.",
   },
 ]
 

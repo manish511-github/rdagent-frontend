@@ -63,9 +63,9 @@ const plans = {
       icon: BadgeCheck,
       features: [
         { title: "1 Project", description: "Set up and manage a single project to experience the platform." },
-        { title: "1 Agent", description: "Deploy one AI agent to automate content creation." },
+        { title: "1 Agent", description: "Run one AI research workflow at a time." },
         { title: "10 Keywords", description: "Track up to 10 keywords with basic insights." },
-        { title: "10 Credits", description: "Use credits for generating AI-powered content, replies, and competitor analysis." },
+        { title: "10 Credits", description: "Use credits for searches, enrichments, and evidence-backed research." },
         { title: "Weekly Scheduling", description: "Automate content delivery once per week." }
       ]
     },
@@ -80,7 +80,7 @@ const plans = {
         { title: "2 Projects", description: "Run and manage up to two separate projects." },
         { title: "5 Agents", description: "Use up to five AI agents for different workflows." },
         { title: "20 Keywords", description: "Track 20 keywords with improved analytics." },
-        { title: "200 Credits", description: "Generate more AI content, replies, and competitor analysis with 200 monthly credits." },
+        { title: "200 Credits", description: "Run more searches and enrichment workflows with 200 monthly credits." },
         { title: "Weekly Scheduling", description: "Automate agent activity on a weekly basis." },
         { title: "Email Support", description: "Get direct assistance from our support team." }
       ]
@@ -97,7 +97,7 @@ const plans = {
         { title: "5 Projects", description: "Manage up to five active projects simultaneously." },
         { title: "10 Agents", description: "Deploy and manage 10 AI agents across all projects." },
         { title: "50 Keywords per Agent", description: "Track 50 keywords per agent for deeper insights." },
-        { title: "500 Credits", description: "Power large-scale AI content generation, replies, and competitor analysis with 500 credits." },
+        { title: "500 Credits", description: "Power larger research and enrichment workflows with 500 credits." },
         { title: "Twice-Weekly Scheduling", description: "Automate agent tasks two times per week." },
         { title: "Priority Support", description: "Receive faster help from our priority support channel." }
       ]
@@ -113,9 +113,9 @@ const plans = {
       icon: BadgeCheck,
       features: [
         { title: "1 Project", description: "Set up and manage a single project to experience the platform." },
-        { title: "1 Agent", description: "Deploy one AI agent to automate content creation." },
+        { title: "1 Agent", description: "Run one AI research workflow at a time." },
         { title: "10 Keywords", description: "Track up to 10 keywords with basic insights." },
-        { title: "10 Credits", description: "Use credits for generating AI-powered content, replies, and competitor analysis." },
+        { title: "10 Credits", description: "Use credits for searches, enrichments, and evidence-backed research." },
         { title: "Weekly Scheduling", description: "Automate content delivery once per week." }
       ]
     },
@@ -130,7 +130,7 @@ const plans = {
         { title: "2 Projects", description: "Run and manage up to two separate projects." },
         { title: "5 Agents", description: "Use up to five AI agents for different workflows." },
         { title: "20 Keywords", description: "Track 20 keywords with improved analytics." },
-        { title: "100 Credits", description: "Generate more AI content, replies, and competitor analysis with 100 monthly credits." },
+        { title: "100 Credits", description: "Run more searches and enrichment workflows with 100 monthly credits." },
         { title: "Weekly Scheduling", description: "Automate agent activity on a weekly basis." },
         { title: "Email Support", description: "Get direct assistance from our support team." }
       ]
@@ -147,7 +147,7 @@ const plans = {
         { title: "5 Projects", description: "Manage up to five active projects simultaneously." },
         { title: "10 Agents", description: "Deploy and manage 10 AI agents across all projects." },
         { title: "50 Keywords per Agent", description: "Track 50 keywords per agent for deeper insights." },
-        { title: "500 Credits", description: "Power large-scale AI content generation, replies, and competitor analysis with 500 credits." },
+        { title: "500 Credits", description: "Power larger research and enrichment workflows with 500 credits." },
         { title: "Twice-Weekly Scheduling", description: "Automate agent tasks two times per week." },
         { title: "Priority Support", description: "Receive faster help from our priority support channel." }
       ]
@@ -210,7 +210,7 @@ export default function UpgradePlan({
             </FadeIn>
             <FadeIn delay={0.2}>
               <p className="text-lg leading-relaxed tracking-tight text-muted-foreground max-w-xl text-center">
-                Scale your AI-powered content creation with our flexible pricing plans.
+                Scale your AI-powered research and enrichment with flexible pricing plans.
               </p>
             </FadeIn>
           </div>

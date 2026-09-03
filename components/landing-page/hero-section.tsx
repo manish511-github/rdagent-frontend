@@ -22,13 +22,13 @@ export function HeroSection() {
           <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center">
             <FadeIn>
               <h1 className="text-balance text-center text-5xl font-semibold tracking-tighter md:text-6xl lg:text-7xl leading-tight">
-                Stop Guessing What Works on Social Media
+                Turn Research Requests Into Qualified Lead Tables
               </h1>
             </FadeIn>
 
             <FadeIn delay={0.2}>
               <p className="text-muted-foreground mx-auto mt-12 max-w-xl text-center text-lg md:text-xl">
-                Zooptics agents detect trends, analyze competitors, generate leads, and drive social engagement—keeping your marketing aligned with every market change.
+                Zooptics plans searches, runs structured enrichments, verifies evidence, and keeps every result in a durable workspace you can review and automate.
               </p>
             </FadeIn>
 

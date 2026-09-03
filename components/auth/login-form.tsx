@@ -145,7 +145,7 @@ export function LoginForm() {
       // setIsSubmitted(true);
 
       setTimeout(() => {
-        window.location.href = "/agents";
+        window.location.href = "/agent-chat";
       }, 1500);
     } catch (err) {
       // Network errors or other exceptions

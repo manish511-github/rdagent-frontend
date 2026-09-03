@@ -6,28 +6,28 @@ import { cn } from "@/lib/utils"
 
 const workflows = [
   {
-    title: "Customizable AI Agents",
-    description: "Easily adapt agents to your industry, audience, and goals for truly personalized automation.",
+    title: "Search Planning",
+    description: "Turn a plain-language ICP into explicit filters, source choices, verification steps, and a bounded first sample.",
     image: "/images/customisation_adapt.jpg",
-    darkImage: "/images/personlised-agent-dark.png",
-    lightImage: "/images/personlised-agent-light.png",
+    darkImage: "/images/landing-page-dark-1.png",
+    lightImage: "/images/landing-page-light-1.png",
     useDualMode: true,
   },
   {
-    title: "Adaptive Audience Engagement",
+    title: "Evidence-Aware Enrichment",
     description:
-      "AI agents interact with your audience in your brand's voice, while allowing you to step in for a personal touch whenever you choose.",
+      "Enrich companies and people with calculated columns while preserving matched, uncertain, no-match, and failed outcomes.",
     image: "/images/audience_engagement.jpg",
-    darkImage: "/images/agent-engagement-dark-1.png",
-    lightImage: "/images/agent-engagement-light-1.png",
+    darkImage: "/images/landing-page-dark-2.png",
+    lightImage: "/images/landing-page-light-2.png",
     useDualMode: true,
   },
   {
-    title: "Competitor Analysis",
-    description: "Gain deep insights into competitors' strategies, performance, and market positioning to inform your own marketing decisions.",
+    title: "Durable Automations",
+    description: "Schedule proven research workflows and keep their progress, evidence, and results in the same workspace.",
     image: "/images/competitor_analysis_2.jpg",
-    darkImage: "/images/competitor-analysis-dark-1.png",
-    lightImage: "/images/competitor-analysis-light-1.png",
+    darkImage: "/images/landing-page-dark-3.png",
+    lightImage: "/images/landing-page-light-3.png",
     useDualMode: true,
   },
 ]

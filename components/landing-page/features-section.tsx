@@ -17,31 +17,31 @@ import { getDashedBorderSvg } from "@/lib/utils";
 const features = [
   {
     id: "smart-task-management",
-    title: "Smart Brand & Product Monitoring",
+    title: "Natural-Language Lead Research",
     description:
-      "Stay effortlessly informed as AI agents continuously scan and track posts about your company and products. Instantly surface relevant conversations and trends, so you never miss what matters most to your brand.",
+      "Describe your ideal companies or people in plain language. Agent Chat plans the search, uses the right data services, and builds a reviewable workspace table.",
     icon: PocketKnife,
     // imageLight / imageDark keep the same order the user requested
-    imageLight: "/images/agent-keyword-light.png",
-    imageDark: "/images/agent-keyword-dark.png",
+    imageLight: "/images/landing-page-light-1.png",
+    imageDark: "/images/landing-page-dark-1.png",
   },
   {
     id: "automated-scheduling",
-    title: "Effortless Lead Generation",
+    title: "Durable Data Enrichment",
     description:
-      "Grow your customer base with AI-powered lead discovery. Our agents analyze online discussions to identify and qualify prospects who are already interested in your offerings—delivering high-quality leads directly to you.",
+      "Add calculated columns for contacts, funding, technologies, reviews, hiring signals, and web research. Every row keeps its execution state and evidence.",
     icon: CalendarClock,
-    imageLight: "/images/reddit-post-light.png",
-    imageDark: "/images/reddit-post-dark.png",
+    imageLight: "/images/landing-page-light-2.png",
+    imageDark: "/images/landing-page-dark-2.png",
   },
   {
     id: "personalized-insights",
-    title: "Automated Brand Engagement",
+    title: "Scheduled Research Automations",
     description:
-      "Boost your brand’s visibility and reputation with intelligent, sentiment-driven engagement. AI agents analyze the tone of conversations and automatically join in with tailored responses or content, ensuring your brand always delivers the right message at the right moment.",
+      "Turn a successful research workflow into a recurring automation while keeping progress, failures, and final results visible in the same workspace.",
     icon: ChartBar,
-    imageLight: "/images/agent-post-light.png",
-    imageDark: "/images/agent-post-dark.png",
+    imageLight: "/images/landing-page-light-3.png",
+    imageDark: "/images/landing-page-dark-3.png",
   },
 ];
 

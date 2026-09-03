@@ -123,7 +123,7 @@ function PaymentSuccessContent() {
   }
 
   const handleViewDashboard = () => {
-    router.push("/agents")
+    router.push("/agent-chat")
   }
 
   const handleReturnHome = () => {
@@ -311,4 +311,3 @@ export default function PaymentSuccessPage() {
     </Suspense>
   )
 }
-
