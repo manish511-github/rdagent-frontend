@@ -1,112 +1,60 @@
-import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
-import { Shapes } from "lucide-react"
-import { FadeIn } from "@/components/animations/fade-in" // Import FadeIn
-import { cn } from "@/lib/utils"
+import Link from "next/link";
+import { ArrowUpRight, FileText, ShieldCheck, Table2, Store, Users, Layers, UserRound } from "lucide-react";
 
-const workflows = [
+const capabilities = [
   {
-    title: "Search Planning",
-    description: "Turn a plain-language ICP into explicit filters, source choices, verification steps, and a bounded first sample.",
-    image: "/images/customisation_adapt.jpg",
-    darkImage: "/images/landing-page-dark-1.png",
-    lightImage: "/images/landing-page-light-1.png",
-    useDualMode: true,
+    title: "Live sources first",
+    description: "Use current web, maps, jobs, store, technology, company, and people data instead of relying on one stale database.",
   },
   {
-    title: "Evidence-Aware Enrichment",
-    description:
-      "Enrich companies and people with calculated columns while preserving matched, uncertain, no-match, and failed outcomes.",
-    image: "/images/audience_engagement.jpg",
-    darkImage: "/images/landing-page-dark-2.png",
-    lightImage: "/images/landing-page-light-2.png",
-    useDualMode: true,
+    title: "Evidence on every answer",
+    description: "Keep source URLs, confidence, reasoning, and match status attached to each enrichment for fast review.",
   },
   {
-    title: "Durable Automations",
-    description: "Schedule proven research workflows and keep their progress, evidence, and results in the same workspace.",
-    image: "/images/competitor_analysis_2.jpg",
-    darkImage: "/images/landing-page-dark-3.png",
-    lightImage: "/images/landing-page-light-3.png",
-    useDualMode: true,
+    title: "Tables that keep working",
+    description: "Save a useful workflow, rerun it later, and preserve row state without rebuilding the research from chat history.",
   },
-]
+];
+
+const useCases = [
+  { title: "Local businesses", description: "Find clinics, plumbers, agencies, or restaurants by location, reviews, website, and technology." },
+  { title: "Hiring signals", description: "Find companies hiring for a role and group relevant jobs into one row per employer." },
+  { title: "Tech-stack lists", description: "Discover companies using Shopify, HubSpot, Klaviyo, Recharge, or a custom technology." },
+  { title: "People enrichment", description: "Find founders, CEOs, and hiring contacts with transparent verification outcomes." },
+];
 
 export function AdaptiveWorkflowsSection() {
+  const capabilityIcons = [FileText, ShieldCheck, Table2];
+  const useCaseIcons = [Store, Users, Layers, UserRound];
   return (
-    <section id="adaptive-workflows">
-      <div className="border-b">
-        <div className="container flex flex-col gap-6 border-x py-4 max-lg:border-x lg:py-3.5">
-          <FadeIn>
-            <Badge variant="outline" className="w-fit gap-1 px-3 font-normal tracking-tight shadow-sm text-lg">
-              <Shapes className="size-4" />
-              <span>Adaptive</span>
-            </Badge>
-          </FadeIn>
-          <FadeIn delay={0.2}>
-            <h2 className="text-3xl leading-tight tracking-tight md:text-4xl lg:text-6xl font-semibold">
-              Adapt to every market shift
-            </h2>
-          </FadeIn>
-          <FadeIn delay={0.4}>
-            <p className="text-muted-foreground max-w-[600px] tracking-[-0.32px] font-light">
-              Our AI-powered platform ensures your marketing strategies are always agile, responsive, and perfectly
-              aligned with market dynamics.
-            </p>
-          </FadeIn>
+    <>
+      <section id="sources" className="py-12 sm:py-16">
+        <h2 className="text-center font-serif text-3xl tracking-[-0.04em] sm:text-4xl">Research you can inspect.</h2>
+        <div className="mt-10 grid gap-8 md:grid-cols-3 md:gap-0">
+          {capabilities.map((capability, index) => {
+            const Icon = capabilityIcons[index];
+            return <article key={capability.title} className="flex gap-4 md:border-r md:border-zinc-200 md:px-6 md:last:border-0 dark:md:border-zinc-800">
+              <Icon className="size-9 shrink-0" strokeWidth={1.4} aria-hidden="true" />
+              <div><h3 className="font-serif text-xl tracking-tight">{capability.title}</h3><p className="mt-3 text-sm leading-6 text-zinc-500 dark:text-zinc-400">{capability.description}</p></div>
+            </article>;
+          })}
         </div>
-      </div>
-
-      <div className="container border-x lg:!px-0">
-        <div className="items-center">
-          <div className="grid flex-1 max-lg:divide-y max-lg:border-x lg:grid-cols-3 lg:divide-x">
-            {workflows.map((workflow, index) => (
-              <FadeIn key={index} delay={0.1 + index * 0.1}>
-                {" "}
-                {/* Added FadeIn here */}
-                <div className="relative isolate pt-5 text-start lg:pt-5">
-                  <h3 className="mt-2 px-1 tracking-[-0.36px] lg:px-8 text-4xl">{workflow.title}</h3>
-                  <p className="text-muted-foreground px-1 py-4 tracking-[-0.32px] lg:px-8 font-light text-base">
-                    {workflow.description}
-                  </p>
-                  <div className="border-t py-4 lg:px-2">
-                    {workflow.useDualMode ? (
-                      <>
-                        <Image
-                          src={workflow.darkImage || "/placeholder.svg"}
-                          alt={`${workflow.title} dark`}
-                          width={416}
-                          height={233}
-                          className="hidden dark:block rounded-md shadow-md lg:rounded-xl lg:shadow-lg"
-                        />
-                        <Image
-                          src={workflow.lightImage || "/placeholder.svg"}
-                          alt={`${workflow.title} light`}
-                          width={416}
-                          height={233}
-                          className="block dark:hidden rounded-md shadow-md lg:rounded-xl lg:shadow-lg"
-                        />
-                      </>
-                    ) : (
-                      <Image
-                        src={workflow.image || "/placeholder.svg"}
-                        alt={workflow.title}
-                        width={416}
-                        height={233}
-                        className={`rounded-md shadow-md lg:rounded-xl lg:shadow-lg ${workflow.image === "/images/competitor_analysis_2.jpg" || workflow.image === "/images/audience_engagement.jpg" || workflow.image === "/images/customisation_adapt.jpg" ? "" : "dark:invert"}`}
-                      />
-                    )}
-                  </div>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
+      </section>
+      <section id="use-cases" className="py-12 sm:py-16">
+        <h2 className="mx-auto max-w-3xl text-center font-serif text-3xl tracking-[-0.04em] sm:text-4xl">One workspace for the markets you care about.</h2>
+        <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0">
+          {useCases.map((useCase, index) => {
+            const Icon = useCaseIcons[index];
+            return <article key={useCase.title} className="px-5 text-center lg:border-r lg:border-zinc-200 lg:last:border-0 dark:lg:border-zinc-800">
+              <Icon className="mx-auto size-9" strokeWidth={1.4} aria-hidden="true" /><h3 className="mt-4 font-serif text-xl">{useCase.title}</h3><p className="mt-3 text-sm leading-6 text-zinc-500 dark:text-zinc-400">{useCase.description}</p>
+            </article>;
+          })}
         </div>
-      </div>
-
-      <div className="h-8 w-full border-y md:h-12 lg:h-[112px]">
-        <div className="container h-full w-full border-x" />
-      </div>
-    </section>
-  )
+      </section>
+      <section id="pricing" className="pb-20 pt-12 text-center">
+        <h2 className="font-serif text-3xl tracking-[-0.04em] sm:text-4xl">Start with one qualified lead list.</h2>
+        <Link href="/signup" className="mt-7 inline-flex h-11 items-center gap-2 rounded-md bg-zinc-950 px-6 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950">Try Zooptics<ArrowUpRight className="size-4" aria-hidden="true" /></Link>
+      </section>
+    </>
+  );
 }

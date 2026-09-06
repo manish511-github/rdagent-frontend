@@ -9,9 +9,11 @@ import { usePathname } from "next/navigation";
 
 interface LayoutProps {
   children: ReactNode;
+  headerTitle?: string;
+  headerActions?: ReactNode;
 }
 
-export default function Layout({ children }: LayoutProps) {
+export default function Layout({ children, headerTitle, headerActions }: LayoutProps) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
@@ -31,7 +33,7 @@ export default function Layout({ children }: LayoutProps) {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col" id="agent-detail-page-container">
         <header className="h-10 border-b border-gray-200 dark:border-[#1F1F23]">
-          <TopNav />
+          <TopNav title={headerTitle} actions={headerActions} />
         </header>
         <main
           className={`min-h-0 min-w-0 flex-1 ${

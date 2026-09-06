@@ -13,13 +13,20 @@ import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import type { ReactNode } from "react";
 
 interface BreadcrumbItem {
   label: string;
   href?: string;
 }
 
-export default function TopNav() {
+export default function TopNav({
+  title,
+  actions,
+}: {
+  title?: string;
+  actions?: ReactNode;
+}) {
   const pathname = usePathname();
   const userInfo = useSelector((state: RootState) => state.user.info);
   
@@ -34,7 +41,7 @@ export default function TopNav() {
   if (isSettingsPage) {
     breadcrumbs = [{ label: "Settings" }];
   } else if (isAgentChatPage) {
-    breadcrumbs.push({ label: "Agent Chat" });
+    breadcrumbs.push({ label: title || "Agent Chat" });
   } else if (isAutomationsPage) {
     breadcrumbs.push({ label: "Automations" });
   } else {
@@ -43,7 +50,7 @@ export default function TopNav() {
 
   return (
     <nav className="px-2 sm:px-4 flex items-center justify-between bg-white dark:bg-black border-b border-gray-200 dark:border-[#1F1F23] h-full">
-      <div className="font-medium text-xs flex items-center space-x-1 flex-1 min-w-0 overflow-x-auto whitespace-nowrap pr-2">
+      <div className="font-medium text-xs flex items-center space-x-1 flex-1 min-w-0 whitespace-nowrap pr-2">
         {breadcrumbs.map((item, index) => (
           <div key={item.label} className="flex items-center">
             {index > 0 && (
@@ -57,7 +64,7 @@ export default function TopNav() {
                 {item.label}
               </Link>
             ) : (
-              <span className="text-gray-900 dark:text-gray-100">
+              <span className="block max-w-[min(52vw,36rem)] truncate text-gray-900 dark:text-gray-100">
                 {item.label}
               </span>
             )}
@@ -66,6 +73,7 @@ export default function TopNav() {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4 ml-auto">
+        {actions}
         <ThemeToggle />
 
         <DropdownMenu>

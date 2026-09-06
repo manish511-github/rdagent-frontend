@@ -1,94 +1,56 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import Image from "next/image"
-import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { ChevronRight, TrendingUp, Users, Zap } from "lucide-react"
-import { FadeIn } from "@/components/animations/fade-in"
-import { useState, useEffect } from "react"
+import { type FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowUpRight } from "lucide-react";
+
+const examplePrompts = [
+  {
+    label: "Shopify brands",
+    prompt: "Find Shopify fitness supplement brands using Klaviyo with 1,000+ customer reviews.",
+  },
+  {
+    label: "Backend hiring",
+    prompt: "Find companies hiring backend engineers globally in the last 60 days.",
+  },
+  {
+    label: "Funded AI startups",
+    prompt: "Find AI startups in San Francisco that recently raised Seed or Series A funding.",
+  },
+];
 
 export function HeroSection() {
-  const [mounted, setMounted] = useState(false)
-  
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-  
+  const router = useRouter();
+  const [prompt, setPrompt] = useState("");
+
+  const submitPrompt = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const value = prompt.trim();
+    if (!value) return;
+
+    window.localStorage.setItem("zooptics:pending-research-prompt", value);
+    router.push(`/signup?prompt=${encodeURIComponent(value)}`);
+  };
+
   return (
-    <section className="overflow-hidden">
-      <div className="border-y">
-        <div className="container border-x py-20 md:py-28">
-          <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center">
-            <FadeIn>
-              <h1 className="text-balance text-center text-5xl font-semibold tracking-tighter md:text-6xl lg:text-7xl leading-tight">
-                Turn Research Requests Into Qualified Lead Tables
-              </h1>
-            </FadeIn>
-
-            <FadeIn delay={0.2}>
-              <p className="text-muted-foreground mx-auto mt-12 max-w-xl text-center text-lg md:text-xl">
-                Zooptics plans searches, runs structured enrichments, verifies evidence, and keeps every result in a durable workspace you can review and automate.
-              </p>
-            </FadeIn>
-
-            <FadeIn delay={0.4}>
-              <Link href="/signup" className="mt-8 inline-block">
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                >
-                  <Button
-                    size="sm"
-                    className="rounded-full bg-black text-white border border-black hover:bg-gray-800 dark:bg-white dark:text-black dark:border-white dark:hover:bg-gray-200 gap-1 whitespace-nowrap"
-                  >
-                    <span className="relative z-10">Get started</span>
-                    <motion.div
-                      animate={{ x: [0, 2, 0] }}
-                      transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY, delay: 0.5 }}
-                      className="relative z-10"
-                    >
-                      <ChevronRight className="size-3" />
-                    </motion.div>
-                  </Button>
-                </motion.div>
-              </Link>
-            </FadeIn>
-
-            <FadeIn delay={0.6}>
-              <div className="mt-12 flex items-center justify-center">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.8 }}
-                  whileHover={{ scale: 1.02 }}
-                  className="relative"
-                >
-                  <Image
-                    src="/images/landing-page-dark-4.png"
-                    alt="ANIFaith Dashboard"
-                    width={990}
-                    height={600}
-                    className="hidden dark:block rounded-lg shadow-2xl"
-                    priority
-                  />
-                  <Image
-                    src="/images/landing-page-light-4.png"
-                    alt="ANIFaith Dashboard"
-                    width={990}
-                    height={600}
-                    className="block dark:hidden rounded-lg shadow-2xl"
-                    priority
-                  />
-                </motion.div>
-              </div>
-            </FadeIn>
-          </div>
+    <section className="px-1 pb-8 pt-14 text-center sm:pt-20">
+      <h1 className="mx-auto max-w-[880px] text-balance font-serif text-[clamp(2.7rem,5.7vw,5.2rem)] font-normal leading-[1.06] tracking-[-0.055em]">
+        Turn any market into a qualified lead list.
+      </h1>
+      <p className="mx-auto mt-6 max-w-2xl text-balance text-base leading-7 text-zinc-500 dark:text-zinc-400 sm:text-lg">
+        Describe the companies you want. Research the sources. Review the evidence.
+      </p>
+      <form onSubmit={submitPrompt} className="mx-auto mt-8 max-w-[760px]">
+        <label htmlFor="research-prompt" className="sr-only">Describe your ideal customer</label>
+        <textarea id="research-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Describe your ideal customer…" rows={3}
+          className="w-full resize-none rounded-lg border border-zinc-300 bg-white p-5 text-base leading-7 text-zinc-900 shadow-sm placeholder:text-zinc-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white" />
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          {examplePrompts.map((example) => <button key={example.label} type="button" onClick={() => setPrompt(example.prompt)} className="min-h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-800">{example.label}</button>)}
         </div>
-      </div>
-
-
+        <button type="submit" disabled={!prompt.trim()} className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-md bg-zinc-950 px-7 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-zinc-950">
+          Build my list <ArrowUpRight className="size-4" aria-hidden="true" />
+        </button>
+      </form>
     </section>
-  )
+  );
 }

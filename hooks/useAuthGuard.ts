@@ -69,6 +69,9 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}): UseAuthGuardRet
   return {
     isAuthenticated,
     isLoading,
-    showRedirectMessage: showRedirectMessage && ((requireAuth && !isAuthenticated) || (!requireAuth && isAuthenticated))
+    showRedirectMessage:
+      showRedirectMessage &&
+      ((requireAuth && isAuthenticated === false) ||
+        (!requireAuth && isAuthenticated === true))
   }
 }

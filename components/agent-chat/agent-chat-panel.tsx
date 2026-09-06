@@ -11,7 +11,6 @@ import {
 import {
   Conversation,
   ConversationContent,
-  ConversationEmptyState,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
 import {
@@ -53,12 +52,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { AgentConversationSummary, ChatBlock } from "@/lib/agent-chat/types";
 import {
+  ArrowUp,
   Check,
   CircleHelp,
   History,
   Loader2,
-  RotateCcw,
+  Plus,
+  ShieldCheck,
   Sparkles,
+  Square,
 } from "lucide-react";
 
 function cellText(value: unknown): string {
@@ -582,6 +584,201 @@ function ChatBlockView({
   }
 }
 
+function AgentComposer({
+  draft,
+  isStreaming,
+  pendingQuestions,
+  canSend,
+  onDraftChange,
+  onSend,
+  onStop,
+  variant = "compact",
+}: {
+  draft: string;
+  isStreaming: boolean;
+  pendingQuestions: Extract<ChatBlock, { kind: "questions" }> | null;
+  canSend: boolean;
+  onDraftChange: (value: string) => void;
+  onSend: (message: string) => void;
+  onStop: () => void;
+  variant?: "launch" | "compact";
+}) {
+  const isLaunch = variant === "launch";
+
+  const submitDraft = () => {
+    if (!canSend) return;
+    const value = draft;
+    onDraftChange("");
+    onSend(value);
+  };
+
+  return (
+    <form
+      className={`w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.08)] transition-shadow focus-within:border-gray-300 focus-within:shadow-[0_14px_42px_rgba(15,23,42,0.12)] dark:border-[#2A2A2E] dark:bg-[#0B0B0D] ${
+        isLaunch ? "min-h-[164px]" : "min-h-[126px]"
+      }`}
+      onSubmit={(event) => {
+        event.preventDefault();
+        submitDraft();
+      }}
+    >
+      <Textarea
+        value={draft}
+        onChange={(event) => onDraftChange(event.target.value)}
+        placeholder={
+          pendingQuestions
+            ? "Answer the questions above to continue"
+            : isLaunch
+              ? "Describe the companies, people, or signals you want to research…"
+              : "Ask Zooptics to refine or continue…"
+        }
+        className={`max-h-44 resize-none rounded-none border-0 bg-transparent px-5 pt-4 text-[15px] leading-6 shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 ${
+          isLaunch ? "min-h-[108px]" : "min-h-[72px]"
+        }`}
+        disabled={isStreaming || !!pendingQuestions}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            submitDraft();
+          }
+        }}
+      />
+      <div className="flex items-center justify-between gap-3 px-3 pb-3">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="size-9 rounded-xl border border-gray-200 text-muted-foreground dark:border-[#2A2A2E]"
+            disabled
+            title="File attachments are not available yet"
+            aria-label="File attachments are not available yet"
+          >
+            <Plus className="size-4" />
+          </Button>
+          <div className="flex h-9 items-center gap-2 rounded-xl px-2.5 text-sm text-foreground">
+            <Sparkles className="size-4 text-blue-600" />
+            <span className="truncate">Deep research</span>
+          </div>
+        </div>
+        {isStreaming ? (
+          <Button
+            type="button"
+            size="icon"
+            className="size-10 shrink-0 rounded-xl"
+            onClick={onStop}
+            aria-label="Stop response"
+          >
+            <Square className="size-3.5 fill-current" />
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            size="icon"
+            className="size-10 shrink-0 rounded-xl"
+            disabled={!canSend}
+            aria-label="Send message"
+          >
+            <ArrowUp className="size-4" />
+          </Button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+function AgentChatFloatingActions({
+  conversationId,
+  recentConversations,
+  isLoadingConversations,
+  isStreaming,
+  onOpenConversation,
+  onRefreshConversations,
+  onReset,
+}: {
+  conversationId?: string | null;
+  recentConversations: AgentConversationSummary[];
+  isLoadingConversations?: boolean;
+  isStreaming: boolean;
+  onOpenConversation: (conversationId: string) => void;
+  onRefreshConversations: () => void;
+  onReset: () => void;
+}) {
+  return (
+    <div className="absolute right-4 top-4 z-30 flex shrink-0 items-center gap-1 rounded-lg border border-gray-200 bg-white/90 p-1 shadow-sm backdrop-blur dark:border-[#2A2A2E] dark:bg-black/80">
+      <DropdownMenu
+        onOpenChange={(open) => {
+          if (open) onRefreshConversations();
+        }}
+      >
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 px-2.5"
+            disabled={isStreaming}
+            title="Recent chats"
+            aria-label="Recent chats"
+          >
+            {isLoadingConversations ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <History className="size-3.5" />
+            )}
+            <span>Recent</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-80">
+          <DropdownMenuLabel className="text-xs text-muted-foreground">
+            Recent chats
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {recentConversations.length > 0 ? (
+            recentConversations.map((conversation) => (
+              <DropdownMenuItem
+                key={conversation.conversation_id}
+                className="items-start py-2"
+                onSelect={() => onOpenConversation(conversation.conversation_id)}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{conversation.title}</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {new Date(conversation.last_message_at).toLocaleString([], {
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+                {conversation.conversation_id === conversationId ? (
+                  <Check className="mt-0.5 size-4 text-blue-600" />
+                ) : null}
+              </DropdownMenuItem>
+            ))
+          ) : (
+            <p className="px-2 py-4 text-center text-xs text-muted-foreground">
+              No previous chats yet
+            </p>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 gap-1.5 px-2.5"
+        onClick={onReset}
+        disabled={isStreaming || !conversationId}
+      >
+        <Plus className="size-3.5" />
+        <span className="hidden sm:inline">New chat</span>
+      </Button>
+    </div>
+  );
+}
+
 export function AgentChatPanel({
   blocks,
   isStreaming,
@@ -589,7 +786,6 @@ export function AgentChatPanel({
   activeExecutionId,
   isCancellingExecution,
   conversationId,
-  conversationTitle,
   recentConversations,
   isLoadingConversations,
   onSend,
@@ -606,7 +802,6 @@ export function AgentChatPanel({
   activeExecutionId?: string | null;
   isCancellingExecution?: boolean;
   conversationId?: string | null;
-  conversationTitle: string;
   recentConversations: AgentConversationSummary[];
   isLoadingConversations?: boolean;
   onSend: (message: string) => void;
@@ -630,95 +825,51 @@ export function AgentChatPanel({
     () => draft.trim().length > 0 && !isStreaming && !pendingQuestions,
     [draft, isStreaming, pendingQuestions]
   );
+  const isLaunchState = blocks.length === 0;
 
   return (
-    <div className="flex h-full min-h-0 flex-col border-r border-gray-200 bg-gray-50 dark:border-[#1F1F23] dark:bg-black">
-      <div className="flex items-center justify-between gap-2 border-b border-gray-200 bg-white px-4 py-3 dark:border-[#1F1F23] dark:bg-black">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
-            <Sparkles className="size-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{conversationTitle}</p>
-            <p className="text-xs text-muted-foreground">
-              {conversationId ? "Conversation workspace" : "Start a new research chat"}
-            </p>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <DropdownMenu
-            onOpenChange={(open) => {
-              if (open) onRefreshConversations();
-            }}
-          >
-            <DropdownMenuTrigger asChild>
-              <Button type="button" variant="ghost" size="sm" disabled={isStreaming}>
-                {isLoadingConversations ? (
-                  <Loader2 className="mr-1.5 size-3.5 animate-spin" />
-                ) : (
-                  <History className="mr-1.5 size-3.5" />
-                )}
-                Recent
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel className="text-xs text-muted-foreground">
-                Recent chats
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {recentConversations.length > 0 ? (
-                recentConversations.map((conversation) => (
-                  <DropdownMenuItem
-                    key={conversation.conversation_id}
-                    className="items-start py-2"
-                    onSelect={() => onOpenConversation(conversation.conversation_id)}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{conversation.title}</p>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">
-                        {new Date(conversation.last_message_at).toLocaleString([], {
-                          month: "short",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                    {conversation.conversation_id === conversationId ? (
-                      <Check className="mt-0.5 size-4 text-blue-600" />
-                    ) : null}
-                  </DropdownMenuItem>
-                ))
-              ) : (
-                <p className="px-2 py-4 text-center text-xs text-muted-foreground">
-                  No previous chats yet
-                </p>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onReset}
-            disabled={isStreaming}
-          >
-            <RotateCcw className="mr-1.5 size-3.5" />
-            New chat
-          </Button>
-        </div>
-      </div>
-
-      <Conversation className="min-h-0 flex-1">
-        <ConversationContent className="mx-auto w-full max-w-3xl gap-4">
-          {blocks.length === 0 ? (
-            <ConversationEmptyState
-              icon={<Sparkles className="size-6" />}
-              title="Start a lead-gen turn"
-              description='Try “Find 15 US marketing automation companies with 20–200 employees.”'
+    <div className="relative flex h-full min-h-0 flex-col border-r border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-black">
+      <AgentChatFloatingActions
+        conversationId={conversationId}
+        recentConversations={recentConversations}
+        isLoadingConversations={isLoadingConversations}
+        isStreaming={isStreaming}
+        onOpenConversation={onOpenConversation}
+        onRefreshConversations={onRefreshConversations}
+        onReset={onReset}
+      />
+      {isLaunchState ? (
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6 py-12 sm:px-10">
+          <div className="w-full max-w-[840px] -translate-y-[6vh]">
+            <div className="mb-8 text-center">
+              <h1 className="text-balance text-3xl font-semibold tracking-[-0.035em] text-foreground sm:text-4xl">
+                What companies do you want to find?
+              </h1>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+                Search across companies, people, hiring signals, and the web—then turn the results into a live workspace.
+              </p>
+            </div>
+            <AgentComposer
+              draft={draft}
+              isStreaming={isStreaming}
+              pendingQuestions={pendingQuestions}
+              canSend={canSend}
+              onDraftChange={setDraft}
+              onSend={onSend}
+              onStop={onStop}
+              variant="launch"
             />
-          ) : (
-            blocks.map((block) => (
+            <p className="mt-5 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <ShieldCheck className="size-4" />
+              Zooptics can search, verify, and build a live table.
+            </p>
+            {error ? <p className="mt-3 text-center text-xs text-destructive">{error}</p> : null}
+          </div>
+        </div>
+      ) : (
+      <Conversation className="min-h-0 flex-1 bg-gray-50/70 dark:bg-black">
+        <ConversationContent className="mx-auto w-full max-w-5xl gap-4">
+          {blocks.map((block) => (
               <ChatBlockView
                 key={block.id}
                 block={block}
@@ -729,8 +880,7 @@ export function AgentChatPanel({
                 }
                 automationActions={automationActions}
               />
-            ))
-          )}
+            ))}
           {isStreaming ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="size-3.5 animate-spin" />
@@ -755,10 +905,12 @@ export function AgentChatPanel({
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
+      )}
 
-      <div className="relative border-t border-gray-200 bg-white px-4 py-3 dark:border-[#1F1F23] dark:bg-black">
+      {!isLaunchState ? (
+      <div className="relative border-t border-gray-200 bg-white px-4 py-4 dark:border-[#1F1F23] dark:bg-black">
         {pendingQuestions ? (
-          <div className="absolute bottom-full left-4 right-4 z-30 mx-auto mb-2 w-auto max-w-3xl">
+          <div className="absolute bottom-full left-4 right-4 z-30 mx-auto mb-2 w-auto max-w-5xl">
             <QuestionsCard
               key={pendingQuestions.id}
               block={pendingQuestions}
@@ -767,47 +919,22 @@ export function AgentChatPanel({
             />
           </div>
         ) : null}
-        <form
-          className="mx-auto flex w-full max-w-3xl gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!canSend) return;
-            const value = draft;
-            setDraft("");
-            onSend(value);
-          }}
-        >
-          <Textarea
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder={
-              pendingQuestions
-                ? "Answer the questions above to continue"
-                : "Ask the agent to find leads, build a table, or continue…"
-            }
-            className="min-h-[52px] max-h-40 resize-y"
-            disabled={isStreaming || !!pendingQuestions}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                if (!canSend) return;
-                const value = draft;
-                setDraft("");
-                onSend(value);
-              }
-            }}
+        <div className="mx-auto w-full max-w-5xl">
+          <AgentComposer
+            draft={draft}
+            isStreaming={isStreaming}
+            pendingQuestions={pendingQuestions}
+            canSend={canSend}
+            onDraftChange={setDraft}
+            onSend={onSend}
+            onStop={onStop}
           />
-          {isStreaming ? (
-            <Button type="button" variant="secondary" onClick={onStop}>
-              Stop
-            </Button>
-          ) : (
-            <Button type="submit" disabled={!canSend}>
-              Send
-            </Button>
-          )}
-        </form>
+          <p className="mt-2 text-center text-[11px] text-muted-foreground">
+            Zooptics may make mistakes. Verify important information.
+          </p>
+        </div>
       </div>
+      ) : null}
     </div>
   );
 }

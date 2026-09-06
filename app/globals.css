@@ -149,6 +149,88 @@
   animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* ------------------------------------------------------------------ */
+/* Live lead-generation visualizer (landing "workflow" section)        */
+/* ------------------------------------------------------------------ */
+
+@keyframes feature-float {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: translateY(-124px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-136px) scale(0.96);
+  }
+}
+
+.animate-feature-float {
+  animation: feature-float 5.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes feature-feed {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-feature-feed {
+  animation: feature-feed 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes feature-row-in {
+  0% {
+    opacity: 0.4;
+    transform: translateY(6px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.animate-feature-row-in {
+  animation: feature-row-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes feature-float-row {
+  0% {
+    transform: translateY(4px);
+  }
+  100% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-feature-float-row {
+  animation: feature-float-row 6s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-feature-float,
+  .animate-feature-feed,
+  .animate-feature-row-in,
+  .animate-feature-float-row {
+    animation: none;
+  }
+}
+
 /* Define custom font classes using the CSS variables */
 .font-playfair {
   font-family: var(--font-playfair-display);

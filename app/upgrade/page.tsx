@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import Cookies from "js-cookie";
 import { Loader2, AlertCircle } from "lucide-react";
 import { useSelector } from 'react-redux';
+import type { RootState } from "@/store/store";
 import { selectUserPlanId, selectUserBillingType } from '@/store/slices/userSlice';
 
 export default function UpgradePage() {
@@ -15,16 +16,16 @@ export default function UpgradePage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showRedirectMessage, setShowRedirectMessage] = useState(false);
-  // Debug: log the full Redux state
-  useSelector(state => { return state; });
-  const currentPlanId = useSelector(state => {
-    const value = selectUserPlanId(state);
-    return value;
-  });
-  const currentBillingType = useSelector(state => {
-    const value = selectUserBillingType(state);
-    return value;
-  });
+  const rawCurrentPlanId = useSelector((state: RootState) => selectUserPlanId(state));
+  const currentPlanId =
+    typeof rawCurrentPlanId === "number"
+      ? rawCurrentPlanId
+      : typeof rawCurrentPlanId === "string"
+        ? Number.parseInt(rawCurrentPlanId, 10)
+        : null;
+  const currentBillingType = useSelector(
+    (state: RootState) => selectUserBillingType(state) ?? undefined
+  );
 
   useEffect(() => {
     // Check authentication status
@@ -105,10 +106,10 @@ export default function UpgradePage() {
   return (
     <div className="min-h-screen bg-background">
       <UpgradePlan 
-        currentPlanId={currentPlanId ?? undefined}
+        currentPlanId={Number.isFinite(currentPlanId) ? currentPlanId : undefined}
         currentBillingType={currentBillingType}
         showCurrentPlan={true}
       />
     </div>
   );
-} 
+}

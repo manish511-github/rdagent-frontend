@@ -67,7 +67,7 @@ const contentData = [
     views: 3245,
     likes: 142,
     shares: 87,
-    comments: 32,
+    commentsCount: 32,
     featuredImage: "/marketing-campaign-brainstorm.png",
     gallery: [
       { type: "image", url: "/marketing-campaign-brainstorm.png", caption: "AI-powered marketing campaign planning" },

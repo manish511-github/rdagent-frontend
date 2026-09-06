@@ -67,12 +67,12 @@ export default function AgentChatPage() {
   }
 
   return (
-    <Layout>
+    <Layout headerTitle={currentConversationTitle}>
       <div className="flex h-[calc(100vh-2.5rem)] min-h-0 overflow-hidden">
         <div
           className={
             workspaceTables.length > 0
-              ? "h-full w-[38%] min-w-[420px] max-w-[560px] shrink-0"
+              ? "h-full w-[44%] min-w-[460px] max-w-[680px] shrink-0"
               : "h-full w-full"
           }
         >
@@ -83,7 +83,6 @@ export default function AgentChatPage() {
             activeExecutionId={activeExecutionId}
             isCancellingExecution={isCancellingExecution}
             conversationId={conversationId}
-            conversationTitle={currentConversationTitle}
             recentConversations={recentConversations}
             isLoadingConversations={isLoadingConversations}
             onSend={sendMessage}
